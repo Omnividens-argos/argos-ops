@@ -1,0 +1,63 @@
+# =============================================================================
+# argos-ops — .gitignore
+# =============================================================================
+
+# Secrets (CRITIQUE — ne jamais committer)
+.env
+.env.local
+*.local
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+service-account*.json
+credentials*.json
+token.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# uv
+.venv/
+.uv/
+
+# Données générées
+data/embeddings/
+logs/
+*.db
+*.sqlite
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/
+.claude/settings.local.json
+*.swp
+*.swo
+*.bak
+
+# Node (futur frontend ops dashboard)
+node_modules/
+dist/
+.next/
