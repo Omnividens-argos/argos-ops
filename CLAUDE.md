@@ -1,8 +1,8 @@
 # Argos Ops — Instructions projet (CLAUDE.md)
 
 > Lue par Claude Code à chaque session. **Concise et actionnable**. Le détail
-> stratégique va dans `../the good guy/docs/ARGOS_OPS_PLAN.md` et les détails
-> techniques dans `docs/`.
+> stratégique va dans [`docs/ARGOS_OPS_PLAN.md`](docs/ARGOS_OPS_PLAN.md) et les
+> détails techniques dans `docs/`.
 
 ---
 
@@ -136,4 +136,5 @@ Inventaire prévu (P18) :
 - [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) — RGPD / AI Act / Bloctel
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — journal des décisions structurantes
 - [`docs/PROGRESS.md`](docs/PROGRESS.md) — état d'avancement
-- [`../the good guy/docs/ARGOS_OPS_PLAN.md`](../the%20good%20guy/docs/ARGOS_OPS_PLAN.md) — plan stratégique 19 parties
+- [`docs/ARGOS_OPS_PLAN.md`](docs/ARGOS_OPS_PLAN.md) — plan stratégique 19 parties
+- [`docs/MASTER_PROMPT.md`](docs/MASTER_PROMPT.md) — prompt de session pour Claude Code
