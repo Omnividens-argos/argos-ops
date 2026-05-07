@@ -103,9 +103,9 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
 - **Sessions terminées :** 3 / 19 (P0 + P1 + P2)
-- **Phase en cours :** Sprint 0 (Bootstrap)
+- **Phase en cours :** Sprint 0 — P3 en cours (bloc auto livré, bloc manuel à venir)
 - **Dernière partie done :** P2 — Bootstrap projet (2026-05-07)
-- **Prochaine partie :** P3 — Schéma CRM + Knowledge Base
+- **Prochaine partie :** P3 — Schéma CRM + Knowledge Base (bloc manuel : DB serveur + rédaction KB)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé, branch protection active sur `main`)
 
 ---
@@ -118,9 +118,12 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 
 ## Skills locaux installés
 
-> Vide pour l'instant. Premier skill créé en P4 (`digest-builder`).
+- **`ui-ux-pro-max`** — design intelligence (50+ styles, 161 palettes, 57 font pairings,
+  161 product types, 99 UX guidelines). Source : [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill).
+  À invoquer en P16 (Admin Control Panel) AVANT toute écriture de code frontend pour figer
+  palette / typo / densité / layout. Nécessite Python 3.x pour le search script.
 
-Inventaire prévu (P18) :
+Inventaire métier prévu (P18) :
 `digest-builder` · `gmail-ops` · `email-classifier` · `kb-rag` · `stripe-ops` ·
 `chat-orchestrator` · `content-writer` · `content-scheduler` · `serp-analyzer` ·
 `ads-optimizer` · `ads-creative-writer` · `lead-enricher` · `outbound-personalizer` ·

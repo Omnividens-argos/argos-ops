@@ -1,0 +1,340 @@
+"""Repository CRUD pour le CRM Argos Ops.
+
+Fonctions async qui prennent une ``AsyncSession`` en paramètre. Pas de
+classe : chaque agent compose ce dont il a besoin et garde la transaction
+sous contrôle (cf. ``session_scope`` dans ``db.py``).
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from decimal import Decimal
+from typing import Any
+
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col, select
+
+from argos_ops.crm.models import (
+    AgentConfig,
+    AgentRun,
+    Breaker,
+    Company,
+    Interaction,
+    KBChunk,
+    Lead,
+    Ticket,
+)
+
+
+# =============================================================================
+# Companies
+# =============================================================================
+async def get_or_create_company(
+    session: AsyncSession,
+    *,
+    domain: str,
+    name: str | None = None,
+    source: str | None = None,
+) -> Company:
+    """Idempotent : un company par domaine."""
+    stmt = select(Company).where(col(Company.domain) == domain)
+    company = (await session.execute(stmt)).scalar_one_or_none()
+    if company is not None:
+        return company
+    company = Company(domain=domain, name=name, source=source)
+    session.add(company)
+    await session.flush()
+    return company
+
+
+# =============================================================================
+# Leads
+# =============================================================================
+async def get_or_create_lead(
+    session: AsyncSession,
+    *,
+    email: str,
+    company_id: int | None = None,
+    full_name: str | None = None,
+    job_title: str | None = None,
+) -> Lead:
+    stmt = select(Lead).where(col(Lead.email) == email)
+    lead = (await session.execute(stmt)).scalar_one_or_none()
+    if lead is not None:
+        return lead
+    lead = Lead(
+        email=email,
+        company_id=company_id,
+        full_name=full_name,
+        job_title=job_title,
+        status="new",
+    )
+    session.add(lead)
+    await session.flush()
+    return lead
+
+
+async def update_lead_status(
+    session: AsyncSession, lead_id: int, status: str, bant_score: int | None = None
+) -> None:
+    lead = await session.get(Lead, lead_id)
+    if lead is None:
+        raise ValueError(f"Lead {lead_id} introuvable")
+    lead.status = status
+    if bant_score is not None:
+        lead.bant_score = bant_score
+    lead.updated_at = datetime.now(UTC)
+
+
+# =============================================================================
+# Interactions
+# =============================================================================
+async def add_interaction(
+    session: AsyncSession,
+    *,
+    lead_id: int | None,
+    channel: str,
+    direction: str,
+    agent_name: str,
+    subject: str | None = None,
+    body: str | None = None,
+    judge_score: int | None = None,
+    judge_verdict: str | None = None,
+) -> Interaction:
+    interaction = Interaction(
+        lead_id=lead_id,
+        channel=channel,
+        direction=direction,
+        agent_name=agent_name,
+        subject=subject,
+        body=body,
+        judge_score=judge_score,
+        judge_verdict=judge_verdict,
+    )
+    session.add(interaction)
+    await session.flush()
+    return interaction
+
+
+# =============================================================================
+# Tickets
+# =============================================================================
+async def create_ticket(
+    session: AsyncSession,
+    *,
+    lead_id: int | None,
+    summary: str,
+    priority: str = "P2",
+    status: str = "open",
+) -> Ticket:
+    ticket = Ticket(lead_id=lead_id, summary=summary, priority=priority, status=status)
+    session.add(ticket)
+    await session.flush()
+    return ticket
+
+
+async def close_ticket(session: AsyncSession, ticket_id: int, resolution: str) -> None:
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None:
+        raise ValueError(f"Ticket {ticket_id} introuvable")
+    ticket.status = "closed"
+    ticket.resolution = resolution
+    ticket.closed_at = datetime.now(UTC)
+
+
+# =============================================================================
+# AgentRuns
+# =============================================================================
+async def start_agent_run(
+    session: AsyncSession, *, agent_name: str, command: str | None = None
+) -> AgentRun:
+    run = AgentRun(agent_name=agent_name, command=command, status="success")
+    session.add(run)
+    await session.flush()
+    return run
+
+
+async def complete_agent_run(
+    session: AsyncSession,
+    run_id: int,
+    *,
+    status: str,
+    output_summary: str | None = None,
+    error: str | None = None,
+    cost_estimate_eur: Decimal | None = None,
+) -> None:
+    run = await session.get(AgentRun, run_id)
+    if run is None:
+        raise ValueError(f"AgentRun {run_id} introuvable")
+    run.status = status
+    run.ended_at = datetime.now(UTC)
+    run.output_summary = output_summary
+    run.error = error
+    run.cost_estimate_eur = cost_estimate_eur
+
+
+# =============================================================================
+# Knowledge Base — upsert + similarité
+# =============================================================================
+async def upsert_kb_chunk(
+    session: AsyncSession,
+    *,
+    doc_path: str,
+    chunk_index: int,
+    content: str,
+    content_hash: str,
+    embedding: list[float] | None,
+) -> bool:
+    """Upsert sur (doc_path, chunk_index). Retourne True si insertion/update,
+    False si le chunk existait avec le même hash (idempotent — pas de
+    re-embedding inutile).
+    """
+    existing_stmt = select(KBChunk).where(
+        (col(KBChunk.doc_path) == doc_path) & (col(KBChunk.chunk_index) == chunk_index)
+    )
+    existing = (await session.execute(existing_stmt)).scalar_one_or_none()
+    if existing is not None and existing.content_hash == content_hash:
+        return False
+
+    stmt = (
+        pg_insert(KBChunk)
+        .values(
+            doc_path=doc_path,
+            chunk_index=chunk_index,
+            content=content,
+            content_hash=content_hash,
+            embedding=embedding,
+            updated_at=datetime.now(UTC),
+        )
+        .on_conflict_do_update(
+            index_elements=["doc_path", "chunk_index"],
+            set_={
+                "content": content,
+                "content_hash": content_hash,
+                "embedding": embedding,
+                "updated_at": datetime.now(UTC),
+            },
+        )
+    )
+    await session.execute(stmt)
+    return True
+
+
+async def search_kb_similar(
+    session: AsyncSession,
+    *,
+    query_embedding: list[float],
+    limit: int = 5,
+) -> list[tuple[KBChunk, float]]:
+    """Recherche cosine. Retourne ``[(chunk, distance), ...]`` triés par
+    similarité décroissante (distance croissante). Distance pgvector = 1 - cos.
+    """
+    sql = text(
+        """
+        SELECT id, doc_path, chunk_index, content, content_hash, updated_at,
+               embedding <=> CAST(:q AS vector) AS distance
+        FROM kb_chunks
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> CAST(:q AS vector)
+        LIMIT :limit
+        """
+    )
+    result = await session.execute(sql, {"q": str(query_embedding), "limit": limit})
+    rows = result.all()
+    out: list[tuple[KBChunk, float]] = []
+    for row in rows:
+        chunk = KBChunk(
+            id=row.id,
+            doc_path=row.doc_path,
+            chunk_index=row.chunk_index,
+            content=row.content,
+            content_hash=row.content_hash,
+            updated_at=row.updated_at,
+        )
+        out.append((chunk, float(row.distance)))
+    return out
+
+
+# =============================================================================
+# Circuit breakers
+# =============================================================================
+async def is_breaker_tripped(session: AsyncSession, name: str) -> bool:
+    breaker = await session.get(Breaker, name)
+    if breaker is None:
+        return False
+    if not breaker.tripped:
+        return False
+    if breaker.reset_after is not None and breaker.reset_after <= datetime.now(UTC):
+        breaker.tripped = False
+        return False
+    return True
+
+
+async def trip_breaker(
+    session: AsyncSession,
+    name: str,
+    reason: str,
+    reset_after: datetime | None = None,
+) -> None:
+    breaker = await session.get(Breaker, name)
+    now = datetime.now(UTC)
+    if breaker is None:
+        breaker = Breaker(
+            name=name, tripped=True, tripped_at=now, reason=reason, reset_after=reset_after
+        )
+        session.add(breaker)
+    else:
+        breaker.tripped = True
+        breaker.tripped_at = now
+        breaker.reason = reason
+        breaker.reset_after = reset_after
+
+
+async def reset_breaker(session: AsyncSession, name: str) -> None:
+    breaker = await session.get(Breaker, name)
+    if breaker is None:
+        return
+    breaker.tripped = False
+    breaker.reason = None
+    breaker.reset_after = None
+
+
+# =============================================================================
+# Agent config (pilotage P16 Admin Panel)
+# =============================================================================
+async def get_agent_config(session: AsyncSession, agent_name: str) -> AgentConfig | None:
+    return await session.get(AgentConfig, agent_name)
+
+
+async def upsert_agent_config(session: AsyncSession, agent_name: str, **fields: Any) -> AgentConfig:
+    config = await session.get(AgentConfig, agent_name)
+    if config is None:
+        config = AgentConfig(agent_name=agent_name, **fields)
+        session.add(config)
+    else:
+        for key, value in fields.items():
+            setattr(config, key, value)
+        config.updated_at = datetime.now(UTC)
+    await session.flush()
+    return config
+
+
+__all__ = [
+    "add_interaction",
+    "close_ticket",
+    "complete_agent_run",
+    "create_ticket",
+    "get_agent_config",
+    "get_or_create_company",
+    "get_or_create_lead",
+    "is_breaker_tripped",
+    "reset_breaker",
+    "search_kb_similar",
+    "start_agent_run",
+    "trip_breaker",
+    "update_lead_status",
+    "upsert_agent_config",
+    "upsert_kb_chunk",
+]
