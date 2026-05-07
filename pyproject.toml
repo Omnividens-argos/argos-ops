@@ -25,8 +25,8 @@ dependencies = [
   "uvicorn[standard]>=0.29",
   "sse-starlette>=2.1",
 
-  # LLM (Gemini for chat live, embeddings)
-  "google-generativeai>=0.5",
+  # LLM (Gemini for chat live, embeddings) — SDK moderne, remplace google-generativeai déprécié
+  "google-genai>=1.0",
 
   # Google APIs (Gmail)
   "google-auth>=2.29",
