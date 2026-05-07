@@ -10,7 +10,7 @@
 ## Résumé d'avancement
 
 - **Sessions terminées :** 3 / 19 (P0 + P1 + P2)
-- **Phase en cours :** Sprint 0 (Bootstrap + setup)
+- **Phase en cours :** Sprint 0 — P3 en cours (bloc auto livré 2026-05-07, bloc manuel à faire)
 - **Dernière partie done :** P2 — Bootstrap du dossier `argos-ops` (2026-05-07)
 - **Prochaine partie :** P3 — Schéma CRM + Knowledge Base
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -24,7 +24,7 @@
 | 0 | Vision et décisions préalables | — | ✅ done | 2026-05-07 |
 | 1 | Préparation technique et choix d'hébergement | — | ✅ done (partiel) | 2026-05-07 |
 | 2 | Bootstrap du dossier `argos-ops` | Sprint 0 | ✅ done | 2026-05-07 |
-| 3 | Schéma CRM + Knowledge Base | Sprint 0 | ⬜ pending | — |
+| 3 | Schéma CRM + Knowledge Base | Sprint 0 | 🔄 in progress | bloc auto 2026-05-07 |
 | 4 | `/morning-digest` (premier slash command) | Sprint 0 | ⬜ pending | — |
 | 5 | EmailBot inbound | Sprint 1 | ⬜ pending | — |
 | 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | ⬜ pending | — |
@@ -64,6 +64,34 @@ Légende : ✅ done · 🔄 in progress · ⚠️ partial · 🚫 blocked · ⬜
 - ✅ P1.G Validation finale
 
 **Secrets stockés** dans `argos-ops/.env.local` (gitignored).
+
+### P3 — Schéma CRM + Knowledge Base 🔄
+**Bloc auto livré le 2026-05-07** (PR `feat/p3-crm-kb`). Reste : bloc manuel
+(création DB serveur prod + rédaction KB authentique + seed final ≥50 chunks).
+
+Livrables auto :
+- Migration SQL `argos_ops/crm/migrations/0001_init.sql` (9 tables, pgvector,
+  idempotente, alignée P3.1).
+- Modèles SQLModel `argos_ops/crm/models.py` (768d Vector, types stricts).
+- Module config `argos_ops/config.py` (pydantic-settings, SecretStr partout).
+- Engine + session async `argos_ops/crm/db.py` (psycopg v3 async).
+- Repository `argos_ops/crm/repository.py` (CRUD CRM + upsert KB idempotent par
+  hash + recherche cosine pgvector).
+- Chunker markdown `argos_ops/crm/kb_chunker.py` (split H2 + overlap).
+- Script `scripts/seed_kb.py` (chunk → embed Gemini `gemini-embedding-001` →
+  upsert, dry-run support).
+- 19 tests unitaires (chunker, models, config) — pytest + ruff + mypy strict OK.
+
+À faire (bloc manuel) :
+- Créer DB `argos_ops` + user dédié + extension `vector` sur cluster Postgres
+  serveur (`204.168.171.71`, container `sechunter-postgres-1`).
+- Appliquer `0001_init.sql`.
+- Rédiger les 6 fichiers KB (`argos_features.md`, `pricing.md`, `faq.md`,
+  `tone_of_voice.md`, `competitor_compare.md`, `ICP.md`) en mode interview pour
+  capter la voix du fondateur.
+- Lancer `uv run python scripts/seed_kb.py` → ≥ 50 chunks dans `kb_chunks`.
+- Test similarité : « combien coûte Pro Max » doit retourner un chunk de
+  `pricing.md` en top-1.
 
 ### P2 — Bootstrap du dossier `argos-ops` ✅
 **Done le 2026-05-07.** Repo privé GitHub créé et premier push effectué.
