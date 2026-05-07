@@ -1,8 +1,8 @@
 # Argos Ops — Architecture
 
 > Vue d'ensemble technique. Pour le **plan stratégique** voir
-> [`ARGOS_OPS_PLAN.md`](../../the%20good%20guy/docs/ARGOS_OPS_PLAN.md) dans le repo SecHunter.
-> Pour les **décisions** voir [`DECISIONS.md`](DECISIONS.md).
+> [`ARGOS_OPS_PLAN.md`](ARGOS_OPS_PLAN.md). Pour les **décisions** voir
+> [`DECISIONS.md`](DECISIONS.md).
 
 ---
 

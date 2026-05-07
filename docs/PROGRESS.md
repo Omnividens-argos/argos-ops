@@ -1,8 +1,9 @@
 # Argos Ops — Progress
 
 > Suivi de l'avancement des 19 parties du plan.
-> Source : [`docs/ARGOS_OPS_PLAN.md`](../../the%20good%20guy/docs/ARGOS_OPS_PLAN.md) (dans le repo SecHunter).
-> À mettre à jour à chaque clôture de partie (règle « Clôture de partie » du master prompt).
+> Source : [`ARGOS_OPS_PLAN.md`](ARGOS_OPS_PLAN.md).
+> À mettre à jour à chaque clôture de partie (règle « Clôture de partie » du
+> [master prompt](MASTER_PROMPT.md)).
 
 ---
 

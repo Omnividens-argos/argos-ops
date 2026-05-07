@@ -115,6 +115,37 @@ P12 (AdBot).
 
 ---
 
+## D-008 — Migration du plan stratégique et du master prompt vers le repo argos-ops
+**Date :** 2026-05-07
+**Partie :** P2 (clôture)
+**Décision :** déplacer `docs/ARGOS_OPS_PLAN.md` et `docs/ARGOS_OPS_MASTER_PROMPT.md`
+depuis le repo SecHunter (`~/Desktop/the good guy/docs/`) vers le repo argos-ops
+(`~/Desktop/argos-ops/docs/`). Renommer `ARGOS_OPS_MASTER_PROMPT.md` → `MASTER_PROMPT.md`
+au passage pour la concision.
+**Pourquoi :** rendre le repo `argos-ops` **autonome**. Bénéfices :
+- Sessions Claude Code depuis `~/Desktop/argos-ops/` ont tout le contexte sous la main
+  sans devoir lire `../the good guy/docs/` (chemin fragile)
+- Si le dossier `the good guy` est déplacé / renommé, rien ne casse côté Argos Ops
+- Un VA Tier 3 (futur, P0 §0.3) qui clone `argos-ops` a tout le matériel sans accès
+  privilégié au repo SecHunter
+- Le plan évolue pendant la mise en place : plus naturel de le faire évoluer dans le
+  repo où on bosse activement
+- Cohérent avec D-001 qui prévoit qu'Argos Ops puisse migrer vers un VPS dédié si
+  critique au CA
+**Implication technique :**
+- Tous les chemins relatifs `../the good guy/docs/...` mis à jour vers `docs/...` dans
+  `CLAUDE.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/PROGRESS.md`, `docs/MASTER_PROMPT.md`
+- Les originaux supprimés du repo SecHunter dans une PR séparée
+- `ARGOS_MODULE_BUGS.md` reste dans SecHunter (c'est les bugs des modules de scan,
+  pas un artefact Argos Ops)
+**Conséquence opérationnelle :** dès P3, toutes les sessions Claude Code Argos Ops se
+font depuis `~/Desktop/argos-ops/`. Auto-mémoire Claude associée au path : un nouveau
+profil sera créé pour `c--Users-pauzzle-Desktop-argos-ops` (les 3 entrées du profil
+SecHunter — profil utilisateur, complétude module, cadence — devront être recopiées
+ou recréées dans le nouveau profil au gré des conversations).
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown
