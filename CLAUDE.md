@@ -102,10 +102,11 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 2 / 19 (P0 + P1)
+- **Sessions terminées :** 3 / 19 (P0 + P1 + P2)
 - **Phase en cours :** Sprint 0 (Bootstrap)
-- **Dernière partie done :** P1 (2026-05-07)
-- **Prochaine partie :** P2 (Bootstrap projet — en cours)
+- **Dernière partie done :** P2 — Bootstrap projet (2026-05-07)
+- **Prochaine partie :** P3 — Schéma CRM + Knowledge Base
+- **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé, branch protection active sur `main`)
 
 ---
 

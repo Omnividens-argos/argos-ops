@@ -8,10 +8,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 2 / 19 (P0 + P1)
+- **Sessions terminées :** 3 / 19 (P0 + P1 + P2)
 - **Phase en cours :** Sprint 0 (Bootstrap + setup)
-- **Dernière partie done :** P1 — Préparation technique
-- **Prochaine partie :** P2 — Bootstrap du dossier `argos-ops` (en cours)
+- **Dernière partie done :** P2 — Bootstrap du dossier `argos-ops` (2026-05-07)
+- **Prochaine partie :** P3 — Schéma CRM + Knowledge Base
+- **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
 
 ---
 
@@ -21,7 +22,7 @@
 |---|-------|--------|--------|------|
 | 0 | Vision et décisions préalables | — | ✅ done | 2026-05-07 |
 | 1 | Préparation technique et choix d'hébergement | — | ✅ done (partiel) | 2026-05-07 |
-| 2 | Bootstrap du dossier `argos-ops` | Sprint 0 | 🔄 in progress | — |
+| 2 | Bootstrap du dossier `argos-ops` | Sprint 0 | ✅ done | 2026-05-07 |
 | 3 | Schéma CRM + Knowledge Base | Sprint 0 | ⬜ pending | — |
 | 4 | `/morning-digest` (premier slash command) | Sprint 0 | ⬜ pending | — |
 | 5 | EmailBot inbound | Sprint 1 | ⬜ pending | — |
@@ -62,6 +63,22 @@ Légende : ✅ done · 🔄 in progress · ⚠️ partial · 🚫 blocked · ⬜
 - ✅ P1.G Validation finale
 
 **Secrets stockés** dans `argos-ops/.env.local` (gitignored).
+
+### P2 — Bootstrap du dossier `argos-ops` ✅
+**Done le 2026-05-07.** Repo privé GitHub créé et premier push effectué.
+Livrables :
+- Arborescence projet complète (16 dossiers, 24+ fichiers)
+- `pyproject.toml` validé via `uv sync` (97 packages résolus, 15 deps importables)
+- 6 docs (DECISIONS, PROGRESS, ARCHITECTURE, AGENTS_PLAYBOOK, ESCALATION_RULES, COMPLIANCE)
+- 7 décisions structurantes documentées (D-001 à D-007)
+- `CLAUDE.md` projet + `README.md` + `.env.example` + `.gitignore`
+- `.env.local` migré depuis `../the good guy/.argos-ops-secrets.local`
+- 3 commits sur `main` (bootstrap + fix google-genai + clôture)
+- Repo GitHub privé : [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops)
+
+**Note** : push direct sur main accepté pour le bootstrap (le repo n'existait pas
+avant). Branch protection activée à la fin de P2 → dès P3, tout passe par
+branche/PR/merge comme stipulé dans `CLAUDE.md`.
 
 ---
 
