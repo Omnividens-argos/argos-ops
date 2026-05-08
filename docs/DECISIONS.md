@@ -622,6 +622,95 @@ externe.**
 
 ---
 
+## D-018 — Stack email pro Argos Ops : OVH Zimbra IMAP/SMTP (pas Gmail Workspace, pas self-host)
+**Date :** 2026-05-08
+**Partie :** P5 (EmailBot inbound — pré-décision technique)
+**Décision :** **EmailBot et tout futur agent qui lit/envoie depuis
+`contact@omnividens.fr`** se branchent sur l'**OVH Email Cloud Pro
+(Zimbra)** déjà actif via les **protocoles IMAP/SMTP standards**, pas
+Gmail API ni self-host. La mention « Gmail API » dans le plan
+[`ARGOS_OPS_PLAN.md`](ARGOS_OPS_PLAN.md) Partie 5 est révisée.
+**Pourquoi :**
+- **OVH Zimbra est déjà actif et payé** (~2-3 €/mois pour 1 boîte). C'est
+  du socle business pré-existant, pas un SaaS récurrent ajouté en plus
+  → respecte la contrainte fondatrice de [`CLAUDE.md`](../CLAUDE.md)
+  Vision (« 0 € de SaaS récurrent en plus de Claude Pro/Max »)
+- **Gmail Workspace** demande un abonnement payant (~6,60 €/mois Business
+  Starter, ~80 €/an pour 1 boîte). Ajoute un coût récurrent que l'OVH
+  existant rend inutile
+- **Self-host Mailcow / Zimbra OSE / Postfix** sur le serveur SecHunter
+  → 0 € direct mais coût caché énorme : maintenance, surface d'attaque,
+  et surtout **délivrabilité catastrophique au launch** (IP fraîche = 4-8
+  semaines en spam-trap / blocklists). Pour P13 OutboundBot c'est
+  rédhibitoire — un serveur mail self-host frais ruine la réputation IP
+  du domaine `omnividens.fr` pendant des mois
+- **Cloudflare Email Routing + Gmail perso** → 100 % gratuit pour la
+  réception, mais l'envoi demande config DKIM/SPF custom + SMTP
+  authentifié tiers (Brevo / Resend / Gmail Send-mail-as) qui ajoute
+  une surface d'erreur DNS et une dépendance à un autre SaaS gratuit
+  free-tier (qui peut sauter, cf. l'incident Gemini en P3-M3)
+- **IMAP + SMTP standards** : Argos Ops EmailBot lira via
+  `imap-tools` ou équivalent + enverra via `aiosmtplib`. Code plus
+  simple que Gmail API (pas de flow OAuth2 complexe à brancher)
+
+**Implication technique — ce que le code Argos Ops va consommer :**
+- **Variables d'env (`.env.local`)** à ajouter en P5 :
+  ```
+  EMAIL_IMAP_HOST=ssl0.ovh.net    # à confirmer dans le manager OVH
+  EMAIL_IMAP_PORT=993
+  EMAIL_SMTP_HOST=ssl0.ovh.net
+  EMAIL_SMTP_PORT=465
+  EMAIL_USER=contact@omnividens.fr
+  EMAIL_PASSWORD=...               # password de la boîte OVH
+  ```
+- **Migration `pyproject.toml`** :
+  - Ajout : `imap-tools>=1.5` (lib IMAP simple async-compatible) ou
+    `imapclient` (alternative bas niveau)
+  - Ajout : `aiosmtplib>=3.0` (SMTP async)
+  - `google-api-python-client` ne sera **pas** consommé par Argos Ops
+    (peut rester optionnel pour intégrations Gmail tierces si jamais
+    nécessaire un jour, mais Argos Ops principal n'en a plus besoin)
+- **EmailBot pipeline** (cf. `ARCHITECTURE.md` § 3 flux d'exécution
+  révisé) : pull IMAP → classify → CRM upsert → drafter via Claude Code
+  Pro Max (D-017) → judge Tier 1 → SMTP send si auto-send
+
+**Trade-off accepté :**
+- **Latence IMAP** légèrement plus haute que Gmail API (poll IMAP toutes
+  les 15 min vs Gmail watch push). Acceptable pour le volume early
+  stage (≤ 50 emails/jour entrants)
+- **Pas de threading natif Gmail-style** côté lecture brute. Géré par
+  l'agent (groupage par `In-Reply-To` + `References` headers, standard)
+
+**Portée :**
+- D-018 ne concerne que la **boîte support entrante**
+  `contact@omnividens.fr` lue par EmailBot (P5) et écrite par
+  EmailBot / SupportBot (P5/P6)
+- **OutboundBot (P13)** utilisera un **domaine secondaire séparé** (ex :
+  `try-omnividens.com`) pour préserver la réputation délivrabilité du
+  domaine principal — pas couvert par D-018 (cf.
+  [`COMPLIANCE.md` § 2](COMPLIANCE.md))
+
+**Annule :**
+- Mention « Gmail API + IMAP » dans `ARGOS_OPS_PLAN.md` Partie 5
+  → à réviser à l'ouverture de P5 : « **IMAP + SMTP standards via OVH
+  Zimbra (D-018)** »
+- Les fichiers KB (`argos_features.md`, `faq.md`, etc.) ne sont pas
+  concernés — ils parlent du scanner SecHunter pour les clients, pas
+  d'Argos Ops
+
+**Action de suivi :**
+- À l'ouverture de P5 : ajouter `imap-tools` + `aiosmtplib` à
+  `pyproject.toml`, créer `argos_ops/integrations/zimbra.py` (wrapper
+  IMAP/SMTP), créer `argos_ops/agents/email_bot.py` (héritant de
+  `BaseAgent`, pattern DigestBuilder)
+- **D-005** (vérification compte `contact@omnividens.fr` chez OVH)
+  reste à faire avant le premier run réel — voir `PROGRESS.md`
+  § Sessions transverses
+- Mettre à jour `ARGOS_OPS_PLAN.md` Partie 5 lors du démarrage de P5
+  (Gmail API → IMAP/SMTP D-018)
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown
