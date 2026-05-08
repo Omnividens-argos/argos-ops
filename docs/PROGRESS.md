@@ -9,11 +9,12 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 3 / 19 (P0 + P1 + P2)
-- **Phase en cours :** Sprint 0 — P3 à 90 % (bloc auto + P3-M1 + **P3-M2 complet** livré 2026-05-08, reste P3-M3 seed)
-- **Dernière partie done :** P2 — Bootstrap du dossier `argos-ops` (2026-05-07)
-- **Prochaine partie :** **P3-M3** — `uv run python scripts/seed_kb.py` → ≥ 50 chunks dans `kb_chunks` + test similarité « combien coûte Pro Max » → top-1 chunk de `pricing.md`
+- **Sessions terminées :** 4 / 19 (P0 + P1 + P2 + **P3 complet** 2026-05-08)
+- **Phase en cours :** Sprint 0 — **P4 prochain** (premier slash command `/morning-digest`)
+- **Dernière partie done :** P3 — Schéma CRM + KB authentique + seed local (2026-05-08, **D-017** révision architecturale)
+- **Prochaine partie :** **P4** — `/morning-digest` (premier slash command Claude Code, valide la chaîne cron → Claude Code → action → log DB)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
+- **Décision architecturale majeure (2026-05-08) :** [D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce) — Argos Ops 100 % local-first via Claude Code Pro Max + embeddings open-source `paraphrase-multilingual-mpnet-base-v2` local. Aucune API LLM tierce. Trade-off : agents en pause quand l'ordi du fondateur est éteint.
 
 ---
 
@@ -24,12 +25,12 @@
 | 0 | Vision et décisions préalables | — | ✅ done | 2026-05-07 |
 | 1 | Préparation technique et choix d'hébergement | — | ✅ done (partiel) | 2026-05-07 |
 | 2 | Bootstrap du dossier `argos-ops` | Sprint 0 | ✅ done | 2026-05-07 |
-| 3 | Schéma CRM + Knowledge Base | Sprint 0 | 🔄 in progress | bloc auto 2026-05-07 |
+| 3 | Schéma CRM + Knowledge Base | Sprint 0 | ✅ done | 2026-05-08 |
 | 4 | `/morning-digest` (premier slash command) | Sprint 0 | ⬜ pending | — |
 | 5 | EmailBot inbound | Sprint 1 | ⬜ pending | — |
 | 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | ⬜ pending | — |
 | 7 | FinanceBot (Stripe + relances) | Sprint 1 | ⬜ pending | — |
-| 8 | Chatbot widget site (Gemini free) | Sprint 1 | ⬜ pending | — |
+| 8 | Chatbot widget site (Claude Code Pro Max + queue Redis, D-017) | Sprint 1 | ⬜ pending | — |
 | 9 | ContentBot multi-canal | Sprint 2 | ⬜ pending | — |
 | 10 | SEOBot stratégie + briefs | Sprint 2 | ⬜ pending | — |
 | 11 | Connecteurs sociaux (LinkedIn / Mastodon / Reddit) | Sprint 2 | ⬜ pending | — |
@@ -140,10 +141,22 @@ P3-M2 — Rédaction KB (✅ done 2026-05-08, mode interview) :
   pour passer 41 → 42 modules Free (cf. note technique
   `argos_features.md` § 1.3)
 
-P3-M3 — Seed + validation (⬜ à faire, auto) :
-- Lancer `uv run python scripts/seed_kb.py` → ≥ 50 chunks dans `kb_chunks`.
-- Test similarité : « combien coûte Pro Max » doit retourner un chunk de
-  `pricing.md` en top-1.
+P3-M3 — Seed + validation (✅ done 2026-05-08) :
+- ✅ Refactor `seed_kb.py` : `fastembed` + `paraphrase-multilingual-mpnet-base-v2`
+  local (D-017 — switch depuis Gemini suite au quota daily exhausted)
+- ✅ Fix Windows `SelectorEventLoop` pour psycopg async
+- ✅ Seed effectué : **93 chunks insérés** dans `kb_chunks` (cible ≥ 50 ✅)
+- ✅ Test similarité « combien coûte Pro Max » → **top-1 et top-2 sont
+  des chunks de `pricing.md`** (#5 dist=0.5485 « Annuel vs mensuel »,
+  #0 dist=0.5698 « header Pricing canonique »). Critère P3 rempli ✅
+- ✅ **D-017 — Argos Ops 100 % local-first** enregistrée + ARCHITECTURE.md
+  + ARGOS_OPS_PLAN.md alignés. La couche données (Postgres + Redis +
+  webhook receivers) reste sur serveur SecHunter (D-001 valide), la couche
+  calcul (agents IA + cron + embeddings) migre sur l'ordi du fondateur.
+
+**P3 entièrement done** — couche CRM + KB authentique + seed validé +
+architecture alignée local-first. Sprint 0 complète à **2/4** (P0/P1/P2/P3
+done, P4 prochain).
 
 ### P2 — Bootstrap du dossier `argos-ops` ✅
 **Done le 2026-05-07.** Repo privé GitHub créé et premier push effectué.

@@ -23,7 +23,7 @@
 | 5 | EmailBot inbound | Sprint 1 | `skill-creator` |
 | 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | `skill-creator` |
 | 7 | FinanceBot (Stripe + relances) | Sprint 1 | `skill-creator` |
-| 8 | Chatbot widget site (Gemini free) | Sprint 1 | `frontend-design`, `skill-creator` |
+| 8 | Chatbot widget site (Claude Code Pro Max + queue Redis, D-017) | Sprint 1 | `frontend-design`, `skill-creator` |
 | 9 | ContentBot multi-canal | Sprint 2 | `skill-creator` |
 | 10 | SEOBot stratégie + briefs | Sprint 2 | `skill-creator` |
 | 11 | Connecteurs sociaux (LinkedIn / X / Reddit) | Sprint 2 | — |
@@ -91,7 +91,7 @@ L'objectif n'est pas de remplacer le fondateur, mais de **lui rendre du temps** 
 
 | # | Décision | Choix | Rationale |
 |---|----------|-------|-----------|
-| 1 | **Hébergement** | ✅ Même serveur que SecHunter (`204.168.171.71`) | Pas de coût additionnel. Caddy déjà en place pour ajouter `ops.omnividens.fr`. Postgres + Redis déjà actifs. Risque accepté : un crash serveur prend les deux services en même temps — non bloquant en early stage, on switchera vers VPS dédié si Argos Ops devient critique au CA. |
+| 1 | **Hébergement** | ✅ **Couche données** (Postgres / Redis / webhook receivers) sur serveur SecHunter (`204.168.171.71`). **Couche calcul** (agents IA, cron, embeddings) sur **ordi du fondateur** (D-001 partiellement révisé par D-017). | Pas de coût additionnel. Caddy déjà en place pour ajouter `ops.omnividens.fr`. Postgres + Redis déjà actifs. Les agents IA tournent localement via Claude Code Pro Max → 0 API LLM tierce. Trade-off accepté : agents en pause quand l'ordi est éteint (D-017). |
 | 2 | **Postgres** | ✅ Nouvelle DB `argos_ops` sur le cluster existant, schémas séparés | 0 coût supplémentaire, isolation logique propre, backups indépendants via `pg_dump argos_ops`. |
 | 3 | **Sprint prioritaire** | ✅ Sprint 1 (inbound + finance) | (a) Gain de temps dès J+7 sur les emails / tickets / facturation, (b) la KB construite pour SupportBot sert directement à ContentBot/SEOBot du Sprint 2 ensuite, (c) risque visibilité minimal (back-office privé), permet de valider la mécanique avant d'exposer en public. |
 | 4 | **Budget pub initial** | ⏳ À déterminer avant Partie 12 | Pas bloquant pour Sprint 1. AdBot démarrera en shadow mode (analyse sans dépense). Décision à prendre une fois Sprint 1 stable. |
@@ -112,9 +112,10 @@ fait (Partie 2).
   les agents via API Stripe en source de vérité.
 - **Redis** : index 3 réservé à Argos Ops (`REDIS_URL=redis://localhost:6379/3`),
   SecHunter utilise déjà 0-2.
-- **Cron** : ajouter une crontab dédiée à l'utilisateur Linux qui fera tourner Claude Code
-  (probablement le user `sechunter` existant ou un nouveau `argos`). Si nouveau user,
-  prévoir l'install de Claude Code CLI sous ce user.
+- **Cron** : tourne sur **l'ordi du fondateur** (D-017), pas sur le serveur. Windows
+  Task Scheduler ou cron WSL2 invoque `claude --print "/<slash-command>"` selon la cadence
+  de chaque agent. L'abonnement Claude Code Pro Max du fondateur fournit le runtime IA
+  → aucune API LLM tierce facturée pour Argos Ops.
 - **GitHub** : nouveau repo privé `omnividens/argos-ops` (séparé de SecHunter) — clean
   pour l'historique et les permissions.
 
@@ -128,20 +129,27 @@ fait (Partie 2).
 
 ## 1.1 Stack figée
 
-| Couche | Technologie | Coût |
-|--------|-------------|------|
-| Runtime de pensée | Claude Code Pro/Max via cron | déjà payé |
-| Orchestration | cron Linux + scripts Python | 0 € |
-| CRM | PostgreSQL + pgvector (extension) | 0 € (DB existante) |
-| Cache / state partagé | Redis (déjà en prod) | 0 € |
-| LLM chat live | Gemini Free Tier (1 M tokens / jour) | 0 € |
-| Email inbound | Gmail API + IMAP | 0 € |
-| Email outbound (volume modéré) | Gmail API (≤ 500/jour) | 0 € |
-| Social posting | API natives LinkedIn / X / Reddit | 0 € |
-| Ads pilotage | Google Ads / Meta / LinkedIn Marketing APIs | 0 € (budget pub à part) |
-| Analytics | Plausible self-host ou Umami | 0 € |
-| Téléphonie IA | reporté en phase 2 | — |
-| Avatar démo | reporté en phase 2 | — |
+> **Stack v2 — figée par [D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce)** :
+> tout LLM passe par Claude Code Pro Max sur l'ordi du fondateur, embeddings
+> via modèle local open-source. Aucune API LLM tierce.
+
+| Couche | Technologie | Coût | Hébergement |
+|--------|-------------|------|------|
+| Runtime de pensée | Claude Code Pro/Max via cron / Task Scheduler | déjà payé | **ordi fondateur** |
+| Orchestration | cron / Windows Task Scheduler + scripts Python | 0 € | ordi fondateur |
+| CRM | PostgreSQL + pgvector (extension) | 0 € (DB existante) | serveur SecHunter |
+| Cache + queue | Redis (cache + `inbox_pending` queue webhooks) | 0 € | serveur SecHunter |
+| **LLM chat live** | **Claude Code Pro Max + queue Redis pull-based** (D-017) | **0 € (forfait Pro Max)** | runtime ordi |
+| **LLM agents (tous)** | **Claude Code Pro Max via slash commands** (D-017) | **0 € (forfait Pro Max)** | runtime ordi |
+| **Embeddings KB** | **`fastembed` + `multilingual-e5-base`** (CPU local) (D-017) | **0 € forever** | ordi fondateur |
+| Email inbound | Gmail API + IMAP | 0 € | runtime ordi |
+| Email outbound (volume modéré) | Gmail API (≤ 500/jour) | 0 € | runtime ordi |
+| Social posting | API natives LinkedIn / Mastodon / Reddit (D-004 remplace X) | 0 € | runtime ordi |
+| Ads pilotage | Google Ads / Meta / LinkedIn Marketing APIs | 0 € (budget pub à part) | runtime ordi |
+| Webhook receivers | FastAPI + Caddy reverse proxy (`chat.omnividens.fr` etc.) | 0 € | serveur SecHunter |
+| Analytics | Umami self-host (D-007 reporte à INFRA-02) | 0 € | serveur SecHunter |
+| Téléphonie IA | reporté en phase 2 | — | — |
+| Avatar démo | reporté en phase 2 | — | — |
 
 ## 1.2 Variables d'environnement à provisionner
 
@@ -150,11 +158,13 @@ fait (Partie 2).
 ```
 DATABASE_URL=postgresql://argos_ops:***@localhost:5432/argos_ops
 REDIS_URL=redis://localhost:6379/3
-GEMINI_API_KEY=                   # Google AI Studio, free tier
+# GEMINI_API_KEY — DÉPRÉCIÉ pour Argos Ops (D-017). Reste optionnel
+# uniquement pour le scanner SecHunter BYOK (D-011), produit séparé.
 LINKEDIN_CLIENT_ID=
 LINKEDIN_CLIENT_SECRET=
 LINKEDIN_ACCESS_TOKEN=
-TWITTER_BEARER_TOKEN=
+MASTODON_INSTANCE_URL=            # D-004 remplace X par Mastodon
+MASTODON_ACCESS_TOKEN=
 REDDIT_CLIENT_ID=
 REDDIT_CLIENT_SECRET=
 GMAIL_CLIENT_ID=
@@ -167,14 +177,21 @@ DISCORD_WEBHOOK_URL=              # pour digest fondateur
 ARGOS_OPS_LOG_LEVEL=INFO
 ```
 
+> **Note D-017** : aucune clé d'API LLM n'est requise pour Argos Ops.
+> Tous les agents IA passent par Claude Code Pro Max (abonnement
+> fondateur), les embeddings KB par `fastembed` local. Le seul composant
+> IA qui nécessitait une clé Gemini (le seed KB initial + le chat live)
+> est désormais 100 % local.
+
 ## 1.3 Comptes à créer (gratuit)
 
-- **Google AI Studio** (Gemini key) — 5 min
 - **Discord** : serveur perso + 1 webhook par canal d'escalade — 10 min
-- **Reddit Apps** : `r/script` app pour OAuth — 5 min
-- **X Developer** : niveau Free (limité, suffisant pour posts) — 30 min
-- **LinkedIn Developer** : app + OAuth Marketing API — 1 h (le plus long)
-- **Plausible self-host** ou compte gratuit — 15 min
+- **Reddit Apps** : `r/script` app pour OAuth — 5 min (D-005 différé `P11-PREP`)
+- **Mastodon** : compte `infosec.exchange` + token API — 10 min (D-004 remplace X)
+- **LinkedIn Developer** : 2 apps (D-006) — 1 h (le plus long)
+- ~~**Google AI Studio** (Gemini key)~~ — **non nécessaire pour Argos Ops** (D-017).
+  Optionnel uniquement pour le scanner SecHunter BYOK.
+- ~~**Plausible self-host**~~ — **reporté à INFRA-02** (D-007 / Umami)
 
 ✅ **Done quand** les comptes sont créés, les clés stockées dans un gestionnaire (1Password,
 Bitwarden, ou fichier chiffré local), le `.env.example` listé ci-dessus est rédigé.
@@ -208,16 +225,17 @@ argos-ops/
 │   ├── integrations/                   # un module par API externe
 │   │   ├── __init__.py
 │   │   ├── linkedin.py
-│   │   ├── twitter.py
+│   │   ├── mastodon.py                # D-004 remplace twitter
 │   │   ├── reddit.py
 │   │   ├── gmail.py
 │   │   ├── stripe.py
-│   │   ├── gemini.py
+│   │   ├── embeddings.py              # D-017 — fastembed multilingual-e5-base local
 │   │   ├── google_ads.py
 │   │   ├── meta_ads.py
-│   │   └── plausible.py
+│   │   └── umami.py                   # D-007 (analytics, INFRA-02)
 │   ├── chat_widget/
-│   │   └── server.py                   # FastAPI minimal pour le chat live
+│   │   ├── server.py                  # FastAPI receiver 24/7 (serveur SecHunter)
+│   │   └── worker.py                  # Worker pull queue Redis (ordi fondateur, D-017)
 │   └── ops_dashboard/
 │       └── app.py
 ├── docs/
@@ -266,11 +284,11 @@ dependencies = [
   "loguru>=0.7",
   "fastapi>=0.110",
   "uvicorn>=0.29",
-  "google-generativeai>=0.5",          # Gemini
+  "fastembed>=0.3",                     # Embeddings KB local (D-017)
   "google-auth>=2.29",
   "google-auth-oauthlib>=1.2",
   "google-api-python-client>=2.125",   # Gmail
-  "tweepy>=4.14",                       # X
+  "Mastodon.py>=1.8",                   # D-004 remplace tweepy/X
   "praw>=7.7",                          # Reddit
   "linkedin-api-client>=0.3",
   "stripe>=9.5",
@@ -396,7 +414,7 @@ CREATE TABLE kb_chunks (
   doc_path TEXT,                  -- 'data/knowledge_base/pricing.md'
   chunk_index INT,
   content TEXT,
-  embedding vector(768),          -- modèle Gemini embedding-001 = 768 dims
+  embedding vector(768),          -- multilingual-e5-base local = 768 dims natif (D-017)
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX ON kb_chunks USING ivfflat (embedding vector_cosine_ops);
@@ -453,7 +471,7 @@ Le fondateur écrit ces fichiers (Claude peut aider mais il faut la voix authent
 
 - Lit chaque `.md` dans `data/knowledge_base/`
 - Chunk par section H2 ou bloc de 800 tokens max avec overlap 100
-- Embed via Gemini `embedding-001` (gratuit)
+- Embed via `fastembed` + `intfloat/multilingual-e5-base` (CPU local, 0 € forever — D-017)
 - Upsert dans `kb_chunks` avec `(doc_path, chunk_index)` comme clé naturelle
 - Idempotent : si le hash du chunk n'a pas changé, skip
 
@@ -581,7 +599,7 @@ en s'appuyant sur la KB pgvector.
 ## 6.1 Pipeline RAG
 
 1. Question entrante (texte brut)
-2. Embed via Gemini `embedding-001`
+2. Embed via `fastembed` + `multilingual-e5-base` local (D-017)
 3. Top-K = 5 chunks via similarité cosinus dans `kb_chunks`
 4. Assembler contexte avec citation des `doc_path` source
 5. Demander à Claude de répondre EN CITANT les sources
@@ -634,16 +652,20 @@ relances impayées sont déclenchées automatiquement à J+3.
 
 ---
 
-# Partie 8 — Chatbot widget site (Gemini free tier)
+# Partie 8 — Chatbot widget site (Claude Code Pro Max + queue Redis)
 
-🎯 **Objectif** : widget chat sur `omnividens.fr` qui répond temps réel aux visiteurs,
-qualifie les leads, propose démo.
+🎯 **Objectif** : widget chat sur `omnividens.fr` qui répond aux visiteurs,
+qualifie les leads, propose démo. **Réponse différée si l'ordi du fondateur
+est éteint (D-017)** — la queue Redis absorbe les messages 24/7.
 
 🧱 **Prérequis** : Parties 3, 6.
 
 📦 **Livrables** :
-- Endpoint FastAPI `argos_ops/chat_widget/server.py` (déployé sur le serveur existant)
+- Endpoint FastAPI `argos_ops/chat_widget/server.py` (déployé sur **serveur
+  SecHunter** — couche données, 24/7)
 - Composant React intégré au frontend SecHunter (`sechunter/dashboard/frontend/`)
+- Worker Python local `argos_ops/chat_widget/worker.py` lancé par cron sur
+  l'ordi du fondateur (D-017) qui pull la queue Redis
 - Stockage conversations dans `interactions`
 
 🛠️ **Skills à utiliser** :
@@ -652,39 +674,62 @@ qualifie les leads, propose démo.
 - `skill-creator` pour formaliser le skill `chat-orchestrator` (qui orchestre
   KB-RAG + lead-scoring + booking)
 
-## 8.1 Architecture
+## 8.1 Architecture (révisée par D-017)
 
 ```
-Visiteur
+[Visiteur omnividens.fr — n'importe quelle heure]
    ↓
-[Widget React] ──── WebSocket / SSE ───► [FastAPI /chat]
+[Widget React] ──── WebSocket / SSE ───► [FastAPI /chat]   ← serveur SecHunter, 24/7
                                               ↓
-                                         Gemini 1.5 Flash (free tier)
+                                         LPUSH inbox_pending {message, session_id}   Redis
                                               ↓
-                                         RAG via skill kb-rag
+                                         HTTP 202 Accepted (réponse différée)
                                               ↓
-                                         Insère interaction direction='in/out'
-                                              ↓
-                                         Si BANT >= 70 → propose Cal.com auto-booked
-                                              ↓
-                                         Si signal hot → escalade Discord
+                                         Widget affiche « Argos rédige… »
+
+
+[ORDI fondateur — quand allumé]
+cron */1 * * * * → claude --print "/process-chat-inbox"   ← Claude Code Pro Max
+                       ↓
+                   BRPOP inbox_pending   Redis distant
+                       ↓
+                   Embed local (multilingual-e5-base) + similarity search KB pgvector
+                       ↓
+                   Skill chat-orchestrator (Claude inline) → réponse + BANT score
+                       ↓
+                   Insert interaction direction='in/out'    Postgres distant
+                       ↓
+                   Push réponse vers la session (websocket back / polling endpoint)
+                       ↓
+                   Si BANT >= 70 → propose Cal.com auto-booked
+                       ↓
+                   Si signal hot → escalade Discord (webhook)
 ```
 
-## 8.2 Pourquoi Gemini et pas Claude ?
+## 8.2 Pourquoi Claude Code Pro Max et pas Gemini / API tierce ?
 
-- Free tier généreux : 1 M tokens/jour, 15 RPM
-- Claude API exigerait des crédits payants (l'abonnement Pro/Max ne couvre pas l'API)
-- Gemini 1.5 Flash suffit pour Q&A + RAG (qualité acceptable, latence faible)
-- Si le free tier sature un jour → switch vers Groq (Llama 70B free) ou Mistral free tier
+Décision figée par [D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce) :
+
+- **Pas d'API LLM tierce** dans Argos Ops — souveraineté donnée + cohérence
+  avec la contrainte « 0 € de SaaS récurrent »
+- **Claude Code Pro Max consomme l'abonnement** (forfait connu) — pas de
+  quota free tier qui peut sauter (cf. blocage P3-M3 sur Gemini)
+- **Trade-off accepté** : latence non-réelle-temps. Le widget affiche
+  « Argos rédige… », le visiteur reçoit la réponse quand l'ordi du fondateur
+  pull la queue (typiquement < 5 min en heures ouvrées, plus si nuit)
+- **Acceptable au launch** pour le volume early stage (≤ 100 chats/jour).
+  Quand le coût d'opportunité (visiteurs qui décrochent en attendant)
+  dépasse le coût d'un Mac mini / Pi 5 dédié 24/7 → on bascule sur ce relai
 
 ## 8.3 Booking démo
 
 Pas de Cal.com payant : un simple lien Calendly free tier OU `cal.com` self-host. Le bot
 propose 3 créneaux disponibles, le lead clique → booking Google Calendar du fondateur.
 
-✅ **Done quand** : un visiteur sur `omnividens.fr` peut poser une question, recevoir une
-réponse en moins de 5 s, voir 3 créneaux et réserver un slot qui apparaît dans le Calendar
-du fondateur.
+✅ **Done quand** : un visiteur sur `omnividens.fr` peut poser une question, voir un état
+« Argos rédige… », recevoir une réponse (en heures ouvrées : < 5 min ; hors heures
+ouvrées : différé jusqu'au réveil de l'ordi), et réserver un créneau qui apparaît dans le
+Calendar du fondateur.
 
 ---
 
@@ -952,7 +997,7 @@ si une métrique dérive.
 | `email_spam_complaints` | > 3 complaints/jour | stop OutboundBot, switch domaine |
 | `support_low_confidence` | 3 tickets consécutifs avec judge_score < 60 | désactive auto-réponse, file 100 % en Tier 2 |
 | `mrr_drop` | MRR -5 % sur 7 jours | notif P0 fondateur |
-| `gemini_quota` | > 90 % du free tier consommé | bascule chat vers fallback Groq |
+| `pro_max_quota` | > 90 % du quota mensuel Claude Pro Max consommé | ralentir cadence cron + alerter fondateur (D-017) |
 | `gmail_rate_limit` | > 90 % du quota Gmail | pause sends jusqu'à minuit |
 | `outbound_bounce_rate` | > 5 % bounce sur 24 h | pause OutboundBot, audit liste |
 | `social_api_error` | 3 errors consécutives | pause canal concerné |
@@ -980,7 +1025,7 @@ monitoring : un vrai centre de commande qui permet de :
 - **Régler la "gourmandise"** de chaque agent (intensity 1-10, daily_limit, token budget)
 - Lire et résoudre les escalades Tier 2 en 1-clic
 - Visualiser les KPIs business (MRR, leads, conversions, CAC)
-- Monitorer la consommation (tokens, coûts, quotas free tier)
+- Monitorer la consommation tokens Claude Pro Max (D-017) + alertes si > 90 % du quota mensuel
 - Trip / reset les circuit breakers manuellement
 - Éditer la Knowledge Base inline (sans toucher au filesystem)
 - Lire les logs de chaque agent run sans SSH
@@ -1117,7 +1162,7 @@ manuellement un test.
 
 ### 16.2.8 Settings
 - Édition config globale Argos Ops (seuils, quotas par défaut)
-- Test des intégrations en 1 clic (LinkedIn / X / Reddit / Gemini / Stripe / Gmail)
+- Test des intégrations en 1 clic (LinkedIn / Mastodon / Reddit / Stripe / Gmail / Discord)
   → ping API, montre le résultat
 - Régénération des tokens OAuth qui ont expiré (relance le flow OAuth)
 - Liste des skills locaux installés
@@ -1312,10 +1357,11 @@ Trois niveaux de logs :
 
 | Poste | Estimation |
 |-------|------------|
-| Abonnement Claude Pro/Max | inchangé |
-| Serveur (déjà en prod) | inchangé |
+| Abonnement Claude Pro/Max | inchangé (runtime LLM + embeddings deleg via local — D-017) |
+| Serveur (déjà en prod) | inchangé (couche données seulement) |
 | Domaine secondaire outbound | ~10 €/an = 1 €/mois |
-| Gemini API | 0 € (free tier) |
+| API LLM tierces | **0 € (aucune utilisée — D-017)** |
+| Embeddings | **0 € (multilingual-e5-base local CPU — D-017)** |
 | Tout le reste | 0 € |
 | **Total nouveau** | **~1 €/mois** |
 
@@ -1383,7 +1429,7 @@ peuvent se compresser à ~3-5 jours réels.
 # Annexe C — Anti-patterns à éviter
 
 - ❌ Mettre Claude Code en charge du chat live client : abonnement pas fait pour ça,
-  rate limits, on bascule sur Gemini free tier pour le chat live uniquement
+  rate limits, on bascule la cadence cron au lieu d'utiliser une API tierce (D-017)
 - ❌ Outbound depuis le domaine principal : préserver la réputation `omnividens.fr`
 - ❌ Skip l'agent-juge sur 1 agent « parce qu'on est pressé » : c'est lui qui rend tout
   le système safe à déléguer
