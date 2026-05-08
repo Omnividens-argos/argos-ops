@@ -108,9 +108,10 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 - **Prochaine partie :** **P3-M3** — `uv run python scripts/seed_kb.py` →
   ≥ 50 chunks dans `kb_chunks` + test similarité « combien coûte Pro Max »
   doit retourner un chunk de `pricing.md` en top-1
-- **En attente review humaine :** [PR #4](https://github.com/Omnividens-argos/argos-ops/pull/4)
-  (`feat/p3-crm-kb`) à mettre à jour avec les livrables P3-M2 (6 fichiers
-  KB authentiques, 7 décisions D-010 à D-016) avant merge
+- **En attente review humaine :** [PR #5](https://github.com/Omnividens-argos/argos-ops/pull/5)
+  (`feat/p3-crm-kb`) — couvre P3-M1 (DB locale Docker) + P3-M2 (6 fichiers
+  KB + 7 décisions D-010 à D-016). PR #4 a été mergée pour le bloc auto
+  P3 initial.
 - **Décisions P3 actives :** D-010 (hors-quota Free-only), D-011 (BYOK seul
   IA fallback), D-012 (Watch/Chaînes définitions canoniques), D-013
   (Strategist framing audit), D-014 (compliance factuelle pas de score %),
