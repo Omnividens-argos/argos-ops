@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Argos Ops — Admin Control Panel (mockup P16-A)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            healthy: '#10b981',
+            warning: '#f59e0b',
+            danger:  '#f43f5e',
+            info:    '#0ea5e9',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    /* Scrollbar discret */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #18181b; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+    /* Pulse animation healthy */
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+      50% { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0); }
+    }
+    .pulse-glow { animation: pulse-glow 2s infinite; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased">
+  <div x-data="dashboard()" class="flex h-screen overflow-hidden">
+
+    <!-- ========================================================== -->
+    <!-- SIDEBAR -->
+    <!-- ========================================================== -->
+    <aside class="w-60 bg-zinc-900 border-r border-zinc-800 flex flex-col shrink-0">
+      <div class="px-5 py-4 border-b border-zinc-800">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded bg-gradient-to-br from-healthy to-info flex items-center justify-center text-zinc-950 font-bold text-sm">A</div>
+          <div>
+            <div class="font-semibold text-sm">Argos Ops</div>
+            <div class="text-[10px] text-zinc-500 mono">v0.1.0 · Sprint 0</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="flex-1 overflow-y-auto py-2">
+        <template x-for="item in nav" :key="item.id">
+          <a href="#"
+             @click.prevent="active = item.id"
+             :class="active === item.id ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'"
+             class="flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors">
+            <span class="text-base" x-text="item.icon"></span>
+            <span x-text="item.label"></span>
+            <template x-if="item.badge">
+              <span class="ml-auto bg-warning/20 text-warning text-[10px] px-1.5 py-0.5 rounded mono"
+                    x-text="item.badge"></span>
+            </template>
+          </a>
+        </template>
+      </nav>
+
+      <div class="px-4 py-3 border-t border-zinc-800 text-[11px] text-zinc-500 space-y-1">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-healthy pulse-glow"></span>
+          <span>Système OK</span>
+        </div>
+        <div class="mono">DB · Redis · 4 agents</div>
+      </div>
+    </aside>
+
+    <!-- ========================================================== -->
+    <!-- MAIN -->
+    <!-- ========================================================== -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+
+      <!-- Topbar -->
+      <header class="h-12 bg-zinc-900 border-b border-zinc-800 px-5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-zinc-500">Argos Ops</span>
+          <span class="text-zinc-700">/</span>
+          <span class="text-zinc-200 font-medium" x-text="navLabel()"></span>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-zinc-400">
+          <span class="mono">8 mai 2026 · 23:05 CET</span>
+          <span class="text-zinc-700">·</span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-healthy"></span>
+            DigestBuilder OK
+          </span>
+          <button class="ml-2 px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 mono text-[11px]">⌘K</button>
+        </div>
+      </header>
+
+      <!-- Overview content -->
+      <main class="flex-1 overflow-y-auto p-6 space-y-6">
+
+        <!-- KPIs row -->
+        <section>
+          <h2 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Aperçu — dernières 24 h</h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <template x-for="kpi in kpis" :key="kpi.label">
+              <div class="bg-zinc-900 border border-zinc-800 rounded-md p-4 hover:border-zinc-700 transition-colors">
+                <div class="text-[11px] text-zinc-500 uppercase tracking-wider" x-text="kpi.label"></div>
+                <div class="mt-1 flex items-baseline gap-2">
+                  <span class="text-2xl font-semibold mono" x-text="kpi.value"></span>
+                  <span class="text-xs" :class="kpi.deltaClass" x-text="kpi.delta"></span>
+                </div>
+                <div class="mt-1 text-[11px] text-zinc-500" x-text="kpi.note"></div>
+              </div>
+            </template>
+          </div>
+        </section>
+
+        <!-- Agents grid -->
+        <section>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Agents — état temps réel</h2>
+            <span class="text-[11px] text-zinc-500 mono" x-text="agents.length + ' agents'"></span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <template x-for="agent in agents" :key="agent.name">
+              <div class="bg-zinc-900 border border-zinc-800 rounded-md p-4 hover:border-zinc-700 transition-colors">
+                <div class="flex items-start justify-between">
+                  <div>
+                    <div class="font-semibold text-sm" x-text="agent.name"></div>
+                    <div class="text-[11px] text-zinc-500 mt-0.5" x-text="agent.command"></div>
+                  </div>
+                  <span :class="statusClass(agent.status)" class="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide" x-text="agent.status"></span>
+                </div>
+                <div class="mt-3 space-y-1 text-[11px] text-zinc-400">
+                  <div class="flex justify-between">
+                    <span>Schedule</span>
+                    <span class="mono text-zinc-300" x-text="agent.schedule"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Dernière run</span>
+                    <span class="mono text-zinc-300" x-text="agent.lastRun"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Latence p95</span>
+                    <span class="mono text-zinc-300" x-text="agent.p95"></span>
+                  </div>
+                </div>
+                <div class="mt-3 flex gap-2">
+                  <button class="flex-1 px-2 py-1 text-[11px] rounded bg-zinc-800 hover:bg-zinc-700 transition-colors">Détails</button>
+                  <button :disabled="agent.status === 'inactive'"
+                          :class="agent.status === 'inactive' ? 'opacity-40 cursor-not-allowed' : 'hover:bg-zinc-700'"
+                          class="px-2 py-1 text-[11px] rounded bg-zinc-800 transition-colors">Run now</button>
+                  <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" :checked="agent.enabled" @change="agent.enabled = !agent.enabled" class="sr-only peer">
+                    <div class="w-9 h-5 bg-zinc-700 rounded-full peer-checked:bg-healthy/70 transition-colors relative after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-zinc-200 after:rounded-full after:transition-transform peer-checked:after:translate-x-4"></div>
+                  </label>
+                </div>
+              </div>
+            </template>
+          </div>
+        </section>
+
+        <!-- 2 colonnes : Latest runs + Breakers -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+
+          <!-- Latest runs -->
+          <div class="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-md overflow-hidden">
+            <div class="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
+              <h2 class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Dernières exécutions (agent_runs)</h2>
+              <a href="#" class="text-[11px] text-info hover:underline">voir tout →</a>
+            </div>
+            <table class="w-full text-sm">
+              <thead class="text-[11px] text-zinc-500 uppercase tracking-wider bg-zinc-950/50">
+                <tr>
+                  <th class="text-left px-4 py-2 font-medium">Agent</th>
+                  <th class="text-left px-4 py-2 font-medium">Status</th>
+                  <th class="text-left px-4 py-2 font-medium">Démarré</th>
+                  <th class="text-right px-4 py-2 font-medium">Durée</th>
+                  <th class="text-left px-4 py-2 font-medium">Output</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-zinc-800">
+                <template x-for="run in runs" :key="run.id">
+                  <tr class="hover:bg-zinc-800/50 transition-colors">
+                    <td class="px-4 py-2 font-medium" x-text="run.agent"></td>
+                    <td class="px-4 py-2">
+                      <span :class="statusClass(run.status)" class="px-2 py-0.5 rounded text-[10px] font-medium uppercase" x-text="run.status"></span>
+                    </td>
+                    <td class="px-4 py-2 mono text-zinc-400 text-xs" x-text="run.startedAt"></td>
+                    <td class="px-4 py-2 mono text-zinc-300 text-xs text-right" x-text="run.duration"></td>
+                    <td class="px-4 py-2 mono text-zinc-400 text-xs truncate max-w-md" x-text="run.output"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Breakers + system health -->
+          <div class="space-y-3">
+            <div class="bg-zinc-900 border border-zinc-800 rounded-md p-4">
+              <h2 class="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-3">Breakers</h2>
+              <template x-if="breakers.length === 0">
+                <div class="text-center py-6 text-zinc-500">
+                  <div class="text-2xl mb-1">🟢</div>
+                  <div class="text-xs">Aucun breaker actif</div>
+                </div>
+              </template>
+              <template x-for="b in breakers" :key="b.name">
+                <div class="border-l-2 border-danger px-3 py-2 mb-2 bg-danger/5 rounded-r">
+                  <div class="text-sm font-medium" x-text="b.name"></div>
+                  <div class="text-[11px] text-zinc-400 mt-0.5" x-text="b.reason"></div>
+                  <button class="mt-2 text-[11px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700">Reset</button>
+                </div>
+              </template>
+            </div>
+
+            <div class="bg-zinc-900 border border-zinc-800 rounded-md p-4">
+              <h2 class="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-3">Coût IA J-1</h2>
+              <div class="text-2xl font-semibold mono">0,00 €</div>
+              <div class="text-[11px] text-zinc-500 mt-1">Forfait Claude Pro Max — D-017 local-first</div>
+              <div class="mt-3 h-1 bg-zinc-800 rounded overflow-hidden">
+                <div class="h-full bg-healthy" style="width: 4%"></div>
+              </div>
+              <div class="text-[10px] text-zinc-500 mt-1 mono">~4 % du quota mensuel consommé</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Footer mockup -->
+        <section class="text-center text-[11px] text-zinc-600 pt-4 border-t border-zinc-800/50">
+          <div>Mockup P16-A · feat/p16-a-mockup-overview · 2026-05-08</div>
+          <div class="mono mt-1">Données fictives sauf DigestBuilder · run id 2 (réel) · pricing.md non branché Stripe (P7)</div>
+        </section>
+
+      </main>
+    </div>
+
+  </div>
+
+  <script>
+    function dashboard() {
+      return {
+        active: 'overview',
+        nav: [
+          { id: 'overview',     icon: '⊟', label: 'Overview' },
+          { id: 'agents',       icon: '◐', label: 'Agents' },
+          { id: 'escalations',  icon: '↗', label: 'Escalations', badge: '0' },
+          { id: 'runs',         icon: '⌧', label: 'Runs (logs)' },
+          { id: 'kb',           icon: '⊞', label: 'Knowledge Base' },
+          { id: 'metrics',      icon: '◈', label: 'Métriques' },
+          { id: 'settings',     icon: '⚙', label: 'Settings' },
+        ],
+        kpis: [
+          { label: 'MRR',          value: '0 €',      delta: '—',     deltaClass: 'text-zinc-500', note: 'Stripe non branché (P7)' },
+          { label: 'Leads J-1',    value: '0',        delta: '—',     deltaClass: 'text-zinc-500', note: 'Aucune source active' },
+          { label: 'Tickets ouverts', value: '0',     delta: '—',     deltaClass: 'text-zinc-500', note: 'Aucun ticket' },
+          { label: 'Coût Argos Ops 2026-05', value: '0,00 €', delta: '—', deltaClass: 'text-zinc-500', note: 'Forfait Pro Max' },
+        ],
+        agents: [
+          { name: 'DigestBuilder', command: '/morning-digest', status: 'success', enabled: true,
+            schedule: '0 8 * * *', lastRun: 'il y a 1 min', p95: '5,1 s' },
+          { name: 'EmailBot',      command: '/check-emails',   status: 'inactive', enabled: false,
+            schedule: '*/15 * * * *', lastRun: '—', p95: '—' },
+          { name: 'ChatBot widget', command: '/process-chat-inbox', status: 'inactive', enabled: false,
+            schedule: '*/1 * * * *', lastRun: '—', p95: '—' },
+          { name: 'FinanceBot',    command: '/finance-report', status: 'inactive', enabled: false,
+            schedule: '0 */4 * * *', lastRun: '—', p95: '—' },
+        ],
+        runs: [
+          { id: 2, agent: 'DigestBuilder', status: 'success', startedAt: '23:03:15', duration: '5,11 s',
+            output: 'leads=0 customers=0 tickets_open=0 pending_human=0 breakers=0' },
+          { id: 1, agent: 'DigestBuilder', status: 'failed',  startedAt: '15:18:21', duration: '0,38 s',
+            output: 'HTTPStatusError 503 Discord (webhook fuité, rotaté)' },
+        ],
+        breakers: [],
+        navLabel() {
+          const item = this.nav.find(n => n.id === this.active);
+          return item ? item.label : 'Overview';
+        },
+        statusClass(s) {
+          return {
+            success:  'bg-healthy/15 text-healthy',
+            failed:   'bg-danger/15 text-danger',
+            inactive: 'bg-zinc-700/30 text-zinc-500',
+            killed_by_breaker: 'bg-warning/15 text-warning',
+          }[s] || 'bg-zinc-700/30 text-zinc-500';
+        },
+      };
+    }
+  </script>
+</body>
+</html>
