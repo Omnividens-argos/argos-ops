@@ -10,9 +10,9 @@
 ## Résumé d'avancement
 
 - **Sessions terminées :** 3 / 19 (P0 + P1 + P2)
-- **Phase en cours :** Sprint 0 — P3 en cours (bloc auto + P3-M1 + 3/6 fichiers KB livrés 2026-05-07)
+- **Phase en cours :** Sprint 0 — P3 à 90 % (bloc auto + P3-M1 + **P3-M2 complet** livré 2026-05-08, reste P3-M3 seed)
 - **Dernière partie done :** P2 — Bootstrap du dossier `argos-ops` (2026-05-07)
-- **Prochaine partie :** P3-M2 reste 3 fichiers KB (`argos_features.md`, `competitor_compare.md`, `faq.md`) puis P3-M3 (seed)
+- **Prochaine partie :** **P3-M3** — `uv run python scripts/seed_kb.py` → ≥ 50 chunks dans `kb_chunks` + test similarité « combien coûte Pro Max » → top-1 chunk de `pricing.md`
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
 
 ---
@@ -89,20 +89,56 @@ P3-M1 — DB locale (✅ done 2026-05-07, D-009) :
 - `DATABASE_URL` mis à jour dans `.env.local`.
 - Setup serveur reporté à P4/P5 (cf. D-009).
 
-P3-M2 — Rédaction KB (🔄 in progress, mode interview) :
-- ✅ `tone_of_voice.md` (2026-05-07) — pitch canonique DAST-first, anti-FUD,
-  table typographie, convention placeholders pour exclure les 4 cibles
-  d'audit interne
+P3-M2 — Rédaction KB (✅ done 2026-05-08, mode interview) :
+- ✅ `tone_of_voice.md` (2026-05-07, aligné 139 modules le 2026-05-08) —
+  pitch canonique DAST-first, anti-FUD, table typographie, convention
+  placeholders pour exclure les 4 cibles d'audit interne
 - ✅ `ICP.md` (2026-05-07) — 3 personas (Marc/Sarah/Thomas), scoring BANT
   8 cases, déclencheurs OutboundBot, anti-ICP avec scripts verbatim,
   décisions différées (marque blanche, EN, DACH)
-- ✅ `pricing.md` (2026-05-07) — 4 tiers (Free / Pro 39 € / Team 129 € /
+- ✅ `pricing.md` (2026-05-07, flags figés 2026-05-08 par D-010/011/012,
+  aligné 139/41 le 2026-05-08) — 4 tiers (Free / Pro 39 € / Team 129 € /
   Pro Max 249 €) + Custom contact ≥5k€/mois, scans/jour vs par cible,
   -20 % annuel, 14 j refund, comparaison concurrence calibrée, glossaire
-  (Watch, Chaînes d'attaque, IA fallback auto)
-- ⬜ `argos_features.md` — catalogue exhaustif des 130 modules
-- ⬜ `competitor_compare.md` — Argos vs Acunetix / Detectify / Burp / Pentera / Intruder
-- ⬜ `faq.md` — 30-50 Q&R récurrentes
+  canonique (Watch Pro Max only, Chaînes d'attaque Pro+, IA fallback auto
+  = bascule entre BYOK configurés sans clé serveur Argos), add-on
+  hors-quota Free-only confirmé
+- ✅ `argos_features.md` (2026-05-08) — 1301 lignes, 78 KB, 7 sections :
+  vue d'ensemble (139 modules / 41 Free), catalogue exhaustif des 139
+  modules (6 sous-tableaux générés depuis registry SecHunter), 30 zooms
+  emblématiques (Oracle/Finding/Différenciant), couche IA-corrélation
+  (5 rôles + Strategist + Chaînes + Watch + Risk score + Compliance triple
+  + BYOK fallback), antimatière 8 hors-scope, roadmap minimaliste, annexe
+  machine-readable. Décisions : D-013 (Strategist framing) et D-014
+  (compliance factuelle).
+- ✅ `argos_modules.raw.json` (2026-05-08) — 48 KB, dump structuré des 139
+  modules depuis registry SecHunter, croisé avec `_FREE_MODULES`. Annexe
+  consultable par SupportBot en RAG hybride.
+- ✅ `competitor_compare.md` (2026-05-08) — 586 lignes, 28 KB, 10 sections :
+  positionnement canonique + matrice prix × périmètre, Argos vs Acunetix
+  / Detectify / Burp Pro / Intruder / Pentera, hors comparable Snyk/SAST,
+  anti-ICP (5 cas à éconduire), tableau récap vitamine cold call, règles
+  anti-disparagement.
+- ✅ `faq.md` (2026-05-08) — 772 lignes, 31 KB, ~50 Q&R en 10 sections
+  (Pricing, Onboarding, Sécurité, Couverture, IA, Compliance, CI/CD, FP,
+  Support, Divers). Décisions : D-015 (FP marking framing) et D-016
+  (rétention purge en roadmap).
+
+**4 décisions structurantes ajoutées le 2026-05-08** :
+- D-010 / D-011 / D-012 (clôture flags pricing)
+- D-013 / D-014 (Strategist framing + compliance factuelle)
+- D-015 / D-016 (FP marking + rétention purge en roadmap)
+
+**Tickets dev SecHunter à créer (suivi roadmap)** :
+- `feat/strategist-prescriptive-routing` (~30 LOC) — fusion stratégie LLM
+  + filtrage modules (cf. D-013)
+- `feat/finding-mark-fp` (~150-200 LOC + UI) — bouton « Marquer FP »
+  côté user (cf. D-015)
+- `feat/findings-retention-cron` (~50 LOC) — purge auto par tier
+  (cf. D-016)
+- `fix/portscan-light-ghost-registry` — registrer `network.portscan_light`
+  pour passer 41 → 42 modules Free (cf. note technique
+  `argos_features.md` § 1.3)
 
 P3-M3 — Seed + validation (⬜ à faire, auto) :
 - Lancer `uv run python scripts/seed_kb.py` → ≥ 50 chunks dans `kb_chunks`.

@@ -1,0 +1,1772 @@
+[
+  {
+    "name": "api.auth",
+    "category": "api",
+    "description": {
+      "description": "API Authentication Testing",
+      "category": "api",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.bola",
+    "category": "api",
+    "description": {
+      "description": "Broken Object Level Authorization (IDOR via IDs séquentiels et UUIDs)",
+      "category": "api",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.broken_function_auth",
+    "category": "api",
+    "description": {
+      "description": "API Broken Function Level Authorization v2 — admin-class endpoints reachable from lower-privilege or anonymous sessions, plus HTTP method-switching authorization bypass (OWASP API5:2023).",
+      "category": "api",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.excessive_data",
+    "category": "api",
+    "description": {
+      "description": "API Excessive Data Exposure v2 — structured JSON response analysis with precise sensitive-key regex, anti-bot/SPA filtering, and pagination-less bulk detection (OWASP API3:2023).",
+      "category": "api",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.injection",
+    "category": "api",
+    "description": {
+      "description": "API injection detection v2 — SQLi / NoSQLi / Command / SSTI / LDAPi / XPathi across query, body, header and cookie with error-based, boolean-blind, time-based and OOB oracles (OWASP API8:2023 + API10:2023).",
+      "category": "api",
+      "target_types": [
+        "url",
+        "api"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.access_control",
+    "category": "web",
+    "description": {
+      "description": "Broken Access Control (forced browsing, priv esc, method bypass)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.account_takeover",
+    "category": "web",
+    "description": {
+      "description": "Account Takeover v2 — password reset poisoning, reset token quality, email change without confirmation, OAuth misconfiguration, account enumeration, MFA bypass.",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.api_versioning",
+    "category": "web",
+    "description": {
+      "description": "Détection d'anciennes versions d'API accessibles. v2 avec baseline diff (rejet catch-all), pré-validation anti-bot, et signature API (JSON / OpenAPI markers) obligatoire.",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.broken_auth",
+    "category": "web",
+    "description": {
+      "description": "Broken Authentication v2 — rate limiting, default credentials, account lockout, session cookie flags. Uses AttackSurface for login discovery and response_classifier for anti-bot filtering.",
+      "category": "web",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.business_logic",
+    "category": "web",
+    "description": {
+      "description": "Business Logic Flaws (price manipulation, coupon stacking)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.cache_deception",
+    "category": "web",
+    "description": {
+      "description": "Cache deception multi-technique (25+ extensions, 15+ séparateurs, Content-Type mismatch, two-request confirmation authentifiée si auth_recipe disponible, baseline diff via BaselineManager). Pré-validation anti-bot et whitelist des paths publics par design.",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.cache_poisoning",
+    "category": "web",
+    "description": {
+      "description": "Web Cache Poisoning & Cache Deception (unkeyed headers, path confusion)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.clickjacking",
+    "category": "web",
+    "description": {
+      "description": "Clickjacking (iframe, X-Frame-Options, frame-ancestors)",
+      "category": "web",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.cookie_security",
+    "category": "web",
+    "description": {
+      "description": "Audit cookies v2 — Secure, HttpOnly, SameSite, __Host- / __Secure- prefixes. Whitelists analytics/consent cookies and filters anti-bot responses.",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.cors",
+    "category": "web",
+    "description": {
+      "description": "CORS Misconfiguration",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.crlf_injection",
+    "category": "web",
+    "description": {
+      "description": "CRLF Injection / HTTP Response Splitting (header injection)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.csp_bypass",
+    "category": "web",
+    "description": {
+      "description": "CSP Bypass Analysis (unsafe-inline/eval, JSONP, grade A-F)",
+      "category": "web",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.csrf",
+    "category": "web",
+    "description": {
+      "description": "Cross-Site Request Forgery (tokens, SameSite, Referer)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.deserialization",
+    "category": "web",
+    "description": {
+      "description": "Insecure Deserialization (Java, PHP, Python, .NET)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.error_disclosure",
+    "category": "web",
+    "description": {
+      "description": "Détection de fuites d'information via pages d'erreur — v2 avec pré-validation anti-bot, baseline diff, whitelist endpoints publics, triggers dérivés de l'AttackSurface, catalogue de ~50 patterns.",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.file_upload",
+    "category": "web",
+    "description": {
+      "description": "File Upload Vulns (shell, extension/MIME bypass, SVG XSS)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.fuzzing",
+    "category": "web",
+    "description": {
+      "description": "Directory / File Fuzzing",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.graphql",
+    "category": "web",
+    "description": {
+      "description": "GraphQL Security (introspection, injection, batching, DoS)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.headers",
+    "category": "web",
+    "description": {
+      "description": "Security Headers (CSP, HSTS, X-Frame-Options...)",
+      "category": "web",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.host_header",
+    "category": "web",
+    "description": {
+      "description": "Host Header Injection (reset poisoning, X-Forwarded-Host)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.http2_smuggling",
+    "category": "web",
+    "description": {
+      "description": "HTTP/2 request smuggling — H2.CL desync, H2.TE desync, CRLF injection in H2 headers, Content-Length mismatch",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.http_smuggling",
+    "category": "web",
+    "description": {
+      "description": "HTTP Request Smuggling (CL.TE, TE.CL, TE.TE, timing)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.idor",
+    "category": "web",
+    "description": {
+      "description": "Insecure Direct Object Reference",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.insecure_tls_redirect",
+    "category": "web",
+    "description": {
+      "description": "Audit redirection HTTP→HTTPS, HSTS (max-age, includeSubDomains, preload) et leak de cookies sur HTTP. v2 avec pré-validation anti-bot et parsing HSTS structuré.",
+      "category": "web",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.jwt",
+    "category": "web",
+    "description": {
+      "description": "JWT Attacks (none algo, key confusion, expiry)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.lfi_rfi",
+    "category": "web",
+    "description": {
+      "description": "Local / Remote File Inclusion",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.misconfig",
+    "category": "web",
+    "description": {
+      "description": "Security Misconfiguration (debug mode, default creds, dir listing)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.nosqli",
+    "category": "web",
+    "description": {
+      "description": "NoSQL Injection (MongoDB operators, auth bypass, $where blind)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.oauth_misconfig",
+    "category": "web",
+    "description": {
+      "description": "OAuth/OIDC misconfiguration v2 — PKCE, grant types, client registration, id_token signing, client auth, response_mode, client-id enumeration.",
+      "category": "web",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.open_redirect",
+    "category": "web",
+    "description": {
+      "description": "Open Redirect",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.parameter_pollution",
+    "category": "web",
+    "description": {
+      "description": "HTTP Parameter Pollution (duplicate params, WAF bypass)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.password_policy",
+    "category": "web",
+    "description": {
+      "description": "Audit de la politique de mots de passe (longueur, autocomplete, cleartext). v2 avec pré-validation anti-bot et discovery via AttackSurface.",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.path_traversal",
+    "category": "web",
+    "description": {
+      "description": "Path traversal detection (facade for web.lfi_rfi v2)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.postmessage_xss",
+    "category": "web",
+    "description": {
+      "description": "Détection de DOM XSS via window.postMessage — oracle d'exécution actif dans un navigateur headless sur les pages de l'AttackSurface.",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.prototype_pollution",
+    "category": "web",
+    "description": {
+      "description": "Prototype Pollution JS (GET, JSON, client/server-side)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.race_condition",
+    "category": "web",
+    "description": {
+      "description": "Race Condition / TOCTOU (double-submit, coupon abuse, double-spend)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.rce_command",
+    "category": "web",
+    "description": {
+      "description": "OS Command Injection detection (error-based, OOB blind, time-based) across all injection locations (query, body, header, cookie).",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.rce_ssti",
+    "category": "web",
+    "description": {
+      "description": "Server-Side Template Injection (SSTI) detection via arithmetic evaluation oracle across all injection locations.",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.ssi_injection",
+    "category": "web",
+    "description": {
+      "description": "Server-Side Includes (SSI) Injection detection via directive evaluation oracle across all injection locations.",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.rce",
+    "category": "web",
+    "description": {
+      "description": "Remote Code Execution (command injection, SSTI)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.saml_attacks",
+    "category": "web",
+    "description": {
+      "description": "SAML 2.0 weaknesses v2 — metadata exposure, signature stripping, XML signature wrapping, InResponseTo / Destination absent, assertion replay, XXE via SAMLResponse.",
+      "category": "web",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.session_fixation",
+    "category": "web",
+    "description": {
+      "description": "Session Fixation (URL session ID, no rotation, cookie flags, weak entropy)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.sqli",
+    "category": "web",
+    "description": {
+      "description": "SQL Injection (blind + error-based)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.ssrf",
+    "category": "web",
+    "description": {
+      "description": "Server-Side Request Forgery",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.subdomain_routing",
+    "category": "web",
+    "description": {
+      "description": "Test d'accès cross-tenant via manipulation du Host header. v2 avec diff structurel baseline / candidat, pré-validation anti-bot, et confirmation DNS optionnelle.",
+      "category": "web",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "web.web3_dapp",
+    "category": "web",
+    "description": {
+      "description": "Web3 / dApp frontend audit v2 — private-key leak, provider key exposure, localStorage anti-pattern, eth_sign, EIP-712 chainId, infinite approve, signature replay.",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.websocket",
+    "category": "web",
+    "description": {
+      "description": "WebSocket Security (CSWSH, injection, missing auth, cleartext)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.xss",
+    "category": "web",
+    "description": {
+      "description": "Cross-Site Scripting (reflected, stored, DOM-based)",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "web.xxe",
+    "category": "web",
+    "description": {
+      "description": "XML External Entity Injection",
+      "category": "web",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.graphql_injection",
+    "category": "api",
+    "description": {
+      "description": "API GraphQL security audit v2 — strict spec-GraphQL probe, introspection / field suggestion / batching / alias flood / depth DoS / GraphQL-over-GET / unauth-mutation, plus 4-oracle injection (error / boolean / time / OOB) on inline arguments, variables and directives across SQLi, NoSQLi, RCE-cmd, SSTI, LDAPi, XPathi (OWASP API8:2023 + API10:2023).",
+      "category": "api",
+      "target_types": [
+        "url",
+        "api"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.grpc_audit",
+    "category": "api",
+    "description": {
+      "description": "API gRPC audit v2 — reflection, service enumeration, plaintext (h2c), invalid TLS certificate, unauthenticated method invocation, health-check exposure (OWASP API1 + API5 + API8 + API10).",
+      "category": "api",
+      "target_types": [
+        "url",
+        "ip",
+        "domain",
+        "api"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.mass_assignment",
+    "category": "api",
+    "description": {
+      "description": "Mass Assignment (champs non documentes : is_admin, role)",
+      "category": "api",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.openapi_audit",
+    "category": "api",
+    "description": {
+      "description": "OpenAPI/Swagger Audit (spec exposee, endpoints sans auth)",
+      "category": "api",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.rate_limiting",
+    "category": "api",
+    "description": {
+      "description": "Rate Limiting (brute force login, register, password reset, OTP)",
+      "category": "api",
+      "target_types": [
+        "url",
+        "api"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.ssrf_via_api",
+    "category": "api",
+    "description": {
+      "description": "SSRF detection v2 on API endpoints accepting URL-like parameters — OOB DNS/HTTP, cloud metadata fingerprint, and baseline-diff response-based oracles (OWASP API7:2023, CWE-918).",
+      "category": "api",
+      "target_types": [
+        "url",
+        "api"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.versioning_exposure",
+    "category": "api",
+    "description": {
+      "description": "API versioning exposure v2 — detects legacy API versions that coexist with the current one and that may miss security patches or have weaker authorization checks (OWASP API9:2023, CWE-1059).",
+      "category": "api",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "api.websocket_api",
+    "category": "api",
+    "description": {
+      "description": "API WebSocket audit v2 — missing authentication, CSWSH, cleartext transport, token-in-URL, permissive CORS on upgrade, message-level injection (4 oracles × 6 categories), sensitive-data leak in echoes, GraphQL subscription unauth (OWASP API1 + API2 + API3 + API8 + API10).",
+      "category": "api",
+      "target_types": [
+        "url",
+        "api"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.cdn_bypass",
+    "category": "cloud",
+    "description": {
+      "description": "Detects CDN/WAF bypass vectors: origin IP leaked in response headers, origin subdomains reachable without the CDN, and proxy-header spoofing that flips backend behaviour.",
+      "category": "cloud",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.cognito_misconfig",
+    "category": "cloud",
+    "description": {
+      "description": "Detects unauthenticated AWS Cognito Identity Pools, public User Pool sign-up, and exposed Hosted UIs using strict JSON content signatures.",
+      "category": "cloud",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.container_registry",
+    "category": "cloud",
+    "description": {
+      "description": "Detects Docker Registry / OCI registries accessible without authentication via anchored JSON signatures on the v2 catalog and tags endpoints.",
+      "category": "cloud",
+      "target_types": [
+        "url",
+        "domain",
+        "ip"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.dns_dangling",
+    "category": "cloud",
+    "description": {
+      "description": "Detects dangling CNAMEs pointing to deprovisioned cloud resources (AWS S3, Azure App Service, Heroku, GitHub Pages, Netlify, Vercel, Firebase, Shopify, …) that can lead to subdomain takeover.",
+      "category": "cloud",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.firebase_misconfig",
+    "category": "cloud",
+    "description": {
+      "description": "Detects publicly readable Firebase Realtime Database, Firestore collections, Storage buckets, and unrestricted Identity Toolkit sign-up via anchored JSON signatures.",
+      "category": "cloud",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.iam",
+    "category": "cloud",
+    "description": {
+      "description": "Cloud IAM Misconfig (policies permissives, credentials exposees)",
+      "category": "cloud",
+      "target_types": [
+        "url",
+        "ip"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.lambda_misconfig",
+    "category": "cloud",
+    "description": {
+      "description": "Detects serverless env-var leakage, stack traces and fingerprint headers on Lambda / Azure Functions / GCP Cloud Functions using anchored signatures and baseline-diff validation.",
+      "category": "cloud",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.metadata",
+    "category": "cloud",
+    "description": {
+      "description": "Cloud Metadata IMDS (AWS IMDSv1/v2, GCP, Azure IMDS)",
+      "category": "cloud",
+      "target_types": [
+        "url",
+        "ip"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.misconfig",
+    "category": "cloud",
+    "description": {
+      "description": "Cloud Misconfiguration (AWS S3, GCP, Azure)",
+      "category": "cloud",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.network_acl",
+    "category": "cloud",
+    "description": {
+      "description": "Audits exposed management services (SSH, RDP, databases, orchestration planes, message brokers, monitoring dashboards) with a protocol-level probe to avoid false positives on generic open ports.",
+      "category": "cloud",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.secrets_manager",
+    "category": "cloud",
+    "description": {
+      "description": "Detects exposed secret stores (HashiCorp Vault, Azure Key Vault, Kubernetes Secrets API, GCP Secret Manager, AWS SSM) via strict JSON signatures and response classification.",
+      "category": "cloud",
+      "target_types": [
+        "url",
+        "domain",
+        "ip"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "cloud.terraform_state",
+    "category": "cloud",
+    "description": {
+      "description": "Detects exposed Terraform state / plan files, unauthenticated Consul KV backends and public HCP Terraform workspaces via anchored JSON signatures and baseline-diff validation.",
+      "category": "cloud",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.consul_etcd",
+    "category": "network",
+    "description": {
+      "description": "Audit Consul + etcd — détection unauth access via /v1/agent/self + /version canoniques, KV stores avec sensitive keys regex anchored, ACL tokens listables, auth status etcd.",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.default_creds",
+    "category": "network",
+    "description": {
+      "description": "Default Credentials (SSH, FTP, MySQL, Redis, MongoDB...)",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.dns_rebinding",
+    "category": "network",
+    "description": {
+      "description": "DNS Rebinding (Host validation, CORS permissif, protections manquantes)",
+      "category": "network",
+      "target_types": [
+        "url",
+        "domain",
+        "ip"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.docker_api",
+    "category": "network",
+    "description": {
+      "description": "Audit Docker Engine API — détection d'exposition sans auth/TLS sur 2375 (HTTP) et 2376 (TLS sans mTLS). Signature canonique via /_ping + /version + confirmation active /containers/json + /info pour escalation CRITICAL.",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.elasticsearch_unauth",
+    "category": "network",
+    "description": {
+      "description": "Audit Elasticsearch / OpenSearch — détection d'accès sans authentification via GET / signature canonique, listage d'indices, bulk _search cross-index, disclosure de version et CVE mapping.",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.email",
+    "category": "network",
+    "description": {
+      "description": "Email Security (SMTP open relay, SPF/DKIM/DMARC, STARTTLS)",
+      "category": "network",
+      "target_types": [
+        "domain",
+        "ip"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "network.ftp",
+    "category": "network",
+    "description": {
+      "description": "FTP Security (anonymous login, bounce attack, banner grabbing, cleartext)",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.ipmi",
+    "category": "network",
+    "description": {
+      "description": "IPMI BMC audit UDP 623 — Get Channel Auth Caps strict, cipher 0 bypass (CRITICAL), RAKP hash disclosure CVE-2013-4786 (HIGH)",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.ipv6",
+    "category": "network",
+    "description": {
+      "description": "IPv6 Security (dual-stack, IPv6-only services, firewall bypass)",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "network.jenkins_unauth",
+    "category": "network",
+    "description": {
+      "description": "Audit Jenkins — détection unauth access via signature X-Jenkins + parsing /api/json (useSecurity flag), confirmation RCE Groovy active, credentials store, users, nodes, environment.",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.kerberos",
+    "category": "network",
+    "description": {
+      "description": "Audit Kerberos v5 — détection KDC, AS-REP Roasting sur comptes courants, chiffrement faible accepté, authentification anonyme.",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.kubernetes_api",
+    "category": "network",
+    "description": {
+      "description": "Audit Kubernetes API — détection API server exposé, kubelet secure/read-only accessible, vérification anonymous-auth via /api/v1/namespaces avec parsing JSON strict.",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.ldap",
+    "category": "network",
+    "description": {
+      "description": "LDAP Security Audit (anonymous bind, injection, user enum, rootDSE)",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.memcached_unauth",
+    "category": "network",
+    "description": {
+      "description": "Audit Memcached — détection d'accès sans authentification (TCP), disclosure slabs/items, test d'amplification UDP (CVE-2018-1000115).",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.mongodb_unauth",
+    "category": "network",
+    "description": {
+      "description": "Audit MongoDB — détection d'accès sans authentification via Wire Protocol OP_QUERY isMaster, listage des bases (listDatabases), disclosure de version et wire version.",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.mqtt",
+    "category": "network",
+    "description": {
+      "description": "Audit MQTT — détection accès anonyme, wildcard subscribe '#' et '$SYS/#', cleartext 1883, credentials par défaut (3.1.1 et 5.0)",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "network.mssql",
+    "category": "network",
+    "description": {
+      "description": "Audit Microsoft SQL Server — détection TDS PRELOGIN, politique de chiffrement, disclosure de version, mode d'authentification (Mixed vs Windows), exposition du SQL Server Browser UDP.",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.nfs",
+    "category": "network",
+    "description": {
+      "description": "Audit NFS — portmapper, versions (NFSv2/v3/v4), énumération des exports via MOUNT, détection d'exports world-readable.",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.ntp",
+    "category": "network",
+    "description": {
+      "description": "Audit NTP UDP 123 — NTPv4 strict Q1, version disclosure via mode 6 readvar, monlist CVE-2013-5211 avec facteur d'amplification mesuré",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "network.portscan",
+    "category": "network",
+    "description": {
+      "description": "Port Scan (nmap + fallback TCP)",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "network.prometheus_grafana",
+    "category": "network",
+    "description": {
+      "description": "Audit Prometheus + Grafana + AlertManager + node_exporter + Pushgateway — détection unauth via signatures JSON/OpenMetrics canoniques, secrets YAML anchored regex, Grafana default creds.",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.rdp",
+    "category": "network",
+    "description": {
+      "description": "Audit RDP — négociation X.224 pour détecter PROTOCOL_RDP (standard security, sans NLA), parsing spec MS-RDPBCGR strict",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.redis_unauth",
+    "category": "network",
+    "description": {
+      "description": "Audit Redis — détection d'accès sans authentification via RESP, CONFIG writable (préparation RCE), exposition de données et disclosure de version/OS.",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.service_cve",
+    "category": "network",
+    "description": {
+      "description": "Service Version + CVE Matching",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.smb",
+    "category": "network",
+    "description": {
+      "description": "SMB/NetBIOS Enumeration",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.snmp",
+    "category": "network",
+    "description": {
+      "description": "SNMP Community String Bruteforce",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "network.ssh_audit",
+    "category": "network",
+    "description": {
+      "description": "Audit SSH (ssh-audit wrapper) — algorithmes obsolètes, CVEs, version disclosure",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "network.ssl_audit",
+    "category": "network",
+    "description": {
+      "description": "SSL/TLS Audit (ciphers, certs, BEAST/POODLE/Heartbleed)",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "network.telnet",
+    "category": "network",
+    "description": {
+      "description": "Audit Telnet — port 23 cleartext, device fingerprint, default credentials",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.vnc",
+    "category": "network",
+    "description": {
+      "description": "Audit VNC — validation banner RFB anchored, confirmation active de SecurityType None via ServerInit, test de passwords triviaux pour VNC Auth",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "network.winrm",
+    "category": "network",
+    "description": {
+      "description": "Audit WinRM (WS-Management) — détection stricte, cleartext HTTP, Basic auth sur HTTP, accès non authentifié via SOAP Enumerate",
+      "category": "network",
+      "target_types": [
+        "ip",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "recon.asn",
+    "category": "recon",
+    "description": {
+      "description": "ASN / WHOIS Lookup",
+      "category": "recon",
+      "target_types": [
+        "domain",
+        "url",
+        "ip"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "recon.backup_files",
+    "category": "recon",
+    "description": {
+      "description": "Détection de fichiers sensibles exposés : backup, config, debug, IDE",
+      "category": "recon",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "recon.cloud_provider",
+    "category": "recon",
+    "description": {
+      "description": "Détection cloud provider (AWS/GCP/Azure/Cloudflare/…) via headers + DNS — alimente SharedContext pour les modules cloud/* (INFO only)",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain",
+        "ip"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "recon.dns_zone",
+    "category": "recon",
+    "description": {
+      "description": "DNS Zone Transfer",
+      "category": "recon",
+      "target_types": [
+        "domain",
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "recon.email_harvest",
+    "category": "recon",
+    "description": {
+      "description": "Récolte d'emails OSINT (mailto + scan HTML) avec classification anti-FP — toutes les findings en INFO",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "recon.favicon_hash",
+    "category": "recon",
+    "description": {
+      "description": "Identification de technologies par hash MurmurHash3 du favicon (Shodan-compatible). Détecte Grafana, Jenkins, GitLab, Fortinet, Prometheus, Kubernetes Dashboard, etc. N'émet qu'un finding INFO — la présence d'un favicon ne prouve pas l'exposition publique non protégée du service (certains dashboards sont publics par design).",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "recon.fingerprint",
+    "category": "recon",
+    "description": {
+      "description": "Technology Fingerprinting",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "recon.git_exposure",
+    "category": "recon",
+    "description": {
+      "description": "Détection de répertoires VCS exposés (.git, .svn, .hg, .bzr)",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "recon.github_recon",
+    "category": "recon",
+    "description": {
+      "description": "Découverte d'organisations GitHub/GitLab, repos publics, emails de développeurs — oracles stricts (regex ancrées, API JSON validée)",
+      "category": "recon",
+      "target_types": [
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "recon.http_methods",
+    "category": "recon",
+    "description": {
+      "description": "Détection des méthodes HTTP dangereuses (TRACE, TRACK, DEBUG, PUT, DELETE, CONNECT, PATCH) avec baseline diff pour filtrer les catch-all SPA, whitelist des contextes REST, et confirmation stricte du TRACE via écho d'un header canary.",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "recon.js_analysis",
+    "category": "recon",
+    "description": {
+      "description": "Analyse JS : extraction d'endpoints, secrets (patterns ancrés), commentaires",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "recon.portscan_light",
+    "category": "recon",
+    "description": {
+      "description": "Port Scan Light (top ports rapide)",
+      "category": "recon",
+      "target_types": [
+        "ip",
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "recon.robots_sitemap",
+    "category": "recon",
+    "description": {
+      "description": "Cartographie passive : robots.txt, sitemap.xml, .well-known/security.txt",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "recon.s3_enum",
+    "category": "recon",
+    "description": {
+      "description": "Énumération de buckets cloud storage (AWS S3, DigitalOcean Spaces, GCS) par permutations du domaine — oracle XML strict",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "recon.screenshot",
+    "category": "recon",
+    "description": {
+      "description": "Screenshot de la cible",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "recon.source_map",
+    "category": "recon",
+    "description": {
+      "description": "Détection de source maps JS exposées (code source, secrets)",
+      "category": "recon",
+      "target_types": [
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "recon.subdomain",
+    "category": "recon",
+    "description": {
+      "description": "Subdomain Enumeration",
+      "category": "recon",
+      "target_types": [
+        "domain",
+        "url"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "recon.subdomain_takeover",
+    "category": "recon",
+    "description": {
+      "description": "Subdomain Takeover (CNAME dangling vers services cloud)",
+      "category": "recon",
+      "target_types": [
+        "domain",
+        "url"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "recon.tech_stack_deep",
+    "category": "recon",
+    "description": {
+      "description": "Fingerprinting approfondi : cookies de session, chemins d'assets JS, data-attributes HTML, headers spécifiques aux frameworks modernes. Complémentaire de ``recon.fingerprint`` (qui lit les signatures explicites type ``Server`` et ``X-Powered-By``).",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "recon.waf_detect",
+    "category": "recon",
+    "description": {
+      "description": "WAF Detection",
+      "category": "recon",
+      "target_types": [
+        "url",
+        "domain"
+      ]
+    },
+    "free": true
+  },
+  {
+    "name": "sast.csharp_analyzer",
+    "category": "sast",
+    "description": {
+      "description": "Analyse statique C#/.NET via tree-sitter AST : SqlCommand concat, BinaryFormatter, NetDataContractSerializer, LosFormatter, Html.Raw, Response.Write, MD5/SHA1/DES/RC2, Process.Start, DirectorySearcher, Random, ViewState MAC, secrets hardcodes.",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.dependency",
+    "category": "sast",
+    "description": {
+      "description": "SCA — dependances vulnerables (CVE via OSV.dev)",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.docker",
+    "category": "sast",
+    "description": {
+      "description": "Docker Security (USER root, secrets in layers, :latest)",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.go_analyzer",
+    "category": "sast",
+    "description": {
+      "description": "Analyse statique Go via tree-sitter AST : imports crypto faible (md5/sha1/des/rc4/math-rand), SQL via fmt.Sprintf, exec.Command avec variable/shell, InsecureSkipVerify, SSLv3, unsafe.Pointer, secrets hardcodes.",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.iac",
+    "category": "sast",
+    "description": {
+      "description": "IaC Security (Terraform, CloudFormation, Kubernetes)",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.java_analyzer",
+    "category": "sast",
+    "description": {
+      "description": "Analyse statique Java via tree-sitter AST : Runtime.getRuntime, ObjectInputStream, XMLDecoder, XStream, JNDI lookup, XXE parsers, crypto faible (DES/ECB/MD5/SHA1), Random, Spring CSRF disable, path traversal, secrets hardcodes.",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.javascript",
+    "category": "sast",
+    "description": {
+      "description": "Analyse Statique JS/TS (eval, DOM XSS, secrets, ReDoS)",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.license_audit",
+    "category": "sast",
+    "description": {
+      "description": "License audit v2 : classification SPDX (permissive/weak/strong/network copyleft/proprietary), expressions composees, detection conflits projet vs dep, transitives node_modules",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.php_analyzer",
+    "category": "sast",
+    "description": {
+      "description": "Analyse statique PHP via tree-sitter AST : SQLi (mysql_query / PDO / wpdb), command injection (system/shell_exec/backticks), code injection (eval/assert/preg_replace e/create_function), unserialize user input, LFI/RFI (include/require), XSS (echo superglobale), path traversal, SSRF (curl), crypto faible, mcrypt, extract, secrets hardcodes.",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.python",
+    "category": "sast",
+    "description": {
+      "description": "Analyse Statique Python (secrets, vulns, deps)",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.ruby_analyzer",
+    "category": "sast",
+    "description": {
+      "description": "Analyse statique Ruby/Rails via tree-sitter AST : SQLi (where/find_by_sql/execute interp), command injection (system/exec/backtick interp), eval/instance_eval/class_eval sur params, send(params), YAML/Marshal.load, permit! mass assignment, html_safe / ERB raw, redirect_to params, Digest::MD5/SHA1, secrets hardcodes.",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.sbom",
+    "category": "sast",
+    "description": {
+      "description": "SBOM v2 : genere un Software Bill of Materials au format CycloneDX 1.5 JSON a partir des manifests/lockfiles de tous les ecosystemes supportes (PyPI/npm/RubyGems/Go/Cargo/Packagist/Maven/NuGet). 1 seul finding INFO de synthese par scan, SBOM complet en evidence.",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.secrets",
+    "category": "sast",
+    "description": {
+      "description": "Secrets multi-langage (AWS, GCP, Azure, Stripe, GitHub)",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  },
+  {
+    "name": "sast.supply_chain",
+    "category": "sast",
+    "description": {
+      "description": "Supply chain v2 : typosquatting (Damerau-Levenshtein), scripts preinstall/postinstall suspects (pipe-to-shell, base64 decode, reverse shell), dependency confusion, lockfiles manquants, versions non pinnees, replace local go.mod, dep via URL/git/file://",
+      "category": "sast",
+      "target_types": [
+        "code"
+      ]
+    },
+    "free": false
+  }
+]

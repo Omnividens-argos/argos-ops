@@ -103,17 +103,19 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
 - **Sessions terminées :** 3 / 19 (P0 + P1 + P2)
-- **Phase en cours :** Sprint 0 — P3 à 60 % (bloc auto + P3-M1 + 3/6 fichiers KB livrés 2026-05-07)
+- **Phase en cours :** Sprint 0 — P3 à 90 % (bloc auto + P3-M1 + **P3-M2 complet** 2026-05-08, reste P3-M3 seed)
 - **Dernière partie done :** P2 — Bootstrap projet (2026-05-07)
-- **Prochaine partie :** **reprise sur P3-M2** — il reste 3 fichiers KB à rédiger
-  en mode interview (`argos_features.md`, `competitor_compare.md`, `faq.md`),
-  puis **P3-M3** (seed KB + test similarité)
-- **En attente review humaine :** [PR #4](https://github.com/Omnividens-argos/argos-ops/pull/4) (`feat/p3-crm-kb`, mergeable, CI ✅)
-- **Flags ouverts à confirmer en début de prochaine session :** 3 calls par défaut
-  marqués « à valider » dans `data/knowledge_base/pricing.md` :
-  (A) `scans hors quota` add-on Free-only,
-  (B) `IA fallback auto` Pro Max sans BYOK avec plafond serveur,
-  (C) définitions de `Watch` + `Chaînes d'attaque`
+- **Prochaine partie :** **P3-M3** — `uv run python scripts/seed_kb.py` →
+  ≥ 50 chunks dans `kb_chunks` + test similarité « combien coûte Pro Max »
+  doit retourner un chunk de `pricing.md` en top-1
+- **En attente review humaine :** [PR #4](https://github.com/Omnividens-argos/argos-ops/pull/4)
+  (`feat/p3-crm-kb`) à mettre à jour avec les livrables P3-M2 (6 fichiers
+  KB authentiques, 7 décisions D-010 à D-016) avant merge
+- **Décisions P3 actives :** D-010 (hors-quota Free-only), D-011 (BYOK seul
+  IA fallback), D-012 (Watch/Chaînes définitions canoniques), D-013
+  (Strategist framing audit), D-014 (compliance factuelle pas de score %),
+  D-015 (FP marking en roadmap), D-016 (rétention purge en roadmap) — voir
+  [`docs/DECISIONS.md`](docs/DECISIONS.md)
 - **Setup local requis :** container Docker `argos-postgres-local` doit tourner
   (`docker ps | grep argos-postgres-local`). Si arrêté, le redémarrer
   (`docker start argos-postgres-local`). Volume `argos_postgres_data` persistant.

@@ -45,7 +45,7 @@ fait un changement de plan volontaire, il bascule sur la nouvelle grille.
 | **Scans / jour** | 10 | 70 | 250 | **illimité** |
 | **Scans concurrents** | 1 | 5 | 10 | 20 |
 | **Targets max par batch** | 0 (désactivé) | 5 | 20 | 50 |
-| **Modules** | 70 (sévérité ≤ HIGH) | les 130 | les 130 | les 130 |
+| **Modules** | 41 (sévérité ≤ HIGH) | les 139 | les 139 | les 139 |
 | **Sévérité affichée** | HIGH max (CRITICAL masqués) | toutes | toutes | toutes |
 | **Rétention findings** | 30 jours | 90 jours | 1 an | illimité |
 | **Support** | KB + Discord public | email < 72 h | email < 24 h | Slack dédié < 8 h |
@@ -55,7 +55,7 @@ fait un changement de plan volontaire, il bascule sur la nouvelle grille.
 | **API REST access** | ❌ | ✅ | ✅ | ✅ |
 | **Watch** (re-scan continu) | ❌ | ❌ | ❌ | ✅ |
 | **Chaînes d'attaque** | ❌ | ✅ | ✅ | ✅ |
-| **IA fallback auto** (sans BYOK) | ❌ | ❌ | ❌ | ✅ |
+| **IA fallback auto** (entre BYOK configurés) | ❌ | ❌ | ❌ | ✅ |
 | **Comptes équipe (seats)** | 1 | 1 | 3 | 10 |
 
 ### Logique de gating à retenir pour SupportBot
@@ -118,7 +118,7 @@ casse potentielle des comptes payants existants.
 
 - 1 scan concurrent
 - 10 scans / jour
-- 70 modules sur 130 (les CRITICAL gated derrière Pro)
+- 41 modules sur 139 (les CRITICAL gated derrière Pro — voir [`argos_features.md`](argos_features.md) pour la liste exhaustive Free)
 - Sévérité max affichée : **HIGH** — les CRITICAL sont masqués (signal
   d'upgrade fort sans frustrer le user qui ne voit pas ce qu'il rate)
 - Pas d'export SARIF (= pas d'intégration CI possible → upgrade signal)
@@ -179,11 +179,19 @@ une découverte = effet de gain).
 |---|---|---|---|
 | **Scans hors quota** | 19 € / scan | Free uniquement | ✅ Actif |
 
-> **Précision (à valider) :** un user Pro / Team qui défonce son cap
+> **Précision (figée — D-010) :** un user Pro / Team qui défonce son cap
 > journalier est **rate-limité jusqu'à minuit J+1**, il **ne peut pas**
-> acheter de scans hors quota. Pro Max est illimité par design. Logique
-> retenue : éviter de gérer du metered billing sur 3 tiers et préserver la
-> simplicité de la promesse « cap journalier ».
+> acheter de scans hors quota. Pro Max est illimité par design. Le
+> hors-quota Free reste un mini-add-on de transition Free→Pro : un user
+> Free qui veut un 11ᵉ scan ce jour-ci paie 19 €, ressent la friction,
+> comprend qu'à 39 €/mois il a 70 scans/jour. Vendre du hors-quota aux
+> tiers payants brouillerait le signal d'upgrade Pro→Team→Pro Max, qui
+> est notre principal moteur de conversion.
+>
+> **Garde-fou UX (à coder en P16 ou avant) :** quand un Pro/Team hit son
+> quota, l'UI propose explicitement l'**upgrade au tier supérieur**, pas
+> le hors-quota. Message canonique : « Tu as atteint 70 scans/jour.
+> Upgrade à Team pour 250 scans/jour, ou attends 24 h. »
 
 ### Différés (à ouvrir post-launch)
 
@@ -255,14 +263,18 @@ uniquement.
 
 | Tier Argos | Périmètre | Concurrent direct | Position |
 |---|---|---|---|
-| **Pro 39 €** | 1 user, 130 modules | Burp Pro 39 € (manuel), Intruder Essential 95 € | équivalent Burp (justifié : on est SaaS, pas outil manuel), **-59 % vs Intruder Essential** ✅ |
+| **Pro 39 €** | 1 user, 139 modules | Burp Pro 39 € (manuel), Intruder Essential 95 € | équivalent Burp (justifié : on est SaaS, pas outil manuel), **-59 % vs Intruder Essential** ✅ |
 | **Team 129 €** | 3 users, 250 scans/jour | Intruder Pro 165 €, Probely 200 € | **-22 % vs Intruder Pro, -36 % vs Probely** ✅ |
 | **Pro Max 249 €** | 10 users, illimité | Intruder Premium 390 €, Acunetix Standard 350 € | **-36 % vs Intruder Premium, -29 % vs Acunetix Standard** ✅ |
 
 ### Phrase clinchante (à utiliser dans tous les canaux SupportBot / OutboundBot)
 
-> **« 0 faux positif et 130 modules entre 39 € et 249 €. Acunetix démarre
+> **« 0 faux positif et 139 modules entre 39 € et 249 €. Acunetix démarre
 > à 350 € pour 1 site. »**
+
+Variante Free vs payant (à utiliser en cold call quand le prospect demande
+le free tier) : **« Free : 41 modules sévérité ≤ HIGH. Tous les tiers
+payants : 139 modules, sans limite de sévérité. »**
 
 C'est la formule canonique. La grille tient le **20-40 % moins cher**
 partout sur le segment SaaS comparable.
@@ -288,14 +300,15 @@ Définitions courtes pour que SupportBot puisse répondre aux questions
 pricing sans halluciner. **Détail technique complet → voir
 [`argos_features.md`](argos_features.md)** (P3-M2 fichier 4).
 
-| Terme | Définition courte (à valider) |
+| Terme | Définition courte (figée — D-012) |
 |---|---|
-| **Watch** | Re-scan continu programmé (ex : hebdo) avec notif Slack/email des **nouveaux** findings vs baseline. **Pro Max only.** |
-| **Chaînes d'attaque** | Composition de plusieurs findings unitaires en un scénario d'exploitation cohérent (ex : SSRF + metadata AWS leak + IAM creds → full takeover). **Disponible Pro+.** |
-| **IA fallback auto** | Pro Max sans clé BYOK personnelle → Argos utilise sa propre clé Claude (coût absorbé dans le 249 €/mois, plafonné côté serveur pour éviter les abus). Les autres tiers requièrent une clé BYOK. **Pro Max only.** |
-| **BYOK** | Bring Your Own Key. L'utilisateur fournit sa clé Claude / OpenAI dans les paramètres ; les appels IA se font avec sa clé, on ne touche pas à ses données. **Tous tiers.** |
+| **Watch** | Re-scan automatique d'une cible à intervalle configurable (6 h / 24 h / hebdo) avec alerte sur les changements : nouveau finding ≥ sévérité min, finding RESOLVED qui réapparaît (régression), score de risque global qui se dégrade. Canaux : Slack webhook, email, push dashboard. Historique conservé en timeline. **Pro Max uniquement.** |
+| **Chaînes d'attaque** | À la fin de chaque scan, l'agent IA corrèle les findings et identifie les **séquences exploitables ensemble** au-delà des CVSS individuels. Chaque chaîne = score de criticité (souvent ≥ max des findings individuels), PoC step-by-step, findings constitutifs linkés, remédiation pointant le maillon faible. **Pro / Team / Pro Max.** Nécessite l'IA en mode corrélation (BYOK user). |
+| **IA fallback auto** | Bascule automatique entre les **clés API que le user a configurées** (≥ 2 providers, ex : Anthropic + OpenAI) en cas de rate-limit ou erreur 503. Si tous les providers du user échouent → scan continue en mode dégradé sans corrélation IA. **Aucune clé serveur Argos en backup** (D-011) — préserve la promesse « 0 € de SaaS récurrent en plus ». **Pro Max uniquement.** |
+| **BYOK** | Bring Your Own Key. L'utilisateur fournit sa clé Claude / OpenAI / Google dans Settings ; les appels IA se font avec sa clé, on ne touche pas à ses données. **Tous tiers.** Pour Pro Max, configurer ≥ 2 providers est nécessaire pour que l'IA fallback auto soit utile. |
 | **Rétention findings** | Durée pendant laquelle les findings d'un scan restent consultables dans le dashboard. Au-delà : findings purgés, mais les PDF déjà générés restent téléchargeables 12 mois. |
-| **Chaînes d'attaque** vs **finding unitaire** | Un finding unitaire = une vuln isolée (« XSS sur `/search` »). Une chaîne d'attaque = un graphe corrélé qui exploite plusieurs findings ensemble pour atteindre un impact business (vol de creds, RCE, exfiltration). |
+| **Finding unitaire** vs **Chaîne d'attaque** | Finding unitaire = une vuln isolée (« XSS sur `/search` »). Chaîne d'attaque = un graphe corrélé qui exploite plusieurs findings ensemble pour atteindre un impact business (RCE, account takeover, exfiltration). |
+| **Watch** vs **Chaînes d'attaque** | Souvent confondus. Watch = entre les scans, surveille dans le temps une cible donnée (Pro Max only). Chaînes d'attaque = pendant un scan, corrèle les findings de ce scan (Pro+). Voir D-012 pour le tableau différentiel complet. |
 
 ---
 
@@ -304,8 +317,8 @@ pricing sans halluciner. **Détail technique complet → voir
 ### « C'est combien ? »
 
 > « 4 plans : Free (gratuit forever), Pro 39 €/mois, Team 129 €/mois,
-> Pro Max 249 €/mois. -20 % en annuel. Tous incluent les 130 modules
-> (sauf Free, limité à 70 modules sévérité ≤ HIGH). Tu peux signer en
+> Pro Max 249 €/mois. -20 % en annuel. Tous incluent les 139 modules
+> (sauf Free, limité à 41 modules sévérité ≤ HIGH). Tu peux signer en
 > self-serve depuis [omnividens.fr/pricing](https://omnividens.fr/pricing). »
 
 ### « Pourquoi pas par cible comme Acunetix ? »

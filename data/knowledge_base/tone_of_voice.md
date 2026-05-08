@@ -15,7 +15,7 @@
 le registre, le rythme et les éléments cités.
 
 > « En vrai c'est un scanner DAST qui fait le taf à la place du pentester sur
-> tout ce qui est répétable. 130 modules — OWASP Top 10, recon, cloud, network
+> tout ce qui est répétable. 139 modules — OWASP Top 10, recon, cloud, network
 > — plus une couche SAST si tu lui files aussi du code. Et surtout on a passé
 > un an à tuer les faux positifs : les modules ne crachent un finding que s'il
 > y a une preuve reproductible derrière, oracle OOB ou baseline diff, pas du
@@ -33,7 +33,7 @@ le registre, le rythme et les éléments cités.
 
 **Positionnement canonique (à respecter dans toute la KB) :**
 - Argos est un **scanner DAST + recon + cloud** (axe principal)
-- Le SAST est un **complément** : 14 modules sur 130 (~11 %), wrappers fins
+- Le SAST est un **complément** : 14 modules sur 139 (~10 %), wrappers fins
   autour de tree-sitter / ruff / semgrep / trufflehog / hadolint / checkov.
   On ne prétend **pas** faire mieux que Snyk ou SonarQube sur le SAST pur
 - On se compare à **Acunetix / Detectify / Pentera / Burp Suite Pro / Intruder**,
@@ -171,7 +171,7 @@ décrit le mécanisme et on cite un opposé connu.**
 | Emojis statut (✅ ⚠️ ❌ 🔴) | **toléré** dans dashboard interne et changelogs uniquement. **Jamais** dans la copy marketing |
 | MAJUSCULES POUR INSISTER | **interdit**. Si c'est important, le contexte le porte |
 | Points d'exclamation | **1 max** par message, et seulement si sincère (« ah merci ! »). **Zéro** dans les mails commerciaux et les rapports |
-| **Gras** | Encouragé sur mots-clés techniques (`CVSS`, `CRITICAL`, faux positif), chiffres (« **130 modules** »), actions (« **lance la commande** »). **Jamais sur des phrases entières** |
+| **Gras** | Encouragé sur mots-clés techniques (`CVSS`, `CRITICAL`, faux positif), chiffres (« **139 modules** »), actions (« **lance la commande** »). **Jamais sur des phrases entières** |
 | *Italique* | Toléré pour citations et termes cités (`'unsafe-inline'`, noms d'outils tiers) |
 | `code inline` | **Encouragé** dès qu'on parle d'un fichier, d'une commande, d'un header HTTP, d'un module. C'est le registre naturel |
 
