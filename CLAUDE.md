@@ -103,9 +103,24 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
 - **Sessions terminées :** 3 / 19 (P0 + P1 + P2)
-- **Phase en cours :** Sprint 0 — P3 en cours (bloc auto livré, bloc manuel à venir)
+- **Phase en cours :** Sprint 0 — P3 à 60 % (bloc auto + P3-M1 + 3/6 fichiers KB livrés 2026-05-07)
 - **Dernière partie done :** P2 — Bootstrap projet (2026-05-07)
-- **Prochaine partie :** P3 — Schéma CRM + Knowledge Base (bloc manuel : DB serveur + rédaction KB)
+- **Prochaine partie :** **reprise sur P3-M2** — il reste 3 fichiers KB à rédiger
+  en mode interview (`argos_features.md`, `competitor_compare.md`, `faq.md`),
+  puis **P3-M3** (seed KB + test similarité)
+- **En attente review humaine :** [PR #4](https://github.com/Omnividens-argos/argos-ops/pull/4) (`feat/p3-crm-kb`, mergeable, CI ✅)
+- **Flags ouverts à confirmer en début de prochaine session :** 3 calls par défaut
+  marqués « à valider » dans `data/knowledge_base/pricing.md` :
+  (A) `scans hors quota` add-on Free-only,
+  (B) `IA fallback auto` Pro Max sans BYOK avec plafond serveur,
+  (C) définitions de `Watch` + `Chaînes d'attaque`
+- **Setup local requis :** container Docker `argos-postgres-local` doit tourner
+  (`docker ps | grep argos-postgres-local`). Si arrêté, le redémarrer
+  (`docker start argos-postgres-local`). Volume `argos_postgres_data` persistant.
+  D-009 : DB serveur reportée à P4/P5.
+- **En cours dans le working tree (non commité) :** install local du skill
+  `.claude/skills/ui-ux-pro-max/` (référencé dans la section « Skills locaux
+  installés » ci-dessous). À gérer dans une PR séparée si besoin.
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé, branch protection active sur `main`)
 
 ---
