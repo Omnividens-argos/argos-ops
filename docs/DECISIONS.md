@@ -146,6 +146,38 @@ ou recréées dans le nouveau profil au gré des conversations).
 
 ---
 
+## D-009 — Postgres en local Docker pour P3, DB serveur reportée à P4/P5
+**Date :** 2026-05-07
+**Partie :** P3 (P3-M1)
+**Décision :** la DB `argos_ops` est d'abord montée en **local** dans un container
+Docker (Postgres + pgvector). Le setup serveur (`204.168.171.71`,
+container `sechunter-postgres-1`) n'est PAS effectué en P3. Il sera fait au moment
+où le **premier agent doit tourner en cron sur le serveur** — typiquement début P4
+(`/morning-digest`) ou P5 (EmailBot consommant un IMAP en continu).
+**Pourquoi :**
+- En P3 on a besoin de la DB pour deux choses seulement : appliquer la migration
+  et seeder la KB. Aucun agent ne tourne encore en prod, donc aucun bénéfice à
+  héberger la donnée sur le serveur tout de suite.
+- Itération rapide : pas de SSH à chaque test, drop/recréation possible en
+  secondes pendant qu'on tâtonne sur `seed_kb.py` et la KB.
+- Risque évité : zéro chance de toucher à la DB SecHunter prod par accident
+  pendant l'apprentissage.
+- Parité prod préservée : la migration `0001_init.sql` est idempotente et
+  identique local/serveur — au moment de basculer, on rejoue la même migration
+  côté serveur en 15 min.
+**Implication technique :**
+- Docker container `argos-postgres-local` basé sur l'image `pgvector/pgvector:pg16`
+  (Postgres + pgvector préinstallé), exposé sur `localhost:5432` (ou autre port
+  si conflit avec un Postgres déjà installé localement)
+- `DATABASE_URL` dans `.env.local` pointe vers `localhost`
+- Au passage prod (P4/P5) : nouvelle entrée `DATABASE_URL_PROD` ou bascule
+  via variable d'env, pas de divergence de schéma
+**Annule :** rien. Complète D-002 qui reste valable pour la prod.
+**Action de suivi :** todo `P4-M1` ou `P5-M1` — créer la DB `argos_ops` sur le
+cluster serveur au moment de déployer le premier agent en cron prod.
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown

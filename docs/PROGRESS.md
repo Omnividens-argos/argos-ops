@@ -10,9 +10,9 @@
 ## Résumé d'avancement
 
 - **Sessions terminées :** 3 / 19 (P0 + P1 + P2)
-- **Phase en cours :** Sprint 0 — P3 en cours (bloc auto livré 2026-05-07, bloc manuel à faire)
+- **Phase en cours :** Sprint 0 — P3 en cours (bloc auto + P3-M1 + 3/6 fichiers KB livrés 2026-05-07)
 - **Dernière partie done :** P2 — Bootstrap du dossier `argos-ops` (2026-05-07)
-- **Prochaine partie :** P3 — Schéma CRM + Knowledge Base
+- **Prochaine partie :** P3-M2 reste 3 fichiers KB (`argos_features.md`, `competitor_compare.md`, `faq.md`) puis P3-M3 (seed)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
 
 ---
@@ -82,13 +82,29 @@ Livrables auto :
   upsert, dry-run support).
 - 19 tests unitaires (chunker, models, config) — pytest + ruff + mypy strict OK.
 
-À faire (bloc manuel) :
-- Créer DB `argos_ops` + user dédié + extension `vector` sur cluster Postgres
-  serveur (`204.168.171.71`, container `sechunter-postgres-1`).
-- Appliquer `0001_init.sql`.
-- Rédiger les 6 fichiers KB (`argos_features.md`, `pricing.md`, `faq.md`,
-  `tone_of_voice.md`, `competitor_compare.md`, `ICP.md`) en mode interview pour
-  capter la voix du fondateur.
+P3-M1 — DB locale (✅ done 2026-05-07, D-009) :
+- Container Docker `argos-postgres-local` lancé (image `pgvector/pgvector:pg16`).
+- DB `argos_ops`, user `argos_ops` (owner), volume persistant `argos_postgres_data`.
+- Migration `0001_init.sql` appliquée → 9 tables + extension `vector` 0.8.2.
+- `DATABASE_URL` mis à jour dans `.env.local`.
+- Setup serveur reporté à P4/P5 (cf. D-009).
+
+P3-M2 — Rédaction KB (🔄 in progress, mode interview) :
+- ✅ `tone_of_voice.md` (2026-05-07) — pitch canonique DAST-first, anti-FUD,
+  table typographie, convention placeholders pour exclure les 4 cibles
+  d'audit interne
+- ✅ `ICP.md` (2026-05-07) — 3 personas (Marc/Sarah/Thomas), scoring BANT
+  8 cases, déclencheurs OutboundBot, anti-ICP avec scripts verbatim,
+  décisions différées (marque blanche, EN, DACH)
+- ✅ `pricing.md` (2026-05-07) — 4 tiers (Free / Pro 39 € / Team 129 € /
+  Pro Max 249 €) + Custom contact ≥5k€/mois, scans/jour vs par cible,
+  -20 % annuel, 14 j refund, comparaison concurrence calibrée, glossaire
+  (Watch, Chaînes d'attaque, IA fallback auto)
+- ⬜ `argos_features.md` — catalogue exhaustif des 130 modules
+- ⬜ `competitor_compare.md` — Argos vs Acunetix / Detectify / Burp / Pentera / Intruder
+- ⬜ `faq.md` — 30-50 Q&R récurrentes
+
+P3-M3 — Seed + validation (⬜ à faire, auto) :
 - Lancer `uv run python scripts/seed_kb.py` → ≥ 50 chunks dans `kb_chunks`.
 - Test similarité : « combien coûte Pro Max » doit retourner un chunk de
   `pricing.md` en top-1.
