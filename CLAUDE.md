@@ -103,9 +103,27 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
 - **Sessions terminées :** 3 / 19 (P0 + P1 + P2)
-- **Phase en cours :** Sprint 0 — P3 en cours (bloc auto livré, bloc manuel à venir)
+- **Phase en cours :** Sprint 0 — P3 à 90 % (bloc auto + P3-M1 + **P3-M2 complet** 2026-05-08, reste P3-M3 seed)
 - **Dernière partie done :** P2 — Bootstrap projet (2026-05-07)
-- **Prochaine partie :** P3 — Schéma CRM + Knowledge Base (bloc manuel : DB serveur + rédaction KB)
+- **Prochaine partie :** **P3-M3** — `uv run python scripts/seed_kb.py` →
+  ≥ 50 chunks dans `kb_chunks` + test similarité « combien coûte Pro Max »
+  doit retourner un chunk de `pricing.md` en top-1
+- **En attente review humaine :** [PR #5](https://github.com/Omnividens-argos/argos-ops/pull/5)
+  (`feat/p3-crm-kb`) — couvre P3-M1 (DB locale Docker) + P3-M2 (6 fichiers
+  KB + 7 décisions D-010 à D-016). PR #4 a été mergée pour le bloc auto
+  P3 initial.
+- **Décisions P3 actives :** D-010 (hors-quota Free-only), D-011 (BYOK seul
+  IA fallback), D-012 (Watch/Chaînes définitions canoniques), D-013
+  (Strategist framing audit), D-014 (compliance factuelle pas de score %),
+  D-015 (FP marking en roadmap), D-016 (rétention purge en roadmap) — voir
+  [`docs/DECISIONS.md`](docs/DECISIONS.md)
+- **Setup local requis :** container Docker `argos-postgres-local` doit tourner
+  (`docker ps | grep argos-postgres-local`). Si arrêté, le redémarrer
+  (`docker start argos-postgres-local`). Volume `argos_postgres_data` persistant.
+  D-009 : DB serveur reportée à P4/P5.
+- **En cours dans le working tree (non commité) :** install local du skill
+  `.claude/skills/ui-ux-pro-max/` (référencé dans la section « Skills locaux
+  installés » ci-dessous). À gérer dans une PR séparée si besoin.
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé, branch protection active sur `main`)
 
 ---

@@ -178,6 +178,320 @@ cluster serveur au moment de déployer le premier agent en cron prod.
 
 ---
 
+## D-010 — Add-on « scans hors quota » réservé au tier Free
+**Date :** 2026-05-08
+**Partie :** P3 (P3-M2, flag A `pricing.md`)
+**Décision :** l'add-on **Scans hors quota** (19 €/scan) reste **Free-only**.
+Pas d'extension aux tiers payants Pro / Team / Pro Max. Un user Pro ou Team
+qui défonce son quota est rate-limité jusqu'à minuit J+1 et l'UI lui propose
+explicitement l'**upgrade au tier supérieur**, pas l'achat d'un scan à
+l'unité. Pro Max est illimité par design.
+**Pourquoi :**
+- Pro 70 scans/j = 2 100/mois ; Team 250/j = 7 500/mois. À ces volumes, un
+  besoin régulier de hors-quota = signal d'upgrade au tier supérieur, pas
+  un besoin de metered billing
+- Vendre du hors-quota aux tiers payants brouille le signal d'upgrade —
+  or le signal d'upgrade Pro→Team→Pro Max est le moteur principal de la
+  conversion
+- Le hors-quota Free reste un mini-add-on de transition Free→Pro : un user
+  Free qui veut un 11ᵉ scan ce jour-ci paie 19 €, ressent la friction,
+  comprend qu'à 39 €/mois il a 70 scans/jour
+**Implication technique :**
+- `core/quota.py` : pas de nouvelle option d'achat hors-quota pour les tiers
+  payants. Comportement existant inchangé (rate-limit jusqu'à minuit J+1)
+- UI à coder en session ultérieure (P16 ou plus tôt) : message dédié quand
+  un Pro/Team hit son quota → CTA upgrade tier supérieur, pas hors-quota.
+  Message canonique : « Tu as atteint 70 scans/jour. Upgrade à Team pour
+  250 scans/jour, ou attends 24 h. »
+- KB `pricing.md` § 6 mise à jour : retirer la mention « (à valider) » et
+  acter le garde-fou UX
+**Annule :** rien.
+
+---
+
+## D-011 — IA fallback auto Pro Max : BYOK seul, pas de clé serveur Argos
+**Date :** 2026-05-08
+**Partie :** P3 (P3-M2, flag B `pricing.md`)
+**Décision :** la fonctionnalité **IA fallback auto** (Pro Max) bascule
+automatiquement entre les **clés API que l'utilisateur a configurées** dans
+Settings (≥ 2 providers, ex : Anthropic + OpenAI). **Aucune clé serveur
+Argos en backup.** Si tous les providers configurés échouent, le scan
+continue en mode dégradé (findings sans corrélation IA / chaînes d'attaque)
+et aucun appel sortant ne part vers une clé Argos.
+**Pourquoi :**
+- Préserve la promesse marketing « 0 € de SaaS récurrent en plus » qui est
+  l'argument différenciateur fort pour fintech / santé / défense (Sarah
+  cœur ICP). Une clé serveur dilue cette promesse
+- Coût LLM côté Argos imprévisible : un Marc qui run en CI peut exploser
+  un plafond de 100 calls/mois en 1 journée → soit on bloque (mauvaise
+  UX), soit on absorbe (mauvaise marge)
+- Plus simple à expliquer dans la KB : « le fallback bascule entre tes
+  providers configurés, à toi de configurer au moins 2 clés »
+**Implication technique :**
+- Le code provider routing doit lister les clés configurées par le user
+  Pro Max et basculer sur 429 / 503. Aucun secret Argos serveur dans le
+  pipeline d'appel
+- KB `pricing.md` ligne tableau « IA fallback auto **(sans BYOK)** » →
+  corriger en « **(entre BYOK configurés)** ». La promesse change : ce
+  n'est pas « pas besoin de BYOK » mais « fallback automatique entre tes
+  BYOK ». Seul tier à avoir le fallback = Pro Max
+- UI Pro Max onglet « IA » : message canonique « IA fallback auto activé.
+  Bascule automatique entre tes providers configurés en cas de
+  rate-limit ou d'erreur. Configure au moins 2 providers (Anthropic +
+  OpenAI recommandés) pour que ça soit utile. »
+- SupportBot canonical : si un user Pro Max ping « j'ai qu'une clé
+  Anthropic, le fallback marche pas » → réponse cadrée « Le fallback
+  nécessite ≥ 2 providers configurés. Ajoute une clé OpenAI ou Google
+  dans Settings → IA, et il prendra le relais automatiquement. »
+**Annule :** la formulation « Pro Max sans clé BYOK personnelle → Argos
+utilise sa propre clé Claude (coût absorbé dans le 249 €/mois, plafonné
+côté serveur) » dans `data/knowledge_base/pricing.md` § 10 glossaire (ligne
+295). Cette formulation était une hypothèse de travail non validée.
+
+---
+
+## D-012 — Définitions canoniques `Watch` et `Chaînes d'attaque` (KB)
+**Date :** 2026-05-08
+**Partie :** P3 (P3-M2, flag C `pricing.md`)
+**Décision :** définitions canoniques figées pour la KB. À utiliser sans
+reformulation par SupportBot, ChatBot, OutboundBot et toute doc publique.
+
+**Watch (surveillance continue) — Pro Max uniquement.**
+Re-scan automatique programmé d'une cible à intervalle configurable (6 h /
+24 h / hebdo) avec alerte sur les changements : nouveau finding ≥ sévérité
+minimale, finding RESOLVED qui réapparaît (régression), score de risque
+global qui se dégrade. Canaux : Slack webhook, email, push dashboard.
+Historique conservé en timeline (`/watch/<target>/timeline`).
+- **Cas d'usage type :** Sarah Head of Sec qui gère 15 services en prod et
+  veut être prévenue dès qu'un service prend une nouvelle vuln CRITICAL
+- **Pourquoi Pro Max only :** consomme des ressources serveur (scans en
+  background, scheduler, queues ARQ) non absorbables sur Pro 39 €. Le cas
+  d'usage = équipe sécu qui veut du monitoring continu = profil Sarah
+
+**Chaînes d'attaque (attack chains) — Pro / Team / Pro Max.**
+À la fin de chaque scan, l'agent IA reçoit la liste complète des findings
+et identifie les **séquences exploitables ensemble** au-delà des CVSS
+individuels. Chaque chaîne a : un score de criticité (souvent ≥ max des
+findings individuels), un PoC step-by-step reproductible, la liste des
+findings constitutifs linkés, une remédiation pointant le maillon faible
+(souvent le plus simple à corriger casse toute la chaîne). Affichées dans
+le rapport sous une section dédiée, prioritaire visuellement.
+- **Exemples canoniques :** S3 public + clé AWS leak + IAM permissif =
+  « RCE via S3 → escalation cloud → full account » ; cookie sans HttpOnly
+  + XSS reflected + pas de CSP = « session hijacking → account takeover »
+- **Cas d'usage type :** Marc CTO scaleup qui voit 50 findings et veut
+  prioriser les 3 vraiment exploitables ensemble, pas les 47 isolés
+- **Pourquoi Pro et plus, pas Free :** nécessite l'agent IA en mode
+  corrélation (coûte des tokens chez le provider du user — BYOK). Free
+  garde les findings unitaires mais pas la corrélation IA = différence
+  concrète qui justifie l'upgrade Pro
+
+**Différence Watch vs Chaînes d'attaque (à clarifier pour SupportBot,
+souvent confondus) :**
+
+| | Chaînes d'attaque | Watch |
+|---|---|---|
+| Quand | Pendant chaque scan (à la fin) | Entre les scans (re-scan auto) |
+| Quoi | Corréler les findings d'un seul scan | Comparer les findings sur plusieurs scans dans le temps |
+| Tier | Pro / Team / Pro Max | Pro Max uniquement |
+| Sortie | Section dans le rapport courant | Timeline + alertes Slack/email |
+
+**Pourquoi figer ça ici :** ces deux termes sont confondus en interne et
+seront re-cités dans `argos_features.md`, `competitor_compare.md`, `faq.md`,
+le chat widget, les emails OutboundBot et la page Pricing. Une dérive de
+formulation entre les surfaces casse la confiance.
+
+**Implication technique :**
+- KB `pricing.md` § 10 glossaire mis à jour avec ces définitions
+  canoniques (sans le marqueur « à valider »)
+- `argos_features.md` (fichier suivant P3-M2) reprendra ces définitions in
+  extenso pour la section « Modules avancés » et « Surveillance continue »
+- Tableau différence à inclure dans `faq.md` (Q : « C'est quoi la
+  différence entre Watch et Chaînes d'attaque ? »)
+
+**Annule :** les définitions « (à valider) » de la table glossaire de
+`data/knowledge_base/pricing.md` § 10 (lignes 293-295).
+
+---
+
+## D-013 — Strategist : framing « informatif/audit » en KB publique, fusion intel+LLM en roadmap technique
+**Date :** 2026-05-08
+**Partie :** P3 (P3-M2, rédaction `argos_features.md` § 4.2)
+**Décision :** la KB publique présente le **Strategist** comme une couche
+qui « analyse WAF/CMS/stack et génère une stratégie d'attaque
+contextualisée intégrée au rapport final pour donner au RSSI la lecture
+experte de la cible » — formulation **informative/audit**, pas
+prescriptive. Une note implémentation discrète mentionne que la fusion
+programmatique entre la stratégie LLM et le pipeline de filtrage modules
+est sur la roadmap technique. **Pas de framing « notre IA pilote
+l'exécution »** tant que cette fusion n'est pas codée, sous peine d'être
+contredit par le code source pour un client technique qui creuserait.
+**Pourquoi :**
+- Constat de réalité : aujourd'hui, `orchestrator.py:499` ne sauvegarde
+  que `strategy.get("notes", "")` ; le filtrage temps-réel des modules
+  est fait par `_filter_modules_by_intel()` (orchestrator.py:538-583)
+  qui consomme l'intel Phase 0 brute (ports/CMS), pas le JSON LLM
+  (`modules_priority`, `excluded_vectors`, `waf_bypass_strategy`)
+- Le Strategist produit donc aujourd'hui un riche JSON dont seule la
+  clé `notes` (texte libre) atterrit dans le rapport. C'est de l'audit
+  pour le RSSI, pas de la prescription pour l'exécution
+- Trois options écartées : (A) honnêteté brutale « notre IA est juste
+  affichage » → sonne faux et démolit la valeur perçue ; (B)
+  marketing-safe « lecture experte de la cible intégrée au rapport » →
+  retenu ; (C) survendre comme « pilote l'exécution » → mensonge par
+  rapport au code, risque de retour de bâton sur une démo technique
+**Implication technique :**
+- Texte canonique KB § 4.2 (à coller verbatim dans toute comm publique) :
+  « L'agent **Strategist** analyse WAF/CMS/stack et génère une stratégie
+  d'attaque contextualisée intégrée au rapport final pour donner au RSSI
+  la lecture experte de la cible. »
+- Texte canonique pour réponse SupportBot quand un techie demande « est-ce
+  que la stratégie LLM filtre vraiment les modules en temps réel ? » :
+  « Aujourd'hui le filtrage temps-réel est piloté par l'intel Phase 0
+  (ports/CMS détectés) qui exclut déjà ~90 % des vecteurs impossibles
+  avant le scan. La stratégie LLM enrichit le rapport pour audit. La
+  fusion programmatique des deux est sur notre roadmap technique. »
+- **Action de suivi (côté SecHunter, à créer par le fondateur quand il
+  veut)** : ticket `feat/strategist-prescriptive-routing` — brancher
+  `modules_priority` + `excluded_vectors` du JSON Strategist dans
+  `_filter_modules_by_intel()`. Estimation : ~30 LOC + tests. Une fois
+  livré, mettre à jour D-013 (révoquer ou passer en framing
+  prescriptif) + KB § 4.2.
+**Annule :** rien.
+
+---
+
+## D-014 — Compliance mapping : sortie factuelle (count par exigence), pas de score % marketing
+**Date :** 2026-05-08
+**Partie :** P3 (P3-M2, rédaction `argos_features.md` § 4.6)
+**Décision :** la KB publique annonce le compliance mapping comme **un
+mapping exhaustif des findings vers les exigences violées, avec un count
+de findings par exigence**. **Pas de score % de couverture compliance**
+type « 78 % PCI-DSS compliant ». L'argument vendeur est explicitement
+« pas de score marketing creux, on vous donne la matière brute pour votre
+rapport d'audit ».
+**Pourquoi :**
+- État du code (`core/compliance_mapper.py:14, 246-389`) : la sortie est
+  une dict `{framework: {requirement: {name, count, findings: [...]}}}`.
+  Aucun calcul de pourcentage n'existe — ce serait à inventer
+- Un score % « 78 % PCI-DSS » est arbitraire (sur quoi est calculée la
+  base ? les 12 requirements PCI-DSS ? les 250+ sous-contrôles ? le
+  périmètre scope du scan ?) et un auditeur exigera de le justifier
+  ligne par ligne en review
+- Format factuel = utilisable directement dans le rapport d'audit que
+  prépare le RSSI/DPO. « 5 findings violent l'exigence PCI-DSS 6.2.4 »
+  est actionnable. « Vous êtes à 78 % » ne l'est pas
+- Versions confirmées : **OWASP Top 10 2021** (clés `A01:2021` à
+  `A10:2021`), **PCI-DSS 4.0** (refs 1.2.1, 2.2.1, 3.4.1, 4.2.1, 6.2.4,
+  7.2.2, 8.3.1, 10.2.1, 10.3.1, 11.3.1), **RGPD** (5 articles : 5(1)(f),
+  25, 32 majoritaire, 33, 34)
+**Implication technique :**
+- Texte canonique KB § 4.6 (à coller verbatim) : « Triple mapping
+  framework : OWASP Top 10 2021, PCI-DSS 4.0, RGPD (Art. 5(1)(f), 25, 32,
+  33, 34). Sortie factuelle : count de findings par exigence violée, pas
+  de score % de couverture. Utilisable directement dans le rapport
+  d'audit. »
+- Texte canonique pour cold call quand un prospect demande « est-ce que
+  vous certifiez la compliance ? » : « Argos n'est pas un certificateur.
+  On vous fournit le mapping factuel `finding → exigence violée` que
+  votre auditeur exigerait de toute façon. C'est plus rapide à
+  contester ou à patcher que les rapports compliance % de nos
+  concurrents. »
+**Annule :** rien.
+
+---
+
+## D-015 — Faux positifs : framing tactique « 3 niveaux + boucle support », marquage user en roadmap
+**Date :** 2026-05-08
+**Partie :** P3 (P3-M2, rédaction `faq.md` § « Faux positifs »)
+**Décision :** la KB publique annonce **3 niveaux de filtrage FP** côté
+Argos (calibration oracles, Q1-Q5 hardening anti-bot, agent Analyst IA
+qui score `confidence_score < 0.5 → FP exclu`). Si un FP survit aux 3
+niveaux, l'utilisateur **ouvre un ticket support → un humain Argos
+analyse → fix livré dans le batch v2 suivant**. Le **bouton « Marquer
+FP » en libre-service côté user est positionné comme roadmap** (« Pro+
+T3 2026 »), pas comme feature livrée.
+**Pourquoi :**
+- État du code (vérifié 2026-05-08) : le modèle `Finding` a bien
+  `false_positive: bool` + `fp_reason: str` + `confidence_score: float`
+  (`models.py:147-151`), et l'agent Analyst exclut auto les findings
+  `confidence < 0.5` (`scans.py:251-253`) — la logique côté serveur
+  existe déjà et fonctionne
+- Manquent côté UX : aucun bouton « Mark as FP » dans le dashboard
+  React, aucun endpoint `PATCH /api/findings/{id}`, aucun mécanisme
+  par cible+module pour empêcher la réémission au prochain scan
+- Trois options examinées : (A) framing honnête tactique « auto-filtre
+  IA + boucle humaine » → retenu, crédible parce que 66 bugs FP
+  documentés en post-v2 ; (B) framing roadmap honnête « libre-service
+  arrive » → mentionné en complément ; (C) build immédiat (~150-200
+  LOC + UI) → pas dans le scope P3-M2, repoussé
+- Le « 0 faux positif » de la phrase clinchante crée une attente d'**outillage proactif**.
+  Le framing (A) tient cette promesse en disant « notre IA fait le tri,
+  un humain corrige les ratés », sans inventer de feature inexistante
+**Implication technique :**
+- Texte canonique KB `faq.md` (à coller verbatim) : « Argos applique
+  3 niveaux de filtrage FP : (1) calibration des oracles au code
+  (66 bugs FP corrigés en post-v2), (2) Q1-Q5 hardening anti-bot/SPA
+  /WordPress sur chaque module, (3) agent Analyst IA qui score chaque
+  finding (`confidence_score` 0-1) et exclut ceux < 0.5. Si malgré ces
+  3 niveaux un FP passe : `support@omnividens.fr` → humain analyse →
+  fix dans le batch v2 suivant. Le marquage en libre-service côté user
+  arrive sur la roadmap Pro+ T3 2026. »
+- **Action de suivi (côté SecHunter)** : tickets à créer quand le
+  fondateur veut activer la roadmap :
+  1. `feat/finding-mark-fp` — endpoint `PATCH /api/findings/{id}` +
+     bouton dashboard + persistance par `(target, module)` (~150-200 LOC)
+  2. Bonus argument vente : « FP-mark explicable et traçable » vs
+     Acunetix qui a un FP-mark mais opaque
+**Annule :** rien.
+
+---
+
+## D-016 — Rétention findings : promesse minimale tenue, purge automatique en roadmap
+**Date :** 2026-05-08
+**Partie :** P3 (P3-M2, rédaction `faq.md` § « Sécurité & confidentialité »)
+**Décision :** la promesse de [`pricing.md`](../data/knowledge_base/pricing.md)
+(« Free 30 j / Pro 90 j / Team 1 an / Pro Max illimité ») est tenue
+**comme rétention minimale garantie**, pas comme purge automatique. En
+pratique aujourd'hui, les findings sont conservés **au-delà** de cette
+durée tant que le job cron de purge n'est pas implémenté. L'utilisateur
+qui veut purger immédiatement utilise `Account → Delete scan` (route
+`DELETE /api/scans/{id}` existante) ou `Account → Delete data` pour
+suppression complète. **Pas de modification de `pricing.md` au launch**
+— la promesse minimale reste valide.
+**Pourquoi :**
+- État du code (vérifié 2026-05-08) : le modèle `Scan` a bien les
+  champs `deleted_at` et `archived_at` (`models.py:240-241`) mais
+  aucun cron de purge automatique selon le tier n'existe — la promesse
+  pricing est de la rétention **minimale**, pas un upper bound de
+  conservation
+- Trois options examinées : (A) implémenter le cron de purge (~50 LOC
+  dans `core/database.py`) → pas dans le scope P3-M2, repoussé ; (B)
+  reformuler pricing.md « pas de purge auto, suppression manuelle » →
+  rejeté car fragilise la promesse contractuelle ; (C) tenir la
+  promesse comme rétention minimale (sur-livré accepté) avec mention
+  honnête en faq.md → **retenu**
+- Du point de vue user : conserver les findings plus longtemps que la
+  promesse n'est pas un préjudice — c'est de la donnée propriétaire
+  qu'il peut consulter. Le seul cas où ça pose problème est RGPD droit
+  à l'oubli — couvert par `Account → Delete data`
+- Position cohérente avec D-015 (FP marking) : on assume une roadmap
+  technique honnête côté KB plutôt que d'inventer des features
+**Implication technique :**
+- Texte canonique KB `faq.md` (à coller verbatim) : « Rétention minimale
+  garantie par tier : Free 30 j, Pro 90 j, Team 1 an, Pro Max illimité.
+  En pratique aujourd'hui, les findings sont conservés au-delà de cette
+  durée minimale — la purge automatique en cron est sur la roadmap
+  technique. Pour purger immédiatement, `Account → Delete scan` (par
+  scan) ou `Account → Delete data` (suppression complète RGPD). »
+- **Action de suivi (côté SecHunter)** : ticket
+  `feat/findings-retention-cron` — job cron qui purge les findings au-delà
+  du seuil de rétention selon le tier user (~50 LOC + tests). À créer
+  quand le fondateur veut activer.
+**Annule :** rien.
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown
