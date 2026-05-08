@@ -234,14 +234,14 @@ branche/PR/merge comme stipulé dans `CLAUDE.md`.
 | INFRA-02 | Install Umami self-host | ⬜ pending | Avant P10 ou P12 |
 | P11-PREP-A | Recréer Reddit App (compte vieilli) | ⬜ pending | Avant P11 |
 | P11-PREP-B | Créer compte Mastodon infosec.exchange + token | ⬜ pending | Avant P11 |
-| P17-PREP | Créer vraie page `/legal/privacy` sur omnividens.fr | ⬜ pending | Avant P5 |
+| P17-PREP | Page `/legal/privacy` + `/legal/ai-disclosure` sur omnividens.fr | ⚠️ rédaction faite (data/legal/), intégration frontend SecHunter à faire par user | rédaction 2026-05-08 |
 | P1.E-FOLLOWUP | Vérifier approbation Community Management API LinkedIn | ⬜ pending | 3-7j après 2026-05-07 |
 
 ---
 
 ## Métriques globales (à remplir à mesure)
 
-- **Skills `argos-ops` créés :** 0 / 14 prévus (voir P18)
-- **Slash commands installés :** 0
-- **Agents en production :** 0 / 12
+- **Skills `argos-ops` créés :** 1 / 14 prévus (`digest-builder` en P4, voir P18)
+- **Slash commands installés :** 1 (`/morning-digest` — partial, attend test live)
+- **Agents en production :** 0 / 12 (DigestBuilder code livré, prod après finalisation P4)
 - **Coût mensuel cumulé Argos Ops :** 0 € (cible : ≤ 1 €/mois en croisière)
