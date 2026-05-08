@@ -1,4 +1,4 @@
-"""Seed la Knowledge Base : chunk markdown → embed Gemini → upsert pgvector.
+"""Seed la Knowledge Base : chunk markdown → embed local → upsert pgvector.
 
 Usage::
 
@@ -7,7 +7,12 @@ Usage::
     uv run python scripts/seed_kb.py --doc pricing    # filtre sur un fichier
 
 Idempotent : un chunk dont le ``content_hash`` n'a pas changé est skippé,
-pas de re-embedding (économise le quota Gemini).
+pas de re-embedding (économise le temps CPU).
+
+Embeddings via ``fastembed`` + ``intfloat/multilingual-e5-base`` (768 dims
+natif, multilingue FR-EN, CPU local — D-017). Aucun appel API tiers, aucun
+quota, aucune clé. Le premier run télécharge les poids ONNX (~280 MB) dans
+le cache utilisateur, ensuite tout tourne offline.
 """
 
 from __future__ import annotations
@@ -15,13 +20,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import sys
-import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from argos_ops.config import REPO_ROOT, get_settings
+from argos_ops.config import REPO_ROOT
 from argos_ops.crm.db import dispose_engine, session_scope
 from argos_ops.crm.kb_chunker import Chunk, chunk_markdown
 from argos_ops.crm.models import KB_EMBEDDING_DIM
@@ -31,43 +35,37 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 KB_DIR = REPO_ROOT / "data" / "knowledge_base"
-GEMINI_EMBEDDING_MODEL = "gemini-embedding-001"
+# paraphrase-multilingual-mpnet-base-v2 : 768 dims natif (matche pgvector
+# migration), multilingue FR-EN, ~1 GB poids ONNX. Seul modèle multilingue
+# 768 dims supporté par fastembed actuellement. Pas de préfixe nécessaire
+# (modèle Sentence-BERT, pas e5). Cf. D-017.
+EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
 
 
 # =============================================================================
-# Embedding (Gemini)
+# Embedding (local — fastembed ONNX)
 # =============================================================================
 def _embed(texts: list[str]) -> list[list[float]]:
-    """Embed via google-genai SDK. Bloquant (le SDK n'expose pas d'async stable)."""
-    from google import genai  # import local pour ne pas charger le SDK en dry-run
+    """Embed via fastembed local. Bloquant CPU (~50 ms/chunk en CPU moderne)."""
+    from fastembed import TextEmbedding  # import local pour ne pas charger en dry-run
 
-    settings = get_settings()
-    if settings.gemini_api_key is None:
-        raise RuntimeError("GEMINI_API_KEY manquante dans .env.local — impossible d'embed")
+    logger.info(f"Loading {EMBEDDING_MODEL} (premier run télécharge ~1 GB)…")
+    model = TextEmbedding(model_name=EMBEDDING_MODEL)
 
-    client = genai.Client(api_key=settings.gemini_api_key.get_secret_value())
     out: list[list[float]] = []
-    for chunk_text in texts:
-        response = client.models.embed_content(
-            model=GEMINI_EMBEDDING_MODEL,
-            contents=chunk_text,
-        )
-        # Le SDK retourne ``response.embeddings: list[ContentEmbedding] | None``
-        # avec ``.values: list[float] | None``. On valide non-None puis dim.
-        if not response.embeddings:
-            raise RuntimeError("Gemini a renvoyé une réponse sans embedding")
-        raw_values = response.embeddings[0].values
-        if raw_values is None:
-            raise RuntimeError("Gemini a renvoyé un embedding sans valeurs")
-        values = list(raw_values)
+    # fastembed.embed() retourne un générateur de np.ndarray ; on matérialise
+    # progressivement et on log tous les 10 chunks.
+    for i, vec in enumerate(model.embed(texts)):
+        values = vec.tolist()
         if len(values) != KB_EMBEDDING_DIM:
             raise RuntimeError(
-                f"Embedding renvoyé {len(values)} dims, attendu {KB_EMBEDDING_DIM} — "
-                "la migration SQL et le modèle Gemini sont désalignés"
+                f"Embedding renvoyé {len(values)} dims, attendu "
+                f"{KB_EMBEDDING_DIM} — la migration SQL et le modèle "
+                f"{EMBEDDING_MODEL} sont désalignés"
             )
         out.append(values)
-        # Rate-limit doux pour le free tier (15 req/min en sécurité)
-        time.sleep(0.05)
+        if i % 10 == 0 and i > 0:
+            logger.info(f"Embedded {i}/{len(texts)} chunks")
     return out
 
 
@@ -158,6 +156,10 @@ async def amain() -> int:
 
 
 def main() -> int:
+    # psycopg async exige SelectorEventLoop sur Windows (ProactorEventLoop
+    # par défaut sur Win 3.8+ n'est pas compatible).
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     return asyncio.run(amain())
 
 

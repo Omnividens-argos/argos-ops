@@ -102,21 +102,19 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 3 / 19 (P0 + P1 + P2)
-- **Phase en cours :** Sprint 0 — P3 à 90 % (bloc auto + P3-M1 + **P3-M2 complet** 2026-05-08, reste P3-M3 seed)
-- **Dernière partie done :** P2 — Bootstrap projet (2026-05-07)
-- **Prochaine partie :** **P3-M3** — `uv run python scripts/seed_kb.py` →
-  ≥ 50 chunks dans `kb_chunks` + test similarité « combien coûte Pro Max »
-  doit retourner un chunk de `pricing.md` en top-1
-- **En attente review humaine :** [PR #5](https://github.com/Omnividens-argos/argos-ops/pull/5)
-  (`feat/p3-crm-kb`) — couvre P3-M1 (DB locale Docker) + P3-M2 (6 fichiers
-  KB + 7 décisions D-010 à D-016). PR #4 a été mergée pour le bloc auto
-  P3 initial.
-- **Décisions P3 actives :** D-010 (hors-quota Free-only), D-011 (BYOK seul
-  IA fallback), D-012 (Watch/Chaînes définitions canoniques), D-013
-  (Strategist framing audit), D-014 (compliance factuelle pas de score %),
-  D-015 (FP marking en roadmap), D-016 (rétention purge en roadmap) — voir
-  [`docs/DECISIONS.md`](docs/DECISIONS.md)
+- **Sessions terminées :** 4 / 19 (P0 + P1 + P2 + **P3 complet** 2026-05-08)
+- **Phase en cours :** Sprint 0 — **P4 prochain** (premier slash command `/morning-digest`)
+- **Dernière partie done :** P3 — Schéma CRM + KB authentique + seed local validé (2026-05-08)
+- **Prochaine partie :** **P4** — `/morning-digest` (premier slash command Claude Code, valide la chaîne cron → Claude Code → action → log DB)
+- **En attente review humaine :** PR P3-M3 à créer (cette session) couvrant
+  D-017 (révision architecturale local-first), refactor `seed_kb.py` vers
+  embeddings open-source local, alignement ARCHITECTURE.md / ARGOS_OPS_PLAN.md
+- **Décisions P3 actives :** D-009 à D-017 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
+  **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
+  via Claude Code Pro Max (agents) + `fastembed` / `paraphrase-multilingual-mpnet-base-v2`
+  (embeddings). Aucune API LLM tierce. Trade-off : agents en pause quand
+  l'ordi du fondateur est éteint, webhooks 24/7 absorbés par queue Redis
+  pull-based.
 - **Setup local requis :** container Docker `argos-postgres-local` doit tourner
   (`docker ps | grep argos-postgres-local`). Si arrêté, le redémarrer
   (`docker start argos-postgres-local`). Volume `argos_postgres_data` persistant.

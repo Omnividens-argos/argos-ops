@@ -492,6 +492,136 @@ suppression complète. **Pas de modification de `pricing.md` au launch**
 
 ---
 
+## D-017 — Argos Ops 100 % local-first : Claude Code Pro Max + embeddings open-source, zéro API LLM tierce
+**Date :** 2026-05-08
+**Partie :** P3 (P3-M3, blocage quota Gemini → révision architecturale)
+**Décision :** **Tous les agents IA d'Argos Ops** (P4 à P19) tournent
+**localement sur l'ordi du fondateur** via Claude Code Pro Max (slash
+commands invoqués par cron / Claude Code SDK). **Aucune API LLM tierce**
+(Gemini, OpenAI, Voyage, etc.) n'est utilisée par Argos Ops. Les
+**embeddings KB / RAG** sont produits par un **modèle open-source local**
+(`intfloat/multilingual-e5-base` via `fastembed`, 768 dims natif, exécuté
+en CPU sur la machine du fondateur ou sur le serveur SecHunter selon le
+composant). **Aucun coût IA récurrent — aucun quota — aucune dépendance
+externe.**
+**Pourquoi :**
+- **Contrainte fondatrice de [`CLAUDE.md`](../CLAUDE.md) Vision** : « 0 €
+  de SaaS récurrent en plus de Claude Pro/Max ». Le passage par Gemini
+  free tier semblait rentrer dans cette contrainte mais a buté sur le
+  quota daily exhausted en P3-M3 (premier seed KB), confirmant que
+  « free tier = quota = dépendance externe ». Trade-off rejeté
+- **Cohérence avec ce qu'utilise déjà le fondateur** : Claude Code Pro
+  Max est le runtime de pensée principal d'Argos Ops dès P4. Pousser
+  toutes les capacités IA sur ce même runtime simplifie l'architecture
+  (un seul provider, un seul abonnement, un seul billing à surveiller)
+- **Souveraineté donnée** : aucun appel LLM ne sort vers un tiers
+  pendant le traitement des emails / leads / interactions clients. Pas
+  de prompt qui transite chez Google/OpenAI. Cohérent avec la promesse
+  RGPD/AI Act du produit et avec la mémoire utilisateur « cibles d'audit
+  interne ne doivent pas fuiter en KB »
+- **Aucun blocage de quota possible** : un agent local consomme le
+  budget de jetons de l'abonnement Claude Pro Max (limites forfaitaires
+  connues). Pas de risque de 429 RESOURCE_EXHAUSTED sur du free tier
+  partagé avec d'autres usages
+
+**Trade-off accepté explicitement par le fondateur :**
+- **L'ordi doit être allumé** pour que les agents tournent. Un email
+  arrivé à 3 h du matin attend le réveil du fondateur. Idem pour le
+  chat widget visiteurs nocturnes (P8) : réponse différée jusqu'à
+  l'allumage de l'ordi. **Acceptable pour un solo-fondateur en early
+  stage** ; révision possible quand le CA justifie un Mac mini /
+  Raspberry Pi 5 dédié 24/7
+- **Latence de réponse chat live** plus élevée qu'un Gemini Flash hot
+  (Claude Code lance un nouveau processus à chaque slash command) —
+  acceptable pour le volume early stage (≤ 100 chats / jour)
+
+**Implication technique — révision partielle de D-001 :**
+- **Composants qui restent sur serveur SecHunter (`204.168.171.71`)** :
+  - **Postgres** DB `argos_ops` + extension pgvector → conserve les
+    chunks KB, leads, interactions, agent_runs (D-001 valide pour la
+    couche données)
+  - **Redis** index 3 → cache, quotas, idempotency keys, **queue
+    `inbox_pending`** pour les webhooks 24/7 (chat widget P8, push
+    Stripe / Gmail)
+  - **Webhook receivers HTTP** (chatbot widget endpoint
+    `chat.omnividens.fr`, futurs webhooks Stripe / Gmail push / etc.) →
+    poussent les événements dans la queue Redis, **pas de réponse
+    synchrone**. Survit aux extinctions de l'ordi du fondateur
+- **Composants qui migrent sur l'ordi du fondateur** :
+  - **Tous les agents IA** (P4 à P19) — slash commands Claude Code
+    lancés par **cron sur l'ordi** (Windows Task Scheduler ou cron
+    WSL2)
+  - **Modèle d'embedding e5-base** (`fastembed` ONNX, ~280 MB poids)
+    → embarqué dans le venv Python local. Premier appel télécharge les
+    poids, ensuite 0 round-trip réseau
+- **Stack mise à jour côté Argos Ops** :
+
+  | Couche | Choix v1 (D-001 / plan initial) | Choix v2 (D-017) |
+  |---|---|---|
+  | Runtime de pensée | Claude Code Pro/Max via cron | **inchangé** |
+  | LLM chat live (P8) | Gemini 1.5 Flash free tier | **Claude Code Pro Max via slash command + queue Redis pour les webhooks 24/7** |
+  | Embeddings KB | Gemini `embedding-001` | **`fastembed` + `intfloat/multilingual-e5-base` local (768 dims natif)** |
+  | Cron host | utilisateur Linux du serveur SecHunter | **cron / Task Scheduler sur ordi du fondateur** |
+  | Webhook endpoint | endpoint FastAPI sur serveur | **inchangé (serveur), mais réponse via queue Redis pull-based depuis l'ordi** |
+
+- **Variables d'environnement à réviser** :
+  - `GEMINI_API_KEY` reste dans `.env.example` mais devient
+    **optionnel / non-utilisé par Argos Ops** (peut être conservé pour
+    le scanner SecHunter qui est un produit séparé, voir « Portée »
+    ci-dessous)
+  - Pas de nouvelle variable d'env requise pour `fastembed` — modèle
+    téléchargé au premier run dans le cache utilisateur
+- **Migration `pyproject.toml`** :
+  - Ajout : `fastembed>=0.3` (et ses deps ONNX)
+  - `google-genai` reste pour le **scanner SecHunter BYOK** (cf.
+    portée ci-dessous), mais Argos Ops ne l'appellera plus
+
+**Portée — ce que D-017 ne révoque PAS :**
+- **D-011** (Argos scanner BYOK multi-provider IA) reste valide pour le
+  **produit Argos / SecHunter** que l'on vend aux clients. Les clients
+  du scanner gardent le choix de leur provider IA (Anthropic, OpenAI,
+  Google, DeepSeek). D-017 ne s'applique qu'à **Argos Ops** (la flotte
+  d'agents internes qui fait tourner l'acquisition / conversion /
+  support / admin du SaaS)
+- **Les fichiers KB** dans `data/knowledge_base/` restent inchangés —
+  ils décrivent le scanner Argos (pour les clients) et les concepts
+  métier. Pas de réécriture de la KB nécessaire
+- **D-001** (hébergement DB / Redis sur serveur SecHunter) reste
+  partiellement valide — la couche données reste sur le serveur. Seuls
+  les agents IA (couche calcul) migrent sur l'ordi du fondateur
+
+**Annule / révise :**
+- **D-001** (Hébergement mutualisé SecHunter) — **partiellement révisé**
+  pour la couche calcul agents IA qui passe local. D-001 reste valide
+  pour la couche données + webhook endpoints HTTP
+- **`docs/ARGOS_OPS_PLAN.md`** (Partie 1.3 stack technique, Partie 8
+  chatbot widget Gemini, Partie 3.3 embeddings Gemini) — réécrit dans
+  la même PR P3-M3
+- **`docs/ARCHITECTURE.md`** (Sections 2/3/5/6) — réécrit dans la même
+  PR P3-M3
+
+**Action de suivi — alignement docs (faite dans la même PR P3-M3) :**
+1. ✅ `docs/DECISIONS.md` — D-017 enregistrée (cette entrée)
+2. `docs/ARCHITECTURE.md` — section 5 stack v2, section 2 composants
+   v2, section 3 flux d'exécution v2, section 6 hébergement nuancé
+3. `docs/ARGOS_OPS_PLAN.md` — Partie 1.3 stack figée v2, Partie 8
+   chatbot widget Claude Code + queue Redis, Partie 3.3 embeddings
+   e5-base local, métriques coût mises à jour
+4. `CLAUDE.md` — état d'avancement / Stack notée v2
+5. `argos_ops/config.py` — `gemini_api_key` devient optionnel
+6. `pyproject.toml` — ajout `fastembed>=0.3`
+7. `scripts/seed_kb.py` — refactor `_embed()` pour utiliser
+   `fastembed.TextEmbedding('intfloat/multilingual-e5-base')`
+
+**Question ouverte (à trancher en P5+) :**
+- **Mac mini / Raspberry Pi 5 dédié 24/7** comme « relai local » qui
+  consomme l'abonnement Claude Code Pro Max sans demander à l'ordi de
+  développement du fondateur de tourner. À budgéter quand le coût
+  d'opportunité (mails ratés, chat widget non répondu la nuit) dépasse
+  le coût d'achat (~150-300 €). Pas un blocker pour Sprint 0/1.
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown

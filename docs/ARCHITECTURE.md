@@ -27,61 +27,95 @@
                     Admin Panel (P16)
 ```
 
-Les agents sont des **slash commands Claude Code** lancés par cron. Ils lisent
-et écrivent dans Postgres/Redis, appellent des APIs externes via les modules
-`argos_ops.integrations.*`, et passent leurs sorties par l'agent-juge avant
-envoi quand applicable.
+Les agents sont des **slash commands Claude Code** lancés par cron **sur
+l'ordi du fondateur** (cf. [`DECISIONS.md` D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce)).
+Ils lisent et écrivent dans Postgres/Redis sur le serveur SecHunter, appellent
+des APIs externes via les modules `argos_ops.integrations.*`, et passent leurs
+sorties par l'agent-juge avant envoi quand applicable. **Aucun appel LLM
+sortant** : tout passe par l'abonnement Claude Code Pro Max du fondateur.
 
 ---
 
 ## 2. Composants
 
-| Composant | Rôle | Stack |
-|-----------|------|-------|
-| **Runtime de pensée** | Exécute les slash commands périodiquement | Claude Code Pro/Max via cron |
-| **CRM + KB** | Stocke leads, interactions, tickets, agent_runs, kb_chunks | Postgres 16 (DB `argos_ops` sur cluster mutualisé SecHunter) + pgvector |
-| **Cache / state** | Quotas, rate limits, idempotency keys | Redis 7 (DB index 3) |
-| **Chat live** | Réponses temps réel sur `omnividens.fr` | Gemini 1.5 Flash (free tier) + RAG via pgvector |
-| **Email inbound** | Lecture / draft / réponse `contact@omnividens.fr` | Gmail API + IMAP |
-| **Email outbound** | Cold email volume modéré (≤ 50/jour) | Gmail API depuis domaine secondaire |
-| **Sociaux** | Posting LinkedIn / Mastodon / Reddit | API natives via `argos_ops.integrations.*` |
-| **Ads** | Pilotage Google / Meta / LinkedIn Ads | API natives, shadow mode tant que budget = 0 |
-| **Analytics** | Pageviews + sources de trafic | Umami self-host (INFRA-02, à venir) |
-| **Téléphonie** | (phase 2) | reporté |
-| **Avatar démo** | (phase 2) | reporté |
+| Composant | Rôle | Stack | Hébergement |
+|-----------|------|-------|------|
+| **Runtime de pensée** | Exécute les slash commands Claude Code périodiquement | Claude Code Pro/Max | **ordi fondateur** (D-017) |
+| **CRM + KB** | Stocke leads, interactions, tickets, agent_runs, kb_chunks | Postgres 16 (DB `argos_ops`) + pgvector | serveur SecHunter (D-001) |
+| **Cache / state / queue** | Quotas, rate limits, idempotency keys, queue `inbox_pending` pour webhooks 24/7 | Redis 7 (DB index 3) | serveur SecHunter (D-001) |
+| **Webhook receivers** | Endpoints HTTP `chat.omnividens.fr`, push Stripe/Gmail | FastAPI + Caddy reverse proxy | serveur SecHunter (24/7) |
+| **Embeddings KB** | Génère les vecteurs 768d des chunks markdown pour pgvector | `fastembed` + `intfloat/multilingual-e5-base` (CPU, ONNX, ~280 MB poids) | **ordi fondateur** (D-017) |
+| **Chat live** | Réponses temps réel sur `omnividens.fr` | **Claude Code Pro Max + queue Redis pull-based** (différé si ordi éteint, cf. D-017) | runtime ordi fondateur, queue serveur |
+| **Email inbound** | Lecture / draft / réponse `contact@omnividens.fr` | Gmail API + IMAP | runtime ordi fondateur |
+| **Email outbound** | Cold email volume modéré (≤ 50/jour) | Gmail API depuis domaine secondaire | runtime ordi fondateur |
+| **Sociaux** | Posting LinkedIn / Mastodon / Reddit | API natives via `argos_ops.integrations.*` | runtime ordi fondateur |
+| **Ads** | Pilotage Google / Meta / LinkedIn Ads | API natives, shadow mode tant que budget = 0 | runtime ordi fondateur |
+| **Analytics** | Pageviews + sources de trafic | Umami self-host (INFRA-02, à venir) | serveur SecHunter |
+| **Téléphonie** | (phase 2) | reporté | — |
+| **Avatar démo** | (phase 2) | reporté | — |
 
 ---
 
 ## 3. Flux d'exécution typique d'un agent
 
-Exemple : **EmailBot** (P5) lancé toutes les 15 min par cron.
+Exemple : **EmailBot** (P5) lancé toutes les 15 min par cron **sur l'ordi
+du fondateur** (cf. D-017).
 
 ```
-cron */15 * * * *
+[ORDI fondateur]
+cron */15 * * * *  (Task Scheduler Windows ou cron WSL2)
    ↓
 claude --print "/check-emails"           # slash command Claude Code
+                                         # consomme abonnement Pro Max
    ↓
 agent_runtime.run_if_enabled('EmailBot', do_check_emails)
    ↓
-Lecture agent_config        Postgres   ← admin panel peut désactiver
-Vérification breakers       Postgres   ← P15 trip = skip
+[Postgres distant — serveur SecHunter via psycopg async]
+Lecture agent_config        ← admin panel peut désactiver
+Vérification breakers       ← P15 trip = skip
    ↓ (si OK)
-Pull Gmail INBOX            Gmail API
+[ORDI fondateur]
+Pull Gmail INBOX            Gmail API (oauth user)
    ↓
 For each email:
-   classify (skill email-classifier)
-   lookup/create lead in CRM
+   classify (skill email-classifier — Claude inline)
+   embed local (fastembed e5-base, CPU)  ← ~50 ms/chunk
+   lookup/create lead       INSERT/SELECT Postgres distant
    insert interaction direction='in'
-   draft response (skill kb-rag → Gemini embedding + Claude)
-   judge (skill claude-judge)           ← P14 supervision IA
+   draft response (skill kb-rag → similarity search pgvector + Claude)
+   judge (skill claude-judge)            ← P14 supervision IA, Claude inline
      score ≥ 80 → send via Gmail
-     50 ≤ score < 80 → draft + Discord notif
+     50 ≤ score < 80 → draft + Discord notif (webhook)
      score < 50 → kill, log
    insert interaction direction='out'
    ↓
-log agent_runs              Postgres
+log agent_runs              Postgres distant
    ↓
 END
+```
+
+**Webhook 24/7 (chat widget P8, push Stripe / Gmail) — flux pull-based :**
+
+```
+[Visiteur omnividens.fr — n'importe quelle heure]
+POST chat.omnividens.fr/message
+   ↓
+[Serveur SecHunter — endpoint FastAPI, 24/7]
+LPUSH inbox_pending {message, session_id, ts}    Redis serveur
+HTTP 202 Accepted (réponse différée)
+   ↓
+                                        [ORDI fondateur, quand allumé]
+                                        cron */1 * * * *
+                                           ↓
+                                        claude --print "/process-inbox"
+                                           ↓
+                                        BRPOP inbox_pending          Redis serveur
+                                           ↓
+                                        Pour chaque message :
+                                          embed local + similarity KB
+                                          réponse Claude Code (Pro Max)
+                                          push réponse vers session
+                                          (websocket back / polling)
 ```
 
 ---
@@ -100,32 +134,57 @@ Voir [`ESCALATION_RULES.md`](ESCALATION_RULES.md) pour les règles précises.
 
 ---
 
-## 5. Stack technique figée
+## 5. Stack technique figée (v2 — D-017)
 
-| Couche | Choix | Coût |
-|--------|-------|------|
-| Runtime de pensée | Claude Code Pro/Max via cron | déjà payé |
-| Orchestration | cron Linux + scripts Python | 0 € |
-| CRM | Postgres + pgvector | 0 € (DB existante) |
-| Cache | Redis | 0 € (déjà en prod) |
-| LLM chat live | Gemini 1.5 Flash free tier | 0 € |
-| Embeddings KB | Gemini `embedding-001` | 0 € |
-| Email | Gmail API | 0 € (≤ 500/jour) |
-| Sociaux | LinkedIn / Mastodon / Reddit APIs | 0 € |
-| Analytics | Umami self-host (INFRA-02) | 0 € |
-| Total | | **~1 €/mois** (domaine secondaire outbound) |
+| Couche | Choix | Coût | Hébergement |
+|--------|-------|------|------|
+| Runtime de pensée | Claude Code Pro/Max via cron / Task Scheduler | **déjà payé** (abonnement fondateur) | ordi fondateur |
+| Orchestration | cron / Windows Task Scheduler + scripts Python | 0 € | ordi fondateur |
+| CRM | Postgres + pgvector | 0 € (DB existante) | serveur SecHunter |
+| Cache + queue | Redis (cache + `inbox_pending` queue webhooks) | 0 € (déjà en prod) | serveur SecHunter |
+| **LLM chat live** | **Claude Code Pro Max + queue Redis pull-based** | **0 € (forfait Pro Max)** | runtime ordi, queue serveur |
+| **LLM agents (tous)** | **Claude Code Pro Max via slash commands** | **0 € (forfait Pro Max)** | runtime ordi |
+| **Embeddings KB** | **`fastembed` + `multilingual-e5-base` (CPU local)** | **0 € forever** | ordi fondateur |
+| Email | Gmail API | 0 € (≤ 500/jour) | runtime ordi |
+| Sociaux | LinkedIn / Mastodon / Reddit APIs | 0 € | runtime ordi |
+| Analytics | Umami self-host (INFRA-02) | 0 € | serveur SecHunter |
+| Webhook receivers | FastAPI + Caddy reverse proxy | 0 € | serveur SecHunter |
+| Total | | **~1 €/mois** (domaine secondaire outbound) | — |
+
+**Aucune API LLM tierce** (Gemini, OpenAI, Voyage, Anthropic API) n'est
+utilisée par Argos Ops. Tout passe par l'abonnement Claude Code Pro Max
+du fondateur (cf. [D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce)).
+
+> **À ne pas confondre** : le **scanner Argos / SecHunter** (le produit
+> qu'on vend aux clients) garde son architecture **BYOK multi-provider**
+> côté client (cf. [D-011](DECISIONS.md#d-011--ia-fallback-auto-pro-max--byok-seul-pas-de-cl%C3%A9-serveur-argos)).
+> D-017 ne s'applique qu'à **Argos Ops** (la flotte interne).
 
 ---
 
-## 6. Hébergement (D-001)
+## 6. Hébergement (D-001 partiellement révisé par D-017)
 
-- Serveur : `204.168.171.71` (Ubuntu 24.04)
-- Mutualisé avec SecHunter
-- Caddy 2 (Alpine) reverse proxy : `ops.omnividens.fr` + `chat.omnividens.fr` (à
-  brancher au moment opportun, P8 / P16)
-- Postgres 16 : DB `argos_ops` séparée
-- Redis 7 : DB index 3
-- Cron : utilisateur `sechunter` (pas de nouvel utilisateur Linux)
+**Couche données + endpoints HTTP — serveur SecHunter** (`204.168.171.71`,
+Ubuntu 24.04, mutualisé) :
+
+- Postgres 16 : DB `argos_ops` (D-001)
+- Redis 7 : DB index 3 (D-001)
+- Caddy 2 reverse proxy : `ops.omnividens.fr` + `chat.omnividens.fr` (P8 / P16)
+- FastAPI webhook receivers : pour les événements 24/7 (chat, Stripe push,
+  Gmail push) → poussent dans la queue Redis `inbox_pending`
+
+**Couche calcul agents IA — ordi fondateur** (D-017) :
+
+- Cron / Windows Task Scheduler invoque Claude Code (slash commands)
+- Modèle d'embedding `multilingual-e5-base` (CPU, ONNX, ~280 MB)
+- Connexion Postgres / Redis distants vers le serveur SecHunter via
+  `psycopg` async / `redis-py` async (TLS)
+- `.env.local` (gitignored) contient les secrets API tiers (Gmail OAuth,
+  LinkedIn, Reddit, Mastodon, Stripe, Discord webhook)
+
+**Trade-off accepté** (D-017) : agents en pause quand l'ordi est éteint.
+Webhooks 24/7 absorbés par la queue Redis, traités au prochain cycle de
+l'ordi.
 
 ---
 

@@ -25,7 +25,13 @@ dependencies = [
   "uvicorn[standard]>=0.29",
   "sse-starlette>=2.1",
 
-  # LLM (Gemini for chat live, embeddings) — SDK moderne, remplace google-generativeai déprécié
+  # Embeddings KB local (D-017) — fastembed via ONNX runtime, pas d'API tierce.
+  # multilingual-e5-base = 768 dims natif, multilingue FR-EN, ~280 MB poids
+  # téléchargés au premier run dans le cache utilisateur.
+  "fastembed>=0.3",
+
+  # google-genai conservé optionnel pour des cas hors Argos Ops (BYOK
+  # scanner SecHunter D-011) — Argos Ops lui-même ne l'appelle plus (D-017).
   "google-genai>=1.0",
 
   # Google APIs (Gmail)
