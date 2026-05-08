@@ -97,7 +97,8 @@ class AgentRun(SQLModel, table=True):
 
 
 # =============================================================================
-# Knowledge Base vectorielle (Gemini embedding-001 = 768 dims)
+# Knowledge Base vectorielle — 768 dims natif (D-017)
+# Modèle : sentence-transformers/paraphrase-multilingual-mpnet-base-v2 via fastembed
 # =============================================================================
 KB_EMBEDDING_DIM = 768
 

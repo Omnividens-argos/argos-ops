@@ -42,7 +42,10 @@ class Settings(BaseSettings):
     )
     redis_url: str = Field(default="redis://localhost:6379/3", alias="REDIS_URL")
 
-    # --- Gemini (P3 embeddings + P8 chat live) ---
+    # --- Gemini (DÉPRÉCIÉ pour Argos Ops par D-017) ---
+    # Conservé optionnel uniquement pour le scanner SecHunter BYOK (D-011),
+    # produit séparé. Argos Ops lui-même n'appelle plus Gemini : embeddings
+    # via fastembed local, agents via Claude Code Pro Max.
     gemini_api_key: SecretStr | None = Field(default=None, alias="GEMINI_API_KEY")
 
     # --- Discord (P4) ---

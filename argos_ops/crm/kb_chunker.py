@@ -4,7 +4,7 @@ Stratégie (P3.3) :
 - Split par section H2 d'abord
 - Si une section dépasse ``max_tokens`` (~800), re-split en blocs de
   ``max_tokens`` avec overlap ``overlap_tokens`` (~100)
-- 1 token ≈ 4 caractères (approximation OpenAI/Gemini standard, suffisante
+- 1 token ≈ 4 caractères (approximation tokenizer standard, suffisante
   pour de la KB FR/EN courante — pas besoin d'un vrai tokenizer ici)
 
 Pure logic, pas d'I/O DB ni d'appel réseau. Testable en pur unit.
