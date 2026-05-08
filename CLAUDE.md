@@ -103,18 +103,24 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
 - **Sessions terminées :** 4 / 19 (P0 + P1 + P2 + **P3 complet** 2026-05-08)
-- **Phase en cours :** Sprint 0 — **P4 prochain** (premier slash command `/morning-digest`)
+- **Phase en cours :** Sprint 0 — **P4 partial** (code livré + tout vert, test live Discord à finir au prochain réveil — pb réseau Discord 2026-05-08)
 - **Dernière partie done :** P3 — Schéma CRM + KB authentique + seed local validé (2026-05-08)
-- **Prochaine partie :** **P4** — `/morning-digest` (premier slash command Claude Code, valide la chaîne cron → Claude Code → action → log DB)
-- **En attente review humaine :** PR P3-M3 à créer (cette session) couvrant
-  D-017 (révision architecturale local-first), refactor `seed_kb.py` vers
-  embeddings open-source local, alignement ARCHITECTURE.md / ARGOS_OPS_PLAN.md
+- **Prochaine partie :** terminer **P4** (3 mini-tâches manuelles, ~15 min :
+  régénérer webhook → test live → Task Scheduler), puis **P5 EmailBot inbound**
+- **En attente review humaine :** PR P4 à créer (cette session) — `BaseAgent`
+  + `DigestBuilder` + filtre loguru anti-fuite secrets + slash command +
+  skill formalisé + 40 tests verts
 - **Décisions P3 actives :** D-009 à D-017 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
   via Claude Code Pro Max (agents) + `fastembed` / `paraphrase-multilingual-mpnet-base-v2`
   (embeddings). Aucune API LLM tierce. Trade-off : agents en pause quand
   l'ordi du fondateur est éteint, webhooks 24/7 absorbés par queue Redis
   pull-based.
+- **Sécurité (nouveau 2026-05-08) :** `argos_ops/logging.py` installe un
+  filtre loguru anti-fuite sur les patterns secrets (webhooks Discord,
+  sk- API, AIza, gh_, xox_, whsec_, AKIA). Auto-installé via
+  `argos_ops/__init__.py`. **Token webhook Discord à rotater** au prochain
+  réveil (a fuité avant l'install du filtre)
 - **Setup local requis :** container Docker `argos-postgres-local` doit tourner
   (`docker ps | grep argos-postgres-local`). Si arrêté, le redémarrer
   (`docker start argos-postgres-local`). Volume `argos_postgres_data` persistant.

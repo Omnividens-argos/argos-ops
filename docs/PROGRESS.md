@@ -10,9 +10,9 @@
 ## Résumé d'avancement
 
 - **Sessions terminées :** 4 / 19 (P0 + P1 + P2 + **P3 complet** 2026-05-08)
-- **Phase en cours :** Sprint 0 — **P4 prochain** (premier slash command `/morning-digest`)
+- **Phase en cours :** Sprint 0 — **P4 partial** (code livré 2026-05-08, test live Discord + Task Scheduler à finaliser au prochain réveil — pb réseau/app Discord côté fondateur)
 - **Dernière partie done :** P3 — Schéma CRM + KB authentique + seed local (2026-05-08, **D-017** révision architecturale)
-- **Prochaine partie :** **P4** — `/morning-digest` (premier slash command Claude Code, valide la chaîne cron → Claude Code → action → log DB)
+- **Prochaine partie :** terminer **P4** (régénérer webhook Discord, lancer test live `run_digest.py`, créer Task Scheduler — total ~15 min) puis enchaîner sur **P5 EmailBot inbound**
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
 - **Décision architecturale majeure (2026-05-08) :** [D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce) — Argos Ops 100 % local-first via Claude Code Pro Max + embeddings open-source `paraphrase-multilingual-mpnet-base-v2` local. Aucune API LLM tierce. Trade-off : agents en pause quand l'ordi du fondateur est éteint.
 
@@ -26,7 +26,7 @@
 | 1 | Préparation technique et choix d'hébergement | — | ✅ done (partiel) | 2026-05-07 |
 | 2 | Bootstrap du dossier `argos-ops` | Sprint 0 | ✅ done | 2026-05-07 |
 | 3 | Schéma CRM + Knowledge Base | Sprint 0 | ✅ done | 2026-05-08 |
-| 4 | `/morning-digest` (premier slash command) | Sprint 0 | ⬜ pending | — |
+| 4 | `/morning-digest` (premier slash command) | Sprint 0 | ⚠️ partial (code OK, test live à faire) | code 2026-05-08 |
 | 5 | EmailBot inbound | Sprint 1 | ⬜ pending | — |
 | 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | ⬜ pending | — |
 | 7 | FinanceBot (Stripe + relances) | Sprint 1 | ⬜ pending | — |
@@ -157,6 +157,56 @@ P3-M3 — Seed + validation (✅ done 2026-05-08) :
 **P3 entièrement done** — couche CRM + KB authentique + seed validé +
 architecture alignée local-first. Sprint 0 complète à **2/4** (P0/P1/P2/P3
 done, P4 prochain).
+
+### P4 — `/morning-digest` ⚠️ partial (code livré 2026-05-08, test live à finir)
+
+**Code livré et tout vert** (ruff / format / mypy strict / **40 tests passed**) :
+
+- `argos_ops/agents/base.py` — `BaseAgent` + `RunResult` + helper
+  `run_agent()` qui enrobe l'exécution (breaker check → log start →
+  appel `run()` → log end avec status final). Toutes les agents P5+
+  hériteront de cette base
+- `argos_ops/agents/digest_builder.py` — `DigestBuilder` agent + DTO
+  `DigestKPIs` + `collect_kpis()` (lit leads/customers/tickets/breakers
+  des dernières 24 h depuis Postgres) + `build_digest_embed()`
+  (formatte en embed Discord avec couleur green/yellow/red selon état)
+- `argos_ops/notifications/discord.py` — webhook push (embed + texte
+  simple) avec couleurs canoniques + `httpx` async + raise sur HTTP ≥ 300
+- `argos_ops/logging.py` — **filtre loguru anti-fuite secrets** (Discord
+  webhooks, sk- API keys, AIza, gh_, xox_, whsec_, AKIA). Installé dès
+  l'import du package (`argos_ops/__init__.py`). Réagi à un incident
+  réel : le webhook Discord avait fuité dans les logs en cas d'erreur HTTP
+  parce qu'`httpx.HTTPStatusError` inclut l'URL complète
+- `scripts/run_digest.py` — entrée CLI invoquée par cron / Task Scheduler.
+  Force `WindowsSelectorEventLoopPolicy` pour psycopg async sur Windows
+- `.claude/commands/morning-digest.md` — slash command Claude Code
+- `.claude/skills/digest-builder/SKILL.md` — skill formalisé avec
+  procédure setup Task Scheduler Windows (UI + PowerShell scriptable)
+- `tests/test_digest_builder.py` — 11 tests (couleurs + contenu embed +
+  formatting leads breakdown)
+- `tests/test_logging.py` — 9 tests sur le filtre anti-fuite
+
+**Validation chaîne cron → Claude Code → action → log DB** :
+
+- ✅ `agent_runs` table reçoit bien la ligne (id=1 testé en local avec
+  `agent_name='DigestBuilder'`, `status='failed'` à cause du 503 webhook
+  réseau le jour du test)
+- ⚠️ Push Discord pas validé en live : webhook 503 + problème réseau /
+  app Discord côté fondateur. Critère P3 du plan « digest valide sur
+  Discord, ligne agent_runs avec status=success » **pas encore atteint**
+
+**Tâches restantes (à faire au prochain réveil, ~15 min)** :
+
+1. ⚠️ **Régénérer le webhook `DISCORD_WEBHOOK_DIGEST`** côté Discord
+   (a fuité dans les logs avant l'install du filtre — l'incident est
+   neutralisé pour les futurs runs mais le token actuel doit être
+   rotaté). Coller la nouvelle URL dans `.env.local`
+2. ⚠️ Relancer `uv run python scripts/run_digest.py` → vérifier
+   `status='success'` dans `agent_runs` + embed visible sur Discord
+3. ⚠️ Créer la **tâche Task Scheduler Windows** `argos-ops-morning-digest`
+   selon la procédure dans
+   [`.claude/skills/digest-builder/SKILL.md`](../.claude/skills/digest-builder/SKILL.md)
+   (UI ou PowerShell scriptable), schedule `0 8 * * *` Paris
 
 ### P2 — Bootstrap du dossier `argos-ops` ✅
 **Done le 2026-05-07.** Repo privé GitHub créé et premier push effectué.
