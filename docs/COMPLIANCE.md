@@ -115,5 +115,6 @@ qui collecte de la donnée nouvelle.
 - Page `/legal/privacy` complète
 - Page `/legal/ai-disclosure`
 - Contrats type DPA pour clients
-- Sous-traitants : Anthropic (Claude), Google (Gemini, Gmail), Stripe — à
+- Sous-traitants : Anthropic (Claude — abonnement Pro Max via Claude Code,
+  D-017), Google (Gmail uniquement — pas Gemini, cf. D-017), Stripe — à
   documenter avec leurs DPA respectifs
