@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS kb_chunks (
   chunk_index INT NOT NULL,
   content TEXT NOT NULL,
   content_hash TEXT NOT NULL,     -- sha256(content), pour idempotence du seed
-  embedding vector(768),          -- modèle Gemini embedding-001 = 768 dims
+  embedding vector(768),          -- paraphrase-multilingual-mpnet-base-v2 = 768 dims natif (D-017)
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (doc_path, chunk_index)
 );
