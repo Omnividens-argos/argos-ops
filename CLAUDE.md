@@ -102,12 +102,11 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 7 / 19 (P0+P1+P2+P3+P4+P5+P6) — **P7 partial** (code OK, attend clé Stripe live)
-- **Phase en cours :** Sprint 1 — finaliser P7 (clé Stripe + audit 1er run + Task Scheduler) puis **P8 ChatBot widget**
-- **Dernière partie done :** P6 — SupportBot Tier 1 (RAG eval 10/10)
-- **P7 partial** : code complet `argos_ops/agents/finance_bot.py` + skill `stripe-ops` + 18 tests + garde-fou `FINANCEBOT_DUNNING_ENABLED=false` (default OFF). Test live attend la clé `STRIPE_SECRET_KEY` live.
-- **Prochaine partie :** finaliser P7 puis **P8 ChatBot widget** (Sprint 1 boucle)
-- **Task Scheduler actifs (cron tournent)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris). À ajouter en cooldown : `argos-ops-finance-bot` (`0 6 * * *`)
+- **Sessions terminées :** 8 / 19 (P0+P1+P2+P3+P4+P5+P6+**P7 done** 2026-05-09)
+- **Phase en cours :** Sprint 1 — **P8 ChatBot widget** (FastAPI + Redis queue, D-017)
+- **Dernière partie done :** P7 — FinanceBot (test live Stripe OK, MRR=0 early stage, garde-fou DUNNING_ENABLED=false)
+- **Prochaine partie :** **P8 ChatBot widget** — boucle Sprint 1
+- **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`)
 - **Décisions P3-P5 actives :** D-009 à D-018 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
   via Claude Code Pro Max (agents) + `fastembed` / `paraphrase-multilingual-mpnet-base-v2`

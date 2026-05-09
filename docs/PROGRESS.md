@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 7 / 19 (P0+P1+P2+P3+P4+P5+P6) — **P7 partial** (code livré, test live à venir)
-- **Phase en cours :** Sprint 1 — finaliser P7 (clé Stripe live + premier run audité), puis P8 ChatBot widget
-- **Dernière partie done :** P6 — SupportBot Tier 1 (RAG sur KB) — eval 10/10 PASS
-- **P7 partial 2026-05-09** : code complet + 18 tests + skill `stripe-ops` + slash `/daily-finance-sync` + Task Scheduler doc + garde-fou `FINANCEBOT_DUNNING_ENABLED=false` par défaut. **Test live attend la clé `STRIPE_SECRET_KEY` live** (compte partagé avec SecHunter, à fournir par le fondateur quand prêt)
-- **Prochaine partie :** finaliser P7 (clé Stripe + 1er run live + Task Scheduler `0 6 * * *`) puis **P8 ChatBot widget** (Sprint 1 boucle)
+- **Sessions terminées :** 8 / 19 (P0+P1+P2+P3+P4+P5+P6+**P7** done 2026-05-09)
+- **Phase en cours :** Sprint 1 — **P8 ChatBot widget** (boucle Sprint 1)
+- **Dernière partie done :** P7 — FinanceBot (Stripe sync + dunning + alerte MRR) test live OK 2026-05-09 (`mrr=0` early stage SecHunter, clé restreinte read-only rotatée après fuite IDE transcript)
+- **Prochaine partie :** **P8 ChatBot widget** (FastAPI + Redis queue + Claude Code Pro Max worker, D-017)
+- **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
 - **Décision architecturale majeure (2026-05-08) :** [D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce) — Argos Ops 100 % local-first via Claude Code Pro Max + embeddings open-source `paraphrase-multilingual-mpnet-base-v2` local. Aucune API LLM tierce. Trade-off : agents en pause quand l'ordi du fondateur est éteint.
@@ -32,7 +32,7 @@
 | 4 | `/morning-digest` (premier slash command) | Sprint 0 | ✅ done | 2026-05-08 |
 | 5 | EmailBot inbound (Zimbra IMAP/SMTP, D-018) | Sprint 1 | ✅ done (test live boucle IMAP→CRM→SMTP) | 2026-05-09 |
 | 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | ✅ done (eval 10/10 PASS) | 2026-05-09 |
-| 7 | FinanceBot (Stripe + relances) | Sprint 1 | ⚠️ partial (code OK + 18 tests, attend clé Stripe live) | code 2026-05-09 |
+| 7 | FinanceBot (Stripe + relances) | Sprint 1 | ✅ done (test live OK, garde-fou DUNNING_ENABLED=false) | 2026-05-09 |
 | 8 | Chatbot widget site (Claude Code Pro Max + queue Redis, D-017) | Sprint 1 | ⬜ pending | — |
 | 9 | ContentBot multi-canal | Sprint 2 | ⬜ pending | — |
 | 10 | SEOBot stratégie + briefs | Sprint 2 | ⬜ pending | — |
@@ -293,7 +293,13 @@ répondent avec top doc correct, 5 questions hors-KB escaladent).
 - OUT-KB top distance : 0.770+ ou 0 hits (au-dessus du seuil)
 - Seuil 0.7 isole correctement les 2 régimes (calibré pour mpnet-base-v2)
 
-### P7 — FinanceBot (Stripe + relances) ⚠️ partial (code livré 2026-05-09)
+### P7 — FinanceBot (Stripe + relances) ✅ done 2026-05-09 (test live OK)
+
+**Test live passé 2026-05-09** : clé restreinte Stripe live (`rk_live_...`) — Customers/Invoices/Subscriptions read-only — auth OK, premier run `agent_runs status='success'`, `mrr=0.00 active_subs=0/0` (early stage SecHunter, normal). Embed Discord posté sur canal `alerts`. Aucune relance envoyée (`DUNNING_ENABLED=false` garde-fou actif). Le bot se mettra automatiquement en route à la première sub Stripe.
+
+**Task Scheduler créé** : `argos-ops-finance-bot` cron `0 6 * * *` Paris, invocation `uv run python scripts/run_finance_bot.py`.
+
+**Sécurité** : la première clé `rk_live_...` a fuité dans le transcript (IDE remontait `.env.local` modifié dans system-reminders → leak). Clé révoquée, nouvelle clé générée, mémoire `feedback_secrets_via_ide_leak.md` enregistrée pour ne pas reproduire.
 
 **Code livré et tout vert** (ruff + format + mypy strict + 18 nouveaux tests, **106 total**) :
 
