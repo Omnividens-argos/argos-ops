@@ -102,13 +102,11 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 6 / 19 (P0 + P1 + P2 + P3 + P4 + **P5 done** 2026-05-09 — boucle IMAP→CRM→SMTP testée live)
-- **Phase en cours :** Sprint 1 — `chore/email-signature` (PR ~15 min) puis **P6 SupportBot Tier 1** (RAG sur KB)
-- **Dernière partie done :** P5 — EmailBot inbound + `/check-emails` (test live 2026-05-09, `interactions #1` in + `#2` out, SMTP ssl0.ovh.net:465 OK)
-- **Prochaine partie :** **P6 SupportBot Tier 1** (RAG sur KB) après PR signature
-- **Tâches cooldown :** Task Scheduler Windows à créer pour `argos-ops-morning-digest`
-  (`0 8 * * *`) et `argos-ops-email-bot` (`*/15 * * * *` 8h-22h). Procédures dans
-  `.claude/skills/digest-builder/SKILL.md` et `.claude/skills/zimbra-ops/SKILL.md`
+- **Sessions terminées :** 7 / 19 (P0 + P1 + P2 + P3 + P4 + P5 + **P6 done** 2026-05-09 — eval RAG 10/10 PASS)
+- **Phase en cours :** Sprint 1 — **P7 FinanceBot** (Stripe + dunning) ou P11-PREP selon priorité
+- **Dernière partie done :** P6 — SupportBot Tier 1 (RAG via `argos_ops/rag/`, skill `kb-rag`, slash `/run-support-tier1`, eval 10/10)
+- **Prochaine partie :** **P7 FinanceBot** (Stripe webhook + dunning) — partage compte Stripe avec SecHunter
+- **Task Scheduler actifs (cron tournent)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris) — invocation `uv run python scripts/...`
 - **Décisions P3-P5 actives :** D-009 à D-018 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
   via Claude Code Pro Max (agents) + `fastembed` / `paraphrase-multilingual-mpnet-base-v2`
@@ -138,8 +136,11 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   CRM, notif Discord. Pas de drafting ici (D-017). Cf.
   [`.claude/commands/run-email-bot.md`](.claude/commands/run-email-bot.md)
 - **`/check-emails`** (P5) — slash command interactif humain-in-the-loop
-  pour drafter les réponses aux emails inbound. Cf.
-  [`.claude/commands/check-emails.md`](.claude/commands/check-emails.md)
+  pour drafter les réponses aux emails inbound. Invoque `kb-rag` (P6).
+  Cf. [`.claude/commands/check-emails.md`](.claude/commands/check-emails.md)
+- **`/run-support-tier1`** (P6) — répond à une question support Tier 1 via
+  RAG sur KB (anti-hallucination strict). Cf.
+  [`.claude/commands/run-support-tier1.md`](.claude/commands/run-support-tier1.md)
 
 ---
 
@@ -153,13 +154,16 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 - **`email-classifier`** (P5) — Claude inline, classifie en
   `lead_chaud / question_tech / sav / spam / partenariat / recrutement /
   presse / autre`. Cf. [`.claude/skills/email-classifier/`](.claude/skills/email-classifier/)
+- **`kb-rag`** (P6) — recherche similarité fastembed local + pgvector cosine
+  sur la KB Argos. Réutilisé par `/check-emails`, `/run-support-tier1`,
+  ChatBot P8. Cf. [`.claude/skills/kb-rag/`](.claude/skills/kb-rag/)
 - **`ui-ux-pro-max`** — design intelligence (50+ styles, 161 palettes, 57 font pairings,
   161 product types, 99 UX guidelines). Source : [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill).
   À invoquer en P16 (Admin Control Panel) AVANT toute écriture de code frontend pour figer
   palette / typo / densité / layout. Nécessite Python 3.x pour le search script.
 
 Inventaire métier prévu (P18) — restant à créer :
-`kb-rag` · `stripe-ops` · `chat-orchestrator` · `content-writer` ·
+`stripe-ops` · `chat-orchestrator` · `content-writer` ·
 `content-scheduler` · `serp-analyzer` · `ads-optimizer` · `ads-creative-writer` ·
 `lead-enricher` · `outbound-personalizer` · `claude-judge`
 
