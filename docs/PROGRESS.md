@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 6 / 19 (P0 + P1 + P2 + P3 + P4 + **P5** done 2026-05-09)
-- **Phase en cours :** Sprint 1 — **P6 SupportBot Tier 1** (RAG sur KB) à venir
-- **Dernière partie done :** P5 — EmailBot inbound + `/check-emails` boucle complète testée live (IMAP pull + ingestion CRM + SMTP envoi) 2026-05-09
-- **Prochaine partie :** **`chore/email-signature`** (PR séparée 15 min — tagline « Argos — on scanne, vous corrigez. » + mention transparence IA) puis **P6 SupportBot Tier 1** (RAG sur KB)
-- **Tâches cooldown en attente :** Task Scheduler Windows `argos-ops-morning-digest` (P4) + `argos-ops-email-bot` (P5) — créer via `.claude/skills/digest-builder/SKILL.md` + `.claude/skills/zimbra-ops/SKILL.md`
+- **Sessions terminées :** 7 / 19 (P0 + P1 + P2 + P3 + P4 + P5 + **P6** done 2026-05-09)
+- **Phase en cours :** Sprint 1 — **P7 FinanceBot** (Stripe + relances) à venir
+- **Dernière partie done :** P6 — SupportBot Tier 1 (RAG sur KB) — eval 10/10 PASS, skill `kb-rag` réutilisable, slash command `/run-support-tier1`
+- **Prochaine partie :** **P7 FinanceBot** (Stripe webhook + dunning) ou **P11-PREP** (Reddit/Mastodon) selon priorité business
+- **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
 - **Décision architecturale majeure (2026-05-08) :** [D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce) — Argos Ops 100 % local-first via Claude Code Pro Max + embeddings open-source `paraphrase-multilingual-mpnet-base-v2` local. Aucune API LLM tierce. Trade-off : agents en pause quand l'ordi du fondateur est éteint.
 - **Décision stack email (2026-05-08) :** [D-018](DECISIONS.md#d-018) — EmailBot via OVH Zimbra IMAP/SMTP `ssl0.ovh.net:993/465`. Boîte canonique `contact@omnividens.fr`.
@@ -30,7 +30,7 @@
 | 3 | Schéma CRM + Knowledge Base | Sprint 0 | ✅ done | 2026-05-08 |
 | 4 | `/morning-digest` (premier slash command) | Sprint 0 | ✅ done | 2026-05-08 |
 | 5 | EmailBot inbound (Zimbra IMAP/SMTP, D-018) | Sprint 1 | ✅ done (test live boucle IMAP→CRM→SMTP) | 2026-05-09 |
-| 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | ⬜ pending | — |
+| 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | ✅ done (eval 10/10 PASS) | 2026-05-09 |
 | 7 | FinanceBot (Stripe + relances) | Sprint 1 | ⬜ pending | — |
 | 8 | Chatbot widget site (Claude Code Pro Max + queue Redis, D-017) | Sprint 1 | ⬜ pending | — |
 | 9 | ContentBot multi-canal | Sprint 2 | ⬜ pending | — |
@@ -258,13 +258,39 @@ embed digest visible sur Discord. Critère P3 du plan rempli ✅.
   du destinataire). À corriger avec une migration ajoutant `message_id`,
   `in_reply_to`, `references` à la table `interactions`.
 
-**Tâches cooldown restantes (~5 min, non bloquantes)** :
+**Cooldowns DONE (2026-05-09)** :
 
-1. ⏳ Créer Task Scheduler Windows `argos-ops-email-bot` (cf.
-   [`.claude/skills/zimbra-ops/SKILL.md`](../.claude/skills/zimbra-ops/SKILL.md))
-   schedule `*/15 * * * *` 8h-22h Paris
-2. ⏳ PR séparée `chore/email-signature` — tagline « Argos — on scanne,
-   vous corrigez. » + mention transparence IA pour `send_email()`
+- ✅ Task Scheduler `argos-ops-email-bot` créée (uv direct, cron `*/15` 8h-22h Paris)
+- ✅ Task Scheduler `argos-ops-morning-digest` créée (uv direct, cron `0 8 * * *` Paris)
+- ✅ PR `chore/email-signature` (#12) mergée — variante C brutaliste mono validée
+
+### P6 — SupportBot Tier 1 (RAG sur KB) ✅ done 2026-05-09
+
+**Eval 10/10 PASS** sur `scripts/eval_kb_rag.py` (5 questions IN-KB
+répondent avec top doc correct, 5 questions hors-KB escaladent).
+
+**Code livré et tout vert** (ruff + format + mypy strict + 12 nouveaux tests RAG) :
+
+- `argos_ops/rag/embeddings.py` — singleton fastembed +
+  `paraphrase-multilingual-mpnet-base-v2` (D-017), `embed_query()` +
+  `embed_batch()` (réutilisé par `seed_kb.py`)
+- `argos_ops/rag/search.py` — `search_kb()` (cosine top-K + filtre seuil
+  `DEFAULT_DISTANCE_THRESHOLD=0.7` calibré sur eval),
+  `RAGResult` (`is_empty` = signal escalade), `format_context_block()`,
+  `build_support_prompt()` (prompt anti-hallucination strict)
+- `scripts/eval_kb_rag.py` — eval golden 10 questions (IN-KB / OUT-KB)
+- `scripts/seed_kb.py` — refactor pour utiliser `argos_ops.rag.embeddings`
+- `.claude/skills/kb-rag/SKILL.md` — skill réutilisable (consommé par
+  `/run-support-tier1`, `/check-emails`, ChatBot P8 plus tard)
+- `.claude/commands/run-support-tier1.md` — slash command interactive
+- `.claude/commands/check-emails.md` — mise à jour pour invoquer `kb-rag`
+  (étape 2.b du protocole)
+- `tests/test_rag.py` — 12 tests unitaires (seuil, format, prompt, validation)
+
+**Calibration eval** :
+- IN-KB top distance : 0.473–0.561 (largement sous le seuil 0.7)
+- OUT-KB top distance : 0.770+ ou 0 hits (au-dessus du seuil)
+- Seuil 0.7 isole correctement les 2 régimes (calibré pour mpnet-base-v2)
 
 ### P2 — Bootstrap du dossier `argos-ops` ✅
 **Done le 2026-05-07.** Repo privé GitHub créé et premier push effectué.

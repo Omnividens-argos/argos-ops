@@ -46,10 +46,19 @@ a. **Classifier** — invoque le skill `email-classifier` avec subject + body
    (le skill retourne `category`, `confidence`, `suggested_priority`,
    `suggested_response_skeleton`)
 
-b. **Charger contexte produit** — (P6+ une fois `kb-rag` créé) lance une
-   recherche cosine sur les `kb_chunks` avec le sujet de l'email comme
-   query. Pour P5, lis directement les fichiers KB pertinents
-   (`tone_of_voice.md`, `argos_features.md`, `pricing.md`, `faq.md`).
+b. **Charger contexte produit** — invoque le skill `kb-rag` (P6) :
+
+   ```python
+   from argos_ops.crm.db import session_scope
+   from argos_ops.rag.search import search_kb, build_support_prompt
+
+   async with session_scope() as session:
+       result = await search_kb(session, query=email.subject + " " + email.body[:500])
+   ```
+
+   Si `result.is_empty` → escalade (réponds manuellement, ne drafte pas).
+   Sinon → utilise `build_support_prompt(result)` comme contexte pour
+   rédiger ta réponse, en respectant les citations `[KB#N: doc§index]`.
 
 c. **Drafter** — rédige une réponse en respectant strictement
    `data/kb/tone_of_voice.md` (DAST-first, anti-FUD, vouvoiement jamais).

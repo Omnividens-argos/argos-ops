@@ -28,45 +28,13 @@ from loguru import logger
 from argos_ops.config import REPO_ROOT
 from argos_ops.crm.db import dispose_engine, session_scope
 from argos_ops.crm.kb_chunker import Chunk, chunk_markdown
-from argos_ops.crm.models import KB_EMBEDDING_DIM
 from argos_ops.crm.repository import upsert_kb_chunk
+from argos_ops.rag.embeddings import embed_batch
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
 KB_DIR = REPO_ROOT / "data" / "knowledge_base"
-# paraphrase-multilingual-mpnet-base-v2 : 768 dims natif (matche pgvector
-# migration), multilingue FR-EN, ~1 GB poids ONNX. Seul modèle multilingue
-# 768 dims supporté par fastembed actuellement. Pas de préfixe nécessaire
-# (modèle Sentence-BERT, pas e5). Cf. D-017.
-EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
-
-
-# =============================================================================
-# Embedding (local — fastembed ONNX)
-# =============================================================================
-def _embed(texts: list[str]) -> list[list[float]]:
-    """Embed via fastembed local. Bloquant CPU (~50 ms/chunk en CPU moderne)."""
-    from fastembed import TextEmbedding  # import local pour ne pas charger en dry-run
-
-    logger.info(f"Loading {EMBEDDING_MODEL} (premier run télécharge ~1 GB)…")
-    model = TextEmbedding(model_name=EMBEDDING_MODEL)
-
-    out: list[list[float]] = []
-    # fastembed.embed() retourne un générateur de np.ndarray ; on matérialise
-    # progressivement et on log tous les 10 chunks.
-    for i, vec in enumerate(model.embed(texts)):
-        values = vec.tolist()
-        if len(values) != KB_EMBEDDING_DIM:
-            raise RuntimeError(
-                f"Embedding renvoyé {len(values)} dims, attendu "
-                f"{KB_EMBEDDING_DIM} — la migration SQL et le modèle "
-                f"{EMBEDDING_MODEL} sont désalignés"
-            )
-        out.append(values)
-        if i % 10 == 0 and i > 0:
-            logger.info(f"Embedded {i}/{len(texts)} chunks")
-    return out
 
 
 # =============================================================================
@@ -99,7 +67,7 @@ async def _seed(chunks: list[Chunk], *, dry_run: bool) -> tuple[int, int]:
         logger.info("DRY RUN — pas d'embedding, pas d'écriture DB")
         return 0, len(chunks)
 
-    embeddings = _embed([c.content for c in chunks])
+    embeddings = embed_batch([c.content for c in chunks])
 
     inserted = 0
     skipped = 0
