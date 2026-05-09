@@ -29,6 +29,11 @@ class Company(SQLModel, table=True):
     industry: str | None = None
     size_band: str | None = None
     source: str | None = None
+    # Stripe (P7) — populated by FinanceBot
+    stripe_customer_id: str | None = Field(default=None, unique=True, index=True)
+    subscription_status: str | None = Field(default=None, index=True)
+    mrr_eur: Decimal | None = None
+    stripe_synced_at: datetime | None = None
     created_at: datetime = Field(default_factory=_utcnow, nullable=False)
 
 
