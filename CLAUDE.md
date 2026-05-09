@@ -102,17 +102,13 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 5 / 19 (P0 + P1 + P2 + P3 + **P4 done** 2026-05-08 23:03 CET)
-- **Phase en cours :** Sprint 1 — **P5 EmailBot inbound** (code livré + 67 tests verts 2026-05-09, en attente D-005 OVH + test live Zimbra)
-- **Dernière partie done :** P4 — `/morning-digest` (test live `agent_runs id=2 status=success`, embed Discord OK)
-- **Prochaine partie :** finaliser **P5** (D-005 + test live IMAP/SMTP, ~15 min manuel) puis **P6 SupportBot Tier 1** (RAG sur KB)
-- **En attente review humaine :** PR P5 à créer (cette session) — wrapper
-  `argos_ops/integrations/zimbra.py` + `EmailBot(BaseAgent)` + skills
-  `zimbra-ops` / `email-classifier` + slash commands `/run-email-bot` /
-  `/check-emails` + 27 nouveaux tests (67 total)
-- **Tâche P4 cooldown (5 min) :** créer Task Scheduler Windows
-  `argos-ops-morning-digest` (cf. `.claude/skills/digest-builder/SKILL.md`),
-  schedule `0 8 * * *` Paris
+- **Sessions terminées :** 6 / 19 (P0 + P1 + P2 + P3 + P4 + **P5 done** 2026-05-09 — boucle IMAP→CRM→SMTP testée live)
+- **Phase en cours :** Sprint 1 — `chore/email-signature` (PR ~15 min) puis **P6 SupportBot Tier 1** (RAG sur KB)
+- **Dernière partie done :** P5 — EmailBot inbound + `/check-emails` (test live 2026-05-09, `interactions #1` in + `#2` out, SMTP ssl0.ovh.net:465 OK)
+- **Prochaine partie :** **P6 SupportBot Tier 1** (RAG sur KB) après PR signature
+- **Tâches cooldown :** Task Scheduler Windows à créer pour `argos-ops-morning-digest`
+  (`0 8 * * *`) et `argos-ops-email-bot` (`*/15 * * * *` 8h-22h). Procédures dans
+  `.claude/skills/digest-builder/SKILL.md` et `.claude/skills/zimbra-ops/SKILL.md`
 - **Décisions P3-P5 actives :** D-009 à D-018 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
   via Claude Code Pro Max (agents) + `fastembed` / `paraphrase-multilingual-mpnet-base-v2`
