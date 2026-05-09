@@ -69,6 +69,22 @@ class Settings(BaseSettings):
     email_password: SecretStr | None = Field(default=None, alias="EMAIL_PASSWORD")
     email_reply_name: str = Field(default="Argos par Omnividens", alias="EMAIL_REPLY_NAME")
 
+    # --- Signature email (cohérente sur tous les envois Argos Ops) ---
+    # Ces 3 variables ont des defaults raisonnables, override via .env si besoin.
+    email_signature_tagline: str = Field(
+        default="Argos — on scanne, vous corrigez.",
+        alias="EMAIL_SIGNATURE_TAGLINE",
+    )
+    email_signature_site_url: str = Field(
+        default="https://omnividens.fr",
+        alias="EMAIL_SIGNATURE_SITE_URL",
+    )
+    # Wording AI Act art. 50 (transparence IA) — court, factuel
+    email_signature_ai_disclosure: str = Field(
+        default="Email rédigé par notre assistant Argos Ops.",
+        alias="EMAIL_SIGNATURE_AI_DISCLOSURE",
+    )
+
     @property
     def async_database_url(self) -> str:
         """URL adaptée à SQLAlchemy async (driver psycopg v3).

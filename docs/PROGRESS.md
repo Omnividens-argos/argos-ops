@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 5 / 19 (P0 + P1 + P2 + **P3** + **P4** done — P4 test live passé 2026-05-08 23:03 CET)
-- **Phase en cours :** Sprint 1 — **P5 EmailBot inbound** (bloc auto code + tests livré 2026-05-09, en attente finalisation D-005 + test live Zimbra)
-- **Dernière partie done :** P4 — `/morning-digest` (code 2026-05-08, test live `agent_runs id=2 status=success` + push Discord OK 2026-05-08 23:03)
-- **Prochaine partie :** terminer **P5** (D-005 OVH compte mail + test live IMAP/SMTP — ~15 min manuel) puis enchaîner sur **P6 SupportBot Tier 1** (RAG sur KB)
-- **Tâches manuelles en cours :** Task Scheduler `argos-ops-morning-digest` (5 min, P4 cooldown) + D-005 OVH boîte `contact@omnividens.fr` (P5 prérequis live test)
+- **Sessions terminées :** 6 / 19 (P0 + P1 + P2 + P3 + P4 + **P5** done 2026-05-09)
+- **Phase en cours :** Sprint 1 — **P6 SupportBot Tier 1** (RAG sur KB) à venir
+- **Dernière partie done :** P5 — EmailBot inbound + `/check-emails` boucle complète testée live (IMAP pull + ingestion CRM + SMTP envoi) 2026-05-09
+- **Prochaine partie :** **`chore/email-signature`** (PR séparée 15 min — tagline « Argos — on scanne, vous corrigez. » + mention transparence IA) puis **P6 SupportBot Tier 1** (RAG sur KB)
+- **Tâches cooldown en attente :** Task Scheduler Windows `argos-ops-morning-digest` (P4) + `argos-ops-email-bot` (P5) — créer via `.claude/skills/digest-builder/SKILL.md` + `.claude/skills/zimbra-ops/SKILL.md`
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
 - **Décision architecturale majeure (2026-05-08) :** [D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce) — Argos Ops 100 % local-first via Claude Code Pro Max + embeddings open-source `paraphrase-multilingual-mpnet-base-v2` local. Aucune API LLM tierce. Trade-off : agents en pause quand l'ordi du fondateur est éteint.
 - **Décision stack email (2026-05-08) :** [D-018](DECISIONS.md#d-018) — EmailBot via OVH Zimbra IMAP/SMTP `ssl0.ovh.net:993/465`. Boîte canonique `contact@omnividens.fr`.
@@ -29,7 +29,7 @@
 | 2 | Bootstrap du dossier `argos-ops` | Sprint 0 | ✅ done | 2026-05-07 |
 | 3 | Schéma CRM + Knowledge Base | Sprint 0 | ✅ done | 2026-05-08 |
 | 4 | `/morning-digest` (premier slash command) | Sprint 0 | ✅ done | 2026-05-08 |
-| 5 | EmailBot inbound (Zimbra IMAP/SMTP, D-018) | Sprint 1 | ⚠️ partial (code OK + 67 tests verts, attend D-005 + test live) | code 2026-05-09 |
+| 5 | EmailBot inbound (Zimbra IMAP/SMTP, D-018) | Sprint 1 | ✅ done (test live boucle IMAP→CRM→SMTP) | 2026-05-09 |
 | 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | ⬜ pending | — |
 | 7 | FinanceBot (Stripe + relances) | Sprint 1 | ⬜ pending | — |
 | 8 | Chatbot widget site (Claude Code Pro Max + queue Redis, D-017) | Sprint 1 | ⬜ pending | — |
@@ -160,7 +160,7 @@ P3-M3 — Seed + validation (✅ done 2026-05-08) :
 architecture alignée local-first. Sprint 0 complète à **2/4** (P0/P1/P2/P3
 done, P4 prochain).
 
-### P4 — `/morning-digest` ⚠️ partial (code livré 2026-05-08, test live à finir)
+### P4 — `/morning-digest` ✅ done (test live 2026-05-08 23:03 CET)
 
 **Code livré et tout vert** (ruff / format / mypy strict / **40 tests passed**) :
 
@@ -208,7 +208,25 @@ embed digest visible sur Discord. Critère P3 du plan rempli ✅.
   [`.claude/skills/digest-builder/SKILL.md`](../.claude/skills/digest-builder/SKILL.md)
   (UI ou PowerShell scriptable), schedule `0 8 * * *` Paris
 
-### P5 — EmailBot inbound (Zimbra IMAP/SMTP, D-018) ⚠️ partial
+### P5 — EmailBot inbound (Zimbra IMAP/SMTP, D-018) ✅ done 2026-05-09
+
+**Test live boucle complète passé le 2026-05-09** :
+
+- ✅ Smoke test IMAP : login `ssl0.ovh.net:993` OK, 0 emails non lus
+- ✅ Email envoyé manuellement à `contact@omnividens.fr` depuis
+  `grogodumiot@gmail.com` (sujet `test`)
+- ✅ Run `scripts/run_email_bot.py` → `agent_runs #3 status='success'`,
+  `fetched=1 ingested=1 new_leads=1 new_companies=1`
+- ✅ DB : `companies #1 domain=gmail.com source=email_inbound`,
+  `leads #1 grogodumiot@gmail.com`, `interactions #1 channel=email
+  direction=in subject=test`
+- ✅ Embed Discord pushé sur webhook escalations (fallback car
+  `DISCORD_WEBHOOK_INBOX` vide) — 2 embeds visibles côté fondateur
+- ✅ Idempotence : 2e run = `fetched=0 ingested=0` (\\Seen positionné)
+- ✅ `/check-emails` (humain-in-the-loop) : email classifié `autre`,
+  draft validé, envoi SMTP `ssl0.ovh.net:465` OK, email reçu côté
+  Gmail expéditeur, `interactions #2 direction=out
+  judge_verdict=human_validated` loggé
 
 **Code livré et tout vert** (ruff / format / mypy strict / **67 tests passed**) :
 
@@ -232,19 +250,21 @@ embed digest visible sur Discord. Critère P3 du plan rempli ✅.
 - `docs/ARGOS_OPS_PLAN.md` Partie 5 — révisée pour D-018 + D-017
   (pipeline split cron/automatique vs slash command/humain)
 
-**Tâches restantes (~15 min)** :
+**Limites identifiées (à corriger en P5.1 si besoin)** :
 
-1. ⚠️ **D-005** — vérifier/créer compte OVH `contact@omnividens.fr` dans
-   le manager OVH > Web Cloud > Emails > Zimbra mail > omnividens.fr.
-   Récupérer le mot de passe Zimbra et le coller dans `.env.local`
-   (`EMAIL_USER` + `EMAIL_PASSWORD`)
-2. ⚠️ Test live : envoyer un email à `contact@omnividens.fr` depuis une
-   adresse perso, lancer `uv run python scripts/run_email_bot.py`,
-   vérifier ligne dans `interactions` + `agent_runs status='success'` +
-   embed Discord
-3. ⚠️ Créer Task Scheduler Windows `argos-ops-email-bot` (cf.
+- `interactions` ne stocke pas `message_id` → threading IMAP impossible
+  pour les réponses (`In-Reply-To` non rempli). Pas bloquant pour P5
+  (réponses arrivent quand même, juste pas threadées dans le client mail
+  du destinataire). À corriger avec une migration ajoutant `message_id`,
+  `in_reply_to`, `references` à la table `interactions`.
+
+**Tâches cooldown restantes (~5 min, non bloquantes)** :
+
+1. ⏳ Créer Task Scheduler Windows `argos-ops-email-bot` (cf.
    [`.claude/skills/zimbra-ops/SKILL.md`](../.claude/skills/zimbra-ops/SKILL.md))
    schedule `*/15 * * * *` 8h-22h Paris
+2. ⏳ PR séparée `chore/email-signature` — tagline « Argos — on scanne,
+   vous corrigez. » + mention transparence IA pour `send_email()`
 
 ### P2 — Bootstrap du dossier `argos-ops` ✅
 **Done le 2026-05-07.** Repo privé GitHub créé et premier push effectué.
