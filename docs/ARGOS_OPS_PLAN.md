@@ -529,55 +529,109 @@ ligne correspondante apparaît dans `agent_runs` avec `status='success'`.
 
 # Partie 5 — EmailBot inbound
 
-🎯 **Objectif** : lire `contact@omnividens.fr` toutes les 15 min, classifier, drafter,
-répondre auto si Tier 0/1, sinon mettre en file Tier 2.
+🎯 **Objectif** : ingester les emails de `contact@omnividens.fr` toutes les 15 min,
+les logger dans le CRM, notifier Discord. La rédaction des réponses se fait
+ensuite via le slash command `/check-emails` (Claude Code Pro Max + skills).
 
-🧱 **Prérequis** : Parties 2, 3, 4.
+> **Stack ré-alignée par D-018** : OVH Zimbra IMAP/SMTP (pas Gmail Workspace,
+> pas self-host). Boîte canonique `contact@omnividens.fr`, hôte `ssl0.ovh.net`,
+> ports `993` (IMAP SSL) / `465` (SMTP SSL).
+>
+> **Inférence ré-alignée par D-017** : aucun appel LLM tiers depuis le code
+> Python. La cron pull + log + notifie. La classification fine + le drafting
+> RAG se font dans Claude Code via le slash command `/check-emails` quand
+> l'opérateur ouvre la session.
+
+🧱 **Prérequis** : Parties 2, 3, 4. Compte OVH `contact@omnividens.fr`
+opérationnel (D-005 finalisé).
 
 📦 **Livrables** :
-- `.claude/commands/check-emails.md`
-- Skill `gmail-ops` (lire, drafter, envoyer, marquer lu)
-- Skill `email-classifier` (classifie en `lead_chaud` / `question_tech` / `sav` / `spam`)
-- Cron `*/15 * * * *`
+- `argos_ops/integrations/zimbra.py` — wrapper IMAP/SMTP async (fetch_unread,
+  mark_seen, send_email)
+- `argos_ops/agents/email_bot.py` — `EmailBot(BaseAgent)` qui pull + log + notif
+- `scripts/run_email_bot.py` — entrée CLI invoquée par cron / Task Scheduler
+- `.claude/commands/check-emails.md` — slash command pour drafting humain-in-the-loop
+- Skill `zimbra-ops` (lire, drafter, envoyer, marquer lu — utilisé par
+  `/check-emails`, OutboundBot P13, FinanceBot P7)
+- Skill `email-classifier` (classifie en `lead_chaud` / `question_tech` /
+  `sav` / `spam` — Claude inline, pas d'API)
+- Schedule cron `*/15 * * * *` (Paris) dans Task Scheduler Windows
 
 🛠️ **Skills à utiliser** :
-- `skill-creator` pour formaliser `gmail-ops` (réutilisable par OutboundBot)
+- `skill-creator` pour formaliser `zimbra-ops` (réutilisable par OutboundBot)
 - `skill-creator` pour formaliser `email-classifier`
 
-## 5.1 Pipeline
+## 5.1 Pipeline (cron `*/15`)
 
 ```
-Boîte Gmail
+Boîte IMAP OVH Zimbra (contact@omnividens.fr)
      ↓
-1. Pull emails non lus (Gmail API, label INBOX)
+1. Connexion IMAP SSL ssl0.ovh.net:993
      ↓
-2. Pour chaque email :
-   - Classifier (skill email-classifier)
-   - Lookup lead/company dans CRM, créer si absent
-   - Insérer interaction direction='in'
-   - Drafter réponse via Claude (RAG sur KB)
-   - Soumettre à l'agent-juge Tier 1 (Partie 14)
+2. Pull UIDs INBOX où SEEN=False
      ↓
-3. Si juge.score >= 80 :
-   - Envoyer auto via Gmail API
-   - Insérer interaction direction='out', judge_verdict='auto_send'
-4. Si 50 <= score < 80 :
-   - Drafter dans Gmail (label "À valider")
-   - Notif Discord
-   - judge_verdict='queued'
-5. Si score < 50 :
-   - Kill, log, pas d'envoi
-   - judge_verdict='killed'
+3. Pour chaque email :
+   - Skip si expéditeur contient noreply@ / mailer-daemon / bounces
+   - Lookup company par domaine, créer si absent
+   - Lookup lead par email, créer si absent
+   - Insert interaction(channel='email', direction='in', body=message)
+   - IMAP STORE +FLAGS \Seen
+     ↓
+4. Notif Discord (webhook escalations) :
+   « N emails reçus, M nouveaux leads. Lance /check-emails pour drafter. »
+     ↓
+5. Insert agent_runs(status='success', summary=...)
 ```
 
-## 5.2 Garde-fous
+## 5.2 Pipeline (slash command `/check-emails`, opérateur)
 
-- Ne jamais répondre à un email avec `noreply@` dans l'expéditeur
-- Détecter les boucles (3 emails échangés en moins de 5 min → escalade Tier 2)
-- Limite 50 réponses auto/jour pendant 1 mois (warm-up délivrabilité)
+```
+Opérateur ouvre Claude Code → /check-emails
+     ↓
+1. Lit interactions(channel='email', direction='in', sans réponse out liée)
+     ↓
+2. Pour chaque email non répondu :
+   - Skill email-classifier → tag (lead_chaud / question_tech / sav / spam)
+   - Skill kb-rag (P6+) → top-3 chunks pertinents
+   - Drafte une réponse personnalisée
+   - Soumet pour validation à l'opérateur (humain-in-the-loop)
+     ↓
+3. Sur validation : skill zimbra-ops envoie via SMTP SSL ssl0.ovh.net:465
+   - Insert interaction(direction='out', judge_verdict='human_validated')
+4. Sur rejet : log + skip (l'opérateur peut écrire à la main)
+```
 
-✅ **Done quand** : un email test envoyé à `contact@omnividens.fr` est traité en moins de
-20 min, classifié correctement, une draft cohérente est créée, et l'interaction loggée.
+L'agent-juge Tier 1 (Partie 14) viendra s'intercaler plus tard pour passer
+en envoi auto sans validation humaine pour les cas Tier 0/1.
+
+## 5.3 Garde-fous
+
+- Ne jamais répondre à un email avec `noreply@` / `mailer-daemon` / `bounces`
+  dans l'expéditeur (filtre côté EmailBot, pas côté slash command)
+- Détecter les boucles (3 emails échangés en moins de 5 min → flag dans
+  l'interaction, l'opérateur tranche)
+- Pas de limite warm-up tant que l'envoi est validé humain (P5). Limite
+  reviendra avec l'agent-juge auto (P14) : 50 réponses auto/jour pendant 1 mois
+
+## 5.4 Variables `.env.local`
+
+```
+EMAIL_IMAP_HOST=ssl0.ovh.net
+EMAIL_IMAP_PORT=993
+EMAIL_SMTP_HOST=ssl0.ovh.net
+EMAIL_SMTP_PORT=465
+EMAIL_USER=contact@omnividens.fr
+EMAIL_PASSWORD=...        # mot de passe Zimbra OVH (pas le mot de passe du compte OVH)
+EMAIL_REPLY_NAME=Argos par Omnividens
+DISCORD_WEBHOOK_INBOX=... # optionnel, fallback sur DISCORD_WEBHOOK_ESCALATIONS
+```
+
+✅ **Done quand** :
+- un email envoyé à `contact@omnividens.fr` est ingéré dans `interactions` en
+  moins de 20 min, lead + company créés si nouveaux, IMAP \Seen positionné
+- une notif Discord push avec le compte d'emails ingérés
+- une ligne `agent_runs` avec `status='success'`
+- `/check-emails` répond proprement quand il n'y a rien à drafter (idempotent)
 
 ---
 

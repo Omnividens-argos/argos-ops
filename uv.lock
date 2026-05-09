@@ -9,6 +9,15 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "aiosmtplib"
+version = "5.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e7/ad/240a7ce4e50713b111dff8b781a898d8d4770e5d6ad4899103f84c86005c/aiosmtplib-5.1.0.tar.gz", hash = "sha256:2504a23b2b63c9de6bc4ea719559a38996dba68f73f6af4eb97be20ee4c5e6c4", size = 66176, upload-time = "2026-01-25T01:51:11.408Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/37/82/70f2c452acd7ed18c558c8ace9a8cf4fdcc70eae9a41749b5bdc53eb6f45/aiosmtplib-5.1.0-py3-none-any.whl", hash = "sha256:368029440645b486b69db7029208a7a78c6691b90d24a5332ddba35d9109d55b", size = 27778, upload-time = "2026-01-25T01:51:10.026Z" },
+]
+
+[[package]]
 name = "alembic"
 version = "1.18.4"
 source = { registry = "https://pypi.org/simple" }
@@ -58,6 +67,7 @@ name = "argos-ops"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "aiosmtplib" },
     { name = "alembic" },
     { name = "croniter" },
     { name = "fastapi" },
@@ -68,6 +78,7 @@ dependencies = [
     { name = "google-auth-oauthlib" },
     { name = "google-genai" },
     { name = "httpx", extra = ["http2"] },
+    { name = "imap-tools" },
     { name = "loguru" },
     { name = "markdown-it-py" },
     { name = "mastodon-py" },
@@ -97,6 +108,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiosmtplib", specifier = ">=3.0" },
     { name = "alembic", specifier = ">=1.13" },
     { name = "croniter", specifier = ">=2.0" },
     { name = "fastapi", specifier = ">=0.110" },
@@ -107,6 +119,7 @@ requires-dist = [
     { name = "google-auth-oauthlib", specifier = ">=1.2" },
     { name = "google-genai", specifier = ">=1.0" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.27" },
+    { name = "imap-tools", specifier = ">=1.6" },
     { name = "loguru", specifier = ">=0.7" },
     { name = "markdown-it-py", specifier = ">=3.0" },
     { name = "mastodon-py", specifier = ">=1.8" },
@@ -880,6 +893,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ce/cc/762dfb036166873f0059f3b7de4565e1b5bc3d6f28a414c13da27e442f99/idna-3.13.tar.gz", hash = "sha256:585ea8fe5d69b9181ec1afba340451fba6ba764af97026f92a91d4eef164a242", size = 194210, upload-time = "2026-04-22T16:42:42.314Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5d/13/ad7d7ca3808a898b4612b6fe93cde56b53f3034dcde235acb1f0e1df24c6/idna-3.13-py3-none-any.whl", hash = "sha256:892ea0cde124a99ce773decba204c5552b69c3c67ffd5f232eb7696135bc8bb3", size = 68629, upload-time = "2026-04-22T16:42:40.909Z" },
+]
+
+[[package]]
+name = "imap-tools"
+version = "1.12.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a0/f1/0cfb0496d141a2fd960bb512d462c9e0bbc10c99d75210e303cc3938f7e6/imap_tools-1.12.1.tar.gz", hash = "sha256:f70169e4efcf2fafcc9fc48b391e9a69b6f40c45faca92f2723b991194906ac9", size = 47492, upload-time = "2026-04-20T06:44:46.194Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4b/5e/982243b6b2a52c09cd0006c5c014cae27e36bf36215b9541b9c0d235b5fc/imap_tools-1.12.1-py3-none-any.whl", hash = "sha256:ed73cdfe266b09c9b6c3d5a28fb0b8608566c20def10fec18760c315dccb9b6e", size = 35722, upload-time = "2026-04-20T06:44:44.491Z" },
 ]
 
 [[package]]

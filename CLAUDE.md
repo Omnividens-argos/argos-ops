@@ -102,25 +102,27 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 4 / 19 (P0 + P1 + P2 + **P3 complet** 2026-05-08)
-- **Phase en cours :** Sprint 0 — **P4 partial** (code livré + tout vert, test live Discord à finir au prochain réveil — pb réseau Discord 2026-05-08)
-- **Dernière partie done :** P3 — Schéma CRM + KB authentique + seed local validé (2026-05-08)
-- **Prochaine partie :** terminer **P4** (3 mini-tâches manuelles, ~15 min :
-  régénérer webhook → test live → Task Scheduler), puis **P5 EmailBot inbound**
-- **En attente review humaine :** PR P4 à créer (cette session) — `BaseAgent`
-  + `DigestBuilder` + filtre loguru anti-fuite secrets + slash command +
-  skill formalisé + 40 tests verts
-- **Décisions P3 actives :** D-009 à D-017 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
+- **Sessions terminées :** 5 / 19 (P0 + P1 + P2 + P3 + **P4 done** 2026-05-08 23:03 CET)
+- **Phase en cours :** Sprint 1 — **P5 EmailBot inbound** (code livré + 67 tests verts 2026-05-09, en attente D-005 OVH + test live Zimbra)
+- **Dernière partie done :** P4 — `/morning-digest` (test live `agent_runs id=2 status=success`, embed Discord OK)
+- **Prochaine partie :** finaliser **P5** (D-005 + test live IMAP/SMTP, ~15 min manuel) puis **P6 SupportBot Tier 1** (RAG sur KB)
+- **En attente review humaine :** PR P5 à créer (cette session) — wrapper
+  `argos_ops/integrations/zimbra.py` + `EmailBot(BaseAgent)` + skills
+  `zimbra-ops` / `email-classifier` + slash commands `/run-email-bot` /
+  `/check-emails` + 27 nouveaux tests (67 total)
+- **Tâche P4 cooldown (5 min) :** créer Task Scheduler Windows
+  `argos-ops-morning-digest` (cf. `.claude/skills/digest-builder/SKILL.md`),
+  schedule `0 8 * * *` Paris
+- **Décisions P3-P5 actives :** D-009 à D-018 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
   via Claude Code Pro Max (agents) + `fastembed` / `paraphrase-multilingual-mpnet-base-v2`
-  (embeddings). Aucune API LLM tierce. Trade-off : agents en pause quand
-  l'ordi du fondateur est éteint, webhooks 24/7 absorbés par queue Redis
-  pull-based.
-- **Sécurité (nouveau 2026-05-08) :** `argos_ops/logging.py` installe un
-  filtre loguru anti-fuite sur les patterns secrets (webhooks Discord,
-  sk- API, AIza, gh_, xox_, whsec_, AKIA). Auto-installé via
-  `argos_ops/__init__.py`. **Token webhook Discord à rotater** au prochain
-  réveil (a fuité avant l'install du filtre)
+  (embeddings). Aucune API LLM tierce. **D-018 = stack email** : OVH Zimbra
+  IMAP/SMTP `ssl0.ovh.net:993/465`, boîte canonique `contact@omnividens.fr`.
+- **Sécurité (2026-05-08) :** `argos_ops/logging.py` installe un filtre
+  loguru anti-fuite sur les patterns secrets (webhooks Discord, sk- API,
+  AIza, gh_, xox_, whsec_, AKIA). Auto-installé via `argos_ops/__init__.py`.
+  Le filtre couvrira aussi automatiquement le mot de passe Zimbra (P5)
+  via le redacting des `SecretStr` Pydantic.
 - **Setup local requis :** container Docker `argos-postgres-local` doit tourner
   (`docker ps | grep argos-postgres-local`). Si arrêté, le redémarrer
   (`docker start argos-postgres-local`). Volume `argos_postgres_data` persistant.
@@ -134,22 +136,36 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 
 ## Slash commands installés
 
-> Vide pour l'instant. Premier slash command créé en P4 (`/morning-digest`).
+- **`/morning-digest`** (P4) — digest quotidien Discord à 8h Paris.
+  Cf. [`.claude/commands/morning-digest.md`](.claude/commands/morning-digest.md)
+- **`/run-email-bot`** (P5) — pull IMAP toutes les 15 min, ingestion
+  CRM, notif Discord. Pas de drafting ici (D-017). Cf.
+  [`.claude/commands/run-email-bot.md`](.claude/commands/run-email-bot.md)
+- **`/check-emails`** (P5) — slash command interactif humain-in-the-loop
+  pour drafter les réponses aux emails inbound. Cf.
+  [`.claude/commands/check-emails.md`](.claude/commands/check-emails.md)
 
 ---
 
 ## Skills locaux installés
 
+- **`digest-builder`** (P4) — KPIs J-1 → embed Discord. Cf.
+  [`.claude/skills/digest-builder/`](.claude/skills/digest-builder/)
+- **`zimbra-ops`** (P5, D-018) — lire/drafter/envoyer/marquer emails sur
+  OVH Zimbra IMAP/SMTP. Réutilisé par EmailBot, OutboundBot (P13),
+  FinanceBot (P7). Cf. [`.claude/skills/zimbra-ops/`](.claude/skills/zimbra-ops/)
+- **`email-classifier`** (P5) — Claude inline, classifie en
+  `lead_chaud / question_tech / sav / spam / partenariat / recrutement /
+  presse / autre`. Cf. [`.claude/skills/email-classifier/`](.claude/skills/email-classifier/)
 - **`ui-ux-pro-max`** — design intelligence (50+ styles, 161 palettes, 57 font pairings,
   161 product types, 99 UX guidelines). Source : [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill).
   À invoquer en P16 (Admin Control Panel) AVANT toute écriture de code frontend pour figer
   palette / typo / densité / layout. Nécessite Python 3.x pour le search script.
 
-Inventaire métier prévu (P18) :
-`digest-builder` · `gmail-ops` · `email-classifier` · `kb-rag` · `stripe-ops` ·
-`chat-orchestrator` · `content-writer` · `content-scheduler` · `serp-analyzer` ·
-`ads-optimizer` · `ads-creative-writer` · `lead-enricher` · `outbound-personalizer` ·
-`claude-judge`
+Inventaire métier prévu (P18) — restant à créer :
+`kb-rag` · `stripe-ops` · `chat-orchestrator` · `content-writer` ·
+`content-scheduler` · `serp-analyzer` · `ads-optimizer` · `ads-creative-writer` ·
+`lead-enricher` · `outbound-personalizer` · `claude-judge`
 
 ---
 
