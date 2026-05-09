@@ -34,11 +34,18 @@ dependencies = [
   # scanner SecHunter D-011) — Argos Ops lui-même ne l'appelle plus (D-017).
   "google-genai>=1.0",
 
-  # Google APIs (Gmail)
+  # Google APIs — conservés pour Calendar éventuel (non utilisés par Argos Ops
+  # actuellement). EmailBot P5 utilise IMAP/SMTP OVH Zimbra (D-018), pas Gmail.
   "google-auth>=2.29",
   "google-auth-oauthlib>=1.2",
   "google-auth-httplib2>=0.2",
   "google-api-python-client>=2.125",
+
+  # Email IMAP/SMTP (P5 EmailBot — OVH Zimbra, D-018)
+  # imap-tools : sync, on wrappe dans asyncio.to_thread
+  # aiosmtplib : async natif
+  "imap-tools>=1.6",
+  "aiosmtplib>=3.0",
 
   # Reddit
   "praw>=7.7",

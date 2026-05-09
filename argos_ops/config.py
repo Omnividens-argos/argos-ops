@@ -57,7 +57,17 @@ class Settings(BaseSettings):
     discord_webhook_ops_logs: SecretStr | None = Field(
         default=None, alias="DISCORD_WEBHOOK_OPS_LOGS"
     )
+    discord_webhook_inbox: SecretStr | None = Field(default=None, alias="DISCORD_WEBHOOK_INBOX")
     discord_founder_user_id: str | None = Field(default=None, alias="DISCORD_FOUNDER_USER_ID")
+
+    # --- Email OVH Zimbra (P5 EmailBot, D-018) ---
+    email_imap_host: str = Field(default="ssl0.ovh.net", alias="EMAIL_IMAP_HOST")
+    email_imap_port: int = Field(default=993, alias="EMAIL_IMAP_PORT")
+    email_smtp_host: str = Field(default="ssl0.ovh.net", alias="EMAIL_SMTP_HOST")
+    email_smtp_port: int = Field(default=465, alias="EMAIL_SMTP_PORT")
+    email_user: str | None = Field(default=None, alias="EMAIL_USER")
+    email_password: SecretStr | None = Field(default=None, alias="EMAIL_PASSWORD")
+    email_reply_name: str = Field(default="Argos par Omnividens", alias="EMAIL_REPLY_NAME")
 
     @property
     def async_database_url(self) -> str:
