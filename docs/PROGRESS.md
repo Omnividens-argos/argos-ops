@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 9 / 18 ([P8 cancelled D-019 2026-05-12](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled), P0+P1+P2+P3+P4+P5+P6+P7+**P15** done 2026-05-12)
-- **Phase en cours :** Sprint 4 anticipé — **P15 done** (circuit breakers). Prochaine = **P16 phase 1** (Admin Control Panel read-only).
-- **Dernière partie done :** P15 — Circuit breakers et kill switches (16 tests breakers, 3 breakers métier câblés sur EmailBot/FinanceBot, slash command `/reset-breaker`)
-- **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement. Canal entrant = email seul.
-- **Prochaine partie :** **P16 phase 1** (Admin Control Panel read-only — backend FastAPI minimal + dashboard React lecture seule).
+- **Sessions terminées :** 9 / 18 (P8 cancelled, P0-P7 + P15 done, P16.A session 1 partial 2026-05-12)
+- **Phase en cours :** **P16.A — Admin Control Panel read-only**. Session 1 (backend FastAPI + 4 endpoints + tests + bootstrap frontend) **livrée**. Session 2 = composants React Overview/Agents/Runs.
+- **Dernière partie done :** P15 — Circuit breakers et kill switches (3 breakers métier + slash `/reset-breaker` + 16 tests, 2026-05-12)
+- **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement.
+- **Prochaine session :** **P16.A session 2** — composants React (Overview KPIs, Agents table dense + drawer logs, Runs paginated).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -42,7 +42,7 @@
 | 13 | OutboundBot (cold email volume modéré) | Sprint 3 | ⬜ pending | — |
 | 14 | Agent-juge Tier 1 (supervision IA) | Sprint 4 | ⬜ pending | — |
 | 15 | Circuit breakers et kill switches | Sprint 4 | ✅ done | 2026-05-12 |
-| 16 | Admin Control Panel (4 phases) | Sprints 1→4 | ⬜ pending | — |
+| 16 | Admin Control Panel (4 phases) | Sprints 1→4 | 🔄 P16.A session 1 done (backend + bootstrap frontend) | 2026-05-12 |
 | 17 | Conformité RGPD / AI Act / Bloctel | Continu | ⬜ pending | — |
 | 18 | Inventaire des skills | Continu | ⬜ pending | — |
 | 19 | Maintenance et observabilité | Continu | ⬜ pending | — |
