@@ -104,9 +104,9 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 12 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + **P16.B done** 2026-05-12)
-- **Phase en cours :** P16.B complet (frontend controls live). Cockpit pilote les 4 agents Sprint 1 + breakers depuis l'UI.
-- **Dernière partie done :** P16.B session 2 — frontend (Agents avec toggle/pause inline + drawer config, nouvelle vue Breakers avec trip/reset, 4 raccourcis clavier 1-4)
+- **Sessions terminées :** 12 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12)
+- **Phase en cours :** Refonte UX du Admin Panel done — light/dark theme, 6 catégories d'agents avec slots roadmap, status pills multi-états, Overview enrichi (heatmap + sparklines + Today briefing), Runs groupé par jour + filtres multi, encart explicatif Breakers, 7 nouveaux agents au plan (Annexe D).
+- **Dernière partie done :** Refonte UX P16 — `ui-ux-pro-max` + `frontend-design` invoqués. Composants : `StatusPill`, `Sparkline`, `Heatmap`, `ThemeToggle`, `useTheme`, `agentCatalog`. CSS dual theme via custom properties.
 - **Prochaine partie :** Sprint 2 — **P11-PREP** (Mastodon + Reddit + LinkedIn) puis **P11** (connecteurs sociaux) puis **P9** (ContentBot)
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`)
 - **Décisions P3-P5 + P8 actives :** D-009 à D-019 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
