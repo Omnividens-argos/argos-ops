@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -239,6 +238,87 @@ async def sum_active_mrr_eur(session: AsyncSession) -> Decimal:
 
 
 # =============================================================================
+# AgentConfig (pilotage runtime des agents — P16.B)
+# =============================================================================
+async def get_agent_config(session: AsyncSession, agent_name: str) -> AgentConfig:
+    """Charge la config d'un agent. Crée une row à defaults si elle n'existe pas.
+
+    Permet aux agents Sprint 1 (qui n'ont jamais eu de row en DB) de
+    démarrer sans plantage : la première lecture matérialise une config
+    par défaut (``enabled=True``, ``intensity_level=5``, pas de limit).
+    """
+    config = await session.get(AgentConfig, agent_name)
+    if config is not None:
+        return config
+    config = AgentConfig(agent_name=agent_name, updated_by="system_default")
+    session.add(config)
+    await session.flush()
+    return config
+
+
+async def update_agent_config(
+    session: AsyncSession,
+    agent_name: str,
+    *,
+    enabled: bool | None = None,
+    intensity_level: int | None = None,
+    schedule_cron: str | None = None,
+    daily_limit: int | None = None,
+    max_tokens_per_day: int | None = None,
+    tier1_threshold: int | None = None,
+    paused_until: datetime | None = None,
+    notes: str | None = None,
+    updated_by: str | None = None,
+    clear_paused: bool = False,
+) -> AgentConfig:
+    """PATCH partiel — applique uniquement les champs ``!= None`` au passage.
+
+    ``clear_paused=True`` est l'unique façon d'effacer ``paused_until``
+    (sinon ``paused_until=None`` est ambigu avec « ne pas toucher »).
+    """
+    config = await get_agent_config(session, agent_name)
+    if enabled is not None:
+        config.enabled = enabled
+    if intensity_level is not None:
+        config.intensity_level = intensity_level
+    if schedule_cron is not None:
+        config.schedule_cron = schedule_cron
+    if daily_limit is not None:
+        config.daily_limit = daily_limit
+    if max_tokens_per_day is not None:
+        config.max_tokens_per_day = max_tokens_per_day
+    if tier1_threshold is not None:
+        config.tier1_threshold = tier1_threshold
+    if paused_until is not None:
+        config.paused_until = paused_until
+    elif clear_paused:
+        config.paused_until = None
+    if notes is not None:
+        config.notes = notes
+    config.updated_at = datetime.now(UTC)
+    if updated_by is not None:
+        config.updated_by = updated_by
+    return config
+
+
+async def count_runs_today(session: AsyncSession, agent_name: str) -> int:
+    """Compte les runs ``started_at >= today_utc_midnight`` pour un agent.
+
+    Utilisé par ``agent_runtime`` pour appliquer ``daily_limit`` :
+    chaque agent peut être contraint à N actions/jour max via
+    l'Admin Control Panel.
+    """
+    now = datetime.now(UTC)
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    stmt = (
+        select(AgentRun)
+        .where(col(AgentRun.agent_name) == agent_name)
+        .where(col(AgentRun.started_at) >= midnight)
+    )
+    return len(list((await session.execute(stmt)).scalars().all()))
+
+
+# =============================================================================
 # Knowledge Base — upsert + similarité
 # =============================================================================
 async def upsert_kb_chunk(
@@ -403,26 +483,6 @@ async def count_recent_failed_runs(
     return len(runs)
 
 
-# =============================================================================
-# Agent config (pilotage P16 Admin Panel)
-# =============================================================================
-async def get_agent_config(session: AsyncSession, agent_name: str) -> AgentConfig | None:
-    return await session.get(AgentConfig, agent_name)
-
-
-async def upsert_agent_config(session: AsyncSession, agent_name: str, **fields: Any) -> AgentConfig:
-    config = await session.get(AgentConfig, agent_name)
-    if config is None:
-        config = AgentConfig(agent_name=agent_name, **fields)
-        session.add(config)
-    else:
-        for key, value in fields.items():
-            setattr(config, key, value)
-        config.updated_at = datetime.now(UTC)
-    await session.flush()
-    return config
-
-
 __all__ = [
     "add_interaction",
     "close_ticket",
@@ -436,7 +496,7 @@ __all__ = [
     "search_kb_similar",
     "start_agent_run",
     "trip_breaker",
+    "update_agent_config",
     "update_lead_status",
-    "upsert_agent_config",
     "upsert_kb_chunk",
 ]

@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from argos_ops.crm.models import AgentRun, Breaker
+from argos_ops.crm.models import AgentConfig, AgentRun, Breaker
 from argos_ops.ops_dashboard import app as app_module
 from argos_ops.ops_dashboard.app import app
 
@@ -261,3 +261,129 @@ def test_kpis_overview_empty_state(client: TestClient) -> None:
     assert body["arr_eur"] == 0.0
     assert body["active_subscriptions"] == 0
     assert body["tripped_breakers"] == 0
+
+
+# =============================================================================
+# Mutations P16.B
+# =============================================================================
+def test_get_agent_config_returns_defaults(client: TestClient) -> None:
+    config = AgentConfig(agent_name="FinanceBot", enabled=True, intensity_level=5)
+    with (
+        patch.object(app_module, "session_scope", _fake_session_scope),
+        patch.object(app_module, "get_agent_config", AsyncMock(return_value=config)),
+    ):
+        response = client.get("/api/agents/FinanceBot/config")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["agent_name"] == "FinanceBot"
+    assert body["enabled"] is True
+    assert body["intensity_level"] == 5
+
+
+def test_get_agent_config_404_for_unknown(client: TestClient) -> None:
+    response = client.get("/api/agents/UnknownBot/config")
+    assert response.status_code == 404
+
+
+def test_patch_agent_config_disables_agent(client: TestClient) -> None:
+    updated = AgentConfig(
+        agent_name="FinanceBot",
+        enabled=False,
+        intensity_level=5,
+        notes="Pause vacation",
+    )
+    fake_update = AsyncMock(return_value=updated)
+    with (
+        patch.object(app_module, "session_scope", _fake_session_scope),
+        patch.object(app_module, "update_agent_config", fake_update),
+    ):
+        response = client.patch(
+            "/api/agents/FinanceBot/config",
+            json={"enabled": False, "notes": "Pause vacation"},
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["enabled"] is False
+    assert body["notes"] == "Pause vacation"
+    # update_agent_config doit recevoir enabled=False, notes="Pause vacation"
+    call_kwargs = fake_update.call_args.kwargs
+    assert call_kwargs["enabled"] is False
+    assert call_kwargs["notes"] == "Pause vacation"
+    assert call_kwargs["updated_by"] == "admin_panel"
+
+
+def test_patch_agent_config_404_for_unknown(client: TestClient) -> None:
+    response = client.patch("/api/agents/UnknownBot/config", json={"enabled": False})
+    assert response.status_code == 404
+
+
+def test_patch_agent_config_clear_paused(client: TestClient) -> None:
+    """clear_paused=true doit effacer paused_until — testé via le kwarg passé au repo."""
+    updated = AgentConfig(agent_name="FinanceBot", enabled=True, intensity_level=5)
+    fake_update = AsyncMock(return_value=updated)
+    with (
+        patch.object(app_module, "session_scope", _fake_session_scope),
+        patch.object(app_module, "update_agent_config", fake_update),
+    ):
+        response = client.patch(
+            "/api/agents/FinanceBot/config",
+            json={"clear_paused": True},
+        )
+    assert response.status_code == 200
+    assert fake_update.call_args.kwargs["clear_paused"] is True
+
+
+def test_trip_breaker_endpoint(client: TestClient) -> None:
+    breaker = Breaker(
+        name="manual_kill",
+        tripped=True,
+        tripped_at=datetime.now(UTC),
+        reason="vacation",
+    )
+    fake_trip = AsyncMock()
+    fake_get = AsyncMock(return_value=breaker)
+    with (
+        patch.object(app_module, "session_scope", _fake_session_scope),
+        patch.object(app_module, "trip_breaker_facade", fake_trip),
+        patch.object(app_module, "get_breaker", fake_get),
+    ):
+        response = client.post(
+            "/api/breakers/manual_kill/trip",
+            json={"reason": "vacation"},
+        )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["name"] == "manual_kill"
+    assert body["tripped"] is True
+    assert body["reason"] == "vacation"
+    fake_trip.assert_awaited_once()
+
+
+def test_reset_breaker_endpoint(client: TestClient) -> None:
+    breaker = Breaker(name="manual_kill", tripped=False)
+    fake_reset = AsyncMock()
+    with (
+        patch.object(app_module, "session_scope", _fake_session_scope),
+        patch.object(app_module, "reset_breaker_facade", fake_reset),
+        patch.object(app_module, "get_breaker", AsyncMock(return_value=breaker)),
+    ):
+        response = client.post("/api/breakers/manual_kill/reset")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tripped"] is False
+    fake_reset.assert_awaited_once()
+
+
+def test_reset_breaker_never_tripped_returns_synthetic_state(client: TestClient) -> None:
+    """Reset sur un breaker jamais tripped → renvoie un état synthétique, pas 404."""
+    with (
+        patch.object(app_module, "session_scope", _fake_session_scope),
+        patch.object(app_module, "reset_breaker_facade", AsyncMock()),
+        patch.object(app_module, "get_breaker", AsyncMock(return_value=None)),
+    ):
+        response = client.post("/api/breakers/never_seen/reset")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["name"] == "never_seen"
+    assert body["tripped"] is False
+    assert body["severity"] == "unknown"
