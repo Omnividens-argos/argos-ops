@@ -14,10 +14,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from loguru import logger
+from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col, select
 
 from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.breakers import count_recent_failed, trip_with_notification
 from argos_ops.config import get_settings
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import Company, Lead
@@ -196,7 +198,29 @@ class EmailBot(BaseAgent):
         else:
             logger.warning("EmailBot — aucun webhook Discord configuré (inbox/escalations)")
 
+        # Breaker métier (P15) — burst d'erreurs IMAP/persist sur 24 h
+        await self._maybe_trip_smtp_failures_burst(webhook)
+
         return RunResult(status="success", output_summary=stats.summary())
+
+    async def _maybe_trip_smtp_failures_burst(self, discord_webhook: SecretStr | None) -> None:
+        """Trip ``email_smtp_failures_burst`` si EmailBot a enchaîné ≥ 3 runs failed sur 24 h.
+
+        Signal d'incident côté Zimbra OVH ou réseau (changement de mot de
+        passe non propagé, blacklist IMAP, etc.). Reset manuel après audit
+        des logs via ``/reset-breaker email_smtp_failures_burst``.
+        """
+        recent_failed = await count_recent_failed("EmailBot", window_minutes=60 * 24)
+        if recent_failed >= 3:
+            await trip_with_notification(
+                "email_smtp_failures_burst",
+                (
+                    f"{recent_failed} runs EmailBot ont échoué dans les dernières 24 h — "
+                    "investiguer Zimbra IMAP (password rotated ? blacklist ? incident OVH ?)"
+                ),
+                discord_webhook=discord_webhook,
+                severity="critical",
+            )
 
     async def _mark_seen_safe(self, uid: str) -> None:
         """Wrap mark_seen pour qu'un échec IMAP n'avorte pas le run entier."""

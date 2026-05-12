@@ -24,11 +24,13 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from loguru import logger
+from pydantic import SecretStr
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col, select
 
 from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.breakers import count_recent_failed, trip_with_notification
 from argos_ops.config import get_settings
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import Company, Lead
@@ -422,7 +424,42 @@ class FinanceBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"FinanceBot — notif Discord a échoué : {exc}")
 
+        # 6. Breakers métier (P15) — chute MRR critique + burst d'erreurs API
+        await self._maybe_trip_business_breakers(stats, webhook)
+
         return RunResult(status="success", output_summary=stats.summary())
+
+    async def _maybe_trip_business_breakers(
+        self, stats: FinanceStats, discord_webhook: SecretStr | None
+    ) -> None:
+        """Trip les breakers métier FinanceBot si conditions atteintes.
+
+        ``mrr_drop_critical`` (sévérité ``critical``) — MRR a chuté de plus
+        de 10 % sur 7 jours. Signal de churn massif à investiguer en P0.
+
+        ``stripe_api_error_burst`` (sévérité ``critical``) — ≥ 3 runs
+        ``failed`` dans les dernières 24 h. L'API Stripe est instable ou
+        la clé restreinte a été révoquée. Reset manuel après audit.
+        """
+        if stats.mrr_delta_pct is not None and stats.mrr_delta_pct <= -10.0:
+            await trip_with_notification(
+                "mrr_drop_critical",
+                f"MRR a chuté de {stats.mrr_delta_pct:.1f} % sur 7 jours — investiguer churn",
+                discord_webhook=discord_webhook,
+                severity="critical",
+            )
+
+        recent_failed = await count_recent_failed("FinanceBot", window_minutes=60 * 24)
+        if recent_failed >= 3:
+            await trip_with_notification(
+                "stripe_api_error_burst",
+                (
+                    f"{recent_failed} runs FinanceBot ont échoué dans les dernières 24 h — "
+                    "investiguer Stripe API (clé révoquée ? rate limit ? incident upstream ?)"
+                ),
+                discord_webhook=discord_webhook,
+                severity="critical",
+            )
 
     async def _maybe_send_dunning(
         self, invoice: StripeInvoice, level: DunningLevel, stats: FinanceStats

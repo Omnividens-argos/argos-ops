@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 8 / 18 ([P8 cancelled D-019 2026-05-12](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled), P0+P1+P2+P3+P4+P5+P6+**P7** done 2026-05-09)
-- **Phase en cours :** **Sprint 1 CLOS** (P5+P6+P7 done, P8 cancelled). Pivot vers prochaine partie à arbitrer (P15 breakers ou P16 phase 1 dashboard).
-- **Dernière partie done :** P7 — FinanceBot (Stripe sync + dunning + alerte MRR) test live OK 2026-05-09 (`mrr=0` early stage SecHunter, clé restreinte read-only rotatée après fuite IDE transcript)
-- **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement. Canal entrant = email seul (`contact@omnividens.fr` via EmailBot P5 + SupportBot P6).
-- **Prochaine partie :** à trancher entre **P15 (circuit breakers)** et **P16 phase 1 (Admin Control Panel read-only)**.
+- **Sessions terminées :** 9 / 18 ([P8 cancelled D-019 2026-05-12](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled), P0+P1+P2+P3+P4+P5+P6+P7+**P15** done 2026-05-12)
+- **Phase en cours :** Sprint 4 anticipé — **P15 done** (circuit breakers). Prochaine = **P16 phase 1** (Admin Control Panel read-only).
+- **Dernière partie done :** P15 — Circuit breakers et kill switches (16 tests breakers, 3 breakers métier câblés sur EmailBot/FinanceBot, slash command `/reset-breaker`)
+- **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement. Canal entrant = email seul.
+- **Prochaine partie :** **P16 phase 1** (Admin Control Panel read-only — backend FastAPI minimal + dashboard React lecture seule).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -41,7 +41,7 @@
 | 12 | AdBot (pilotage Google/Meta/LinkedIn Ads) | Sprint 3 | ⬜ pending | — |
 | 13 | OutboundBot (cold email volume modéré) | Sprint 3 | ⬜ pending | — |
 | 14 | Agent-juge Tier 1 (supervision IA) | Sprint 4 | ⬜ pending | — |
-| 15 | Circuit breakers et kill switches | Sprint 4 | ⬜ pending | — |
+| 15 | Circuit breakers et kill switches | Sprint 4 | ✅ done | 2026-05-12 |
 | 16 | Admin Control Panel (4 phases) | Sprints 1→4 | ⬜ pending | — |
 | 17 | Conformité RGPD / AI Act / Bloctel | Continu | ⬜ pending | — |
 | 18 | Inventaire des skills | Continu | ⬜ pending | — |
@@ -294,6 +294,51 @@ répondent avec top doc correct, 5 questions hors-KB escaladent).
 - IN-KB top distance : 0.473–0.561 (largement sous le seuil 0.7)
 - OUT-KB top distance : 0.770+ ou 0 hits (au-dessus du seuil)
 - Seuil 0.7 isole correctement les 2 régimes (calibré pour mpnet-base-v2)
+
+### P15 — Circuit breakers et kill switches ✅ done 2026-05-12
+
+**Code livré et tout vert** (ruff + format + mypy strict + **122 tests passed** = 106 P0-P7 + 16 nouveaux) :
+
+- `argos_ops/breakers.py` — façade publique des breakers : `trip`, `reset`,
+  `is_tripped`, `status`, `list_tripped`, `count_recent_failed`,
+  `trip_with_notification` (idempotent, push Discord) + dataclass
+  `BreakerStatus` + helper `in_minutes(n)` pour auto-reset par délai
+- `argos_ops/crm/repository.py` — 3 nouvelles fonctions :
+  `get_breaker`, `list_tripped_breakers` (auto-reset par `reset_after`
+  pris en compte), `count_recent_failed_runs` (fenêtre temporelle)
+- `argos_ops/agents/finance_bot.py` — `_maybe_trip_business_breakers` :
+  trip `mrr_drop_critical` (severity=critical, MRR -10 % ou plus sur 7j)
+  + `stripe_api_error_burst` (severity=critical, ≥3 runs failed sur 24h)
+- `argos_ops/agents/email_bot.py` — `_maybe_trip_smtp_failures_burst`
+  (severity=critical, ≥3 runs failed sur 24h)
+- `scripts/reset_breaker.py` — CLI : `--list` affiche tripped, `<name>`
+  reset
+- `.claude/commands/reset-breaker.md` — slash command + checklist
+  avant reset par breaker
+- `tests/test_breakers.py` — 16 tests (idempotence, dataclass frozen,
+  couleurs severity, no-webhook, swallow Discord error, etc.)
+
+**Architecture** :
+
+- Deux familles de breakers cohabitent. Les **kill switches globaux par
+  agent** (`DigestBuilder`, `EmailBot`, `FinanceBot`) étaient déjà cablés
+  via `BaseAgent.breaker_name` + `run_agent()` → bloquent l'exécution.
+  Les **breakers métier** (`mrr_drop_critical`, etc.) trippés par la
+  logique agent ne bloquent pas, juste alertent Discord + restent
+  visibles jusqu'à reset manuel via `/reset-breaker`.
+- `trip_with_notification` est **idempotent** : skip notif si déjà
+  tripped (évite spam Discord à chaque cron). Reset requis pour
+  re-alerter.
+
+**Breakers du plan reportés à leur partie respective** :
+`ad_spend_runaway` (P12 AdBot), `email_spam_complaints` (P13 OutboundBot),
+`outbound_bounce_rate` (P13), `judge_disagreement` (P14 ClaudeJudge).
+Cadre déjà en place — il suffira d'appeler `trip_with_notification` dans
+ces agents.
+
+**Hors scope (reporté à P19 maintenance)** : hook `PreToolUse` Claude
+Code qui consulterait `is_breaker_tripped` avant chaque tool call.
+Pas nécessaire au launch — le check est déjà dans `run_agent()`.
 
 ### P7 — FinanceBot (Stripe + relances) ✅ done 2026-05-09 (test live OK)
 
