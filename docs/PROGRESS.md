@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 11 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP done, **P16.B session 1 done** 2026-05-12)
-- **Phase en cours :** P16.B session 1 (backend mutations) livrée. Session 2 = frontend controls (toggles, sliders, pause buttons, breaker trip/reset UI).
-- **Dernière partie done :** P16.B session 1 — backend mutations + wrapper `agent_runtime.py` + intégration `BaseAgent.run_agent()` + 17 nouveaux tests (151 total)
+- **Sessions terminées :** 12 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + **P16.B done** 2026-05-12)
+- **Phase en cours :** P16.B complet (backend + frontend mutations). Smoke test live OK : PATCH `/api/agents/{name}/config` persiste, `/breakers/{name}/trip|reset` fonctionnent depuis l'UI.
+- **Dernière partie done :** P16.B session 2 — frontend controls (toggle inline, pause 1h/24h, drawer config slider/limits/notes, nouvelle vue Breakers avec trip manuel + reset)
 - **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement.
-- **Prochaine partie :** **P16.B session 2** — frontend controls (toggles `/api/agents/{name}/config`, sliders intensity, pause buttons, breakers trip/reset UI). Puis Sprint 2 reprise (P11-PREP → P11 → P9).
+- **Prochaine partie :** Sprint 2 reprise — **P11-PREP** (Mastodon `infosec.exchange` + Reddit refresh + LinkedIn approval check, ~30 min manuel) puis **P11** (connecteurs sociaux) puis **P9** (ContentBot multi-canal).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -42,7 +42,7 @@
 | 13 | OutboundBot (cold email volume modéré) | Sprint 3 | ⬜ pending | — |
 | 14 | Agent-juge Tier 1 (supervision IA) | Sprint 4 | ⬜ pending | — |
 | 15 | Circuit breakers et kill switches | Sprint 4 | ✅ done | 2026-05-12 |
-| 16 | Admin Control Panel (4 phases) | Sprints 1→4 | 🔄 P16.A done + P16.B session 1 done (backend mutations) | 2026-05-12 |
+| 16 | Admin Control Panel (4 phases) | Sprints 1→4 | 🔄 P16.A + P16.B done (cockpit pilote en live, sans escalations queue) | 2026-05-12 |
 | 17 | Conformité RGPD / AI Act / Bloctel | Continu | ⬜ pending | — |
 | 18 | Inventaire des skills | Continu | ⬜ pending | — |
 | 19 | Maintenance et observabilité | Continu | ⬜ pending | — |

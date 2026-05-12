@@ -104,10 +104,10 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 11 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP done, **P16.B session 1 done** 2026-05-12)
-- **Phase en cours :** P16.B session 1 backend livré (mutations agent_config + breakers trip/reset, wrapper `agent_runtime.py`, 151 tests verts).
-- **Dernière partie done :** P16.B session 1 — backend mutations (PATCH `/api/agents/{name}/config`, POST `/api/breakers/{name}/trip|reset`)
-- **Prochaine partie :** **P16.B session 2** — frontend controls (toggles, sliders, pause buttons, breakers UI)
+- **Sessions terminées :** 12 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + **P16.B done** 2026-05-12)
+- **Phase en cours :** P16.B complet (frontend controls live). Cockpit pilote les 4 agents Sprint 1 + breakers depuis l'UI.
+- **Dernière partie done :** P16.B session 2 — frontend (Agents avec toggle/pause inline + drawer config, nouvelle vue Breakers avec trip/reset, 4 raccourcis clavier 1-4)
+- **Prochaine partie :** Sprint 2 — **P11-PREP** (Mastodon + Reddit + LinkedIn) puis **P11** (connecteurs sociaux) puis **P9** (ContentBot)
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`)
 - **Décisions P3-P5 + P8 actives :** D-009 à D-019 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first

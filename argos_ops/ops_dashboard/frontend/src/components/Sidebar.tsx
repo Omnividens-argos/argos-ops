@@ -10,6 +10,7 @@ const ITEMS: NavItem[] = [
   { id: "overview", label: "Overview", shortcut: "1" },
   { id: "agents", label: "Agents", shortcut: "2" },
   { id: "runs", label: "Runs", shortcut: "3" },
+  { id: "breakers", label: "Breakers", shortcut: "4" },
 ];
 
 interface Props {
@@ -54,8 +55,8 @@ export function Sidebar({ current, onChange }: Props) {
       </nav>
 
       <div className="border-t border-argos-border-subtle px-5 py-3 text-[11px] font-mono text-argos-fg-tertiary leading-relaxed">
-        <div>P16.A · read-only</div>
-        <div className="mt-0.5">controls → P16.B</div>
+        <div>P16.B · controls live</div>
+        <div className="mt-0.5">escalations → P16.C</div>
       </div>
     </aside>
   );

@@ -4,10 +4,11 @@ import { Sidebar } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { usePolling } from "./hooks/usePolling";
 import { Agents } from "./views/Agents";
+import { Breakers } from "./views/Breakers";
 import { Overview } from "./views/Overview";
 import { Runs } from "./views/Runs";
 
-export type View = "overview" | "agents" | "runs";
+export type View = "overview" | "agents" | "runs" | "breakers";
 
 export function App() {
   const [view, setView] = useState<View>("overview");
@@ -18,13 +19,19 @@ export function App() {
   const health = usePolling(useCallback((s) => fetchHealth(s), []));
   const kpis = usePolling(useCallback((s) => fetchKPIs(s), []));
 
-  // Raccourcis 1/2/3 pour switcher rapidement entre les vues (style Linear).
+  // Raccourcis 1/2/3/4 pour switcher rapidement entre les vues (style Linear).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLSelectElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
       if (e.key === "1") setView("overview");
       if (e.key === "2") setView("agents");
       if (e.key === "3") setView("runs");
+      if (e.key === "4") setView("breakers");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -43,6 +50,7 @@ export function App() {
           {view === "overview" && <Overview />}
           {view === "agents" && <Agents />}
           {view === "runs" && <Runs />}
+          {view === "breakers" && <Breakers />}
         </main>
       </div>
     </div>
