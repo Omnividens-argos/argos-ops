@@ -104,10 +104,10 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 9 / 18 (P8 cancelled, P0-P7 + P15 done, P16.A session 1 partial 2026-05-12)
-- **Phase en cours :** **P16.A session 1 livrée** (backend FastAPI + 4 endpoints + 12 tests + bootstrap frontend Vite/React/Tailwind). Session 2 = composants React.
-- **Dernière partie done :** P15 — Circuit breakers (2026-05-12)
-- **Prochaine session :** **P16.A session 2** — composants React Overview/Agents/Runs avec data live depuis `/api/*`
+- **Sessions terminées :** 10 / 18 (P8 cancelled, P0-P7 + P15 + **P16.A done** 2026-05-12)
+- **Phase en cours :** P16.A complet (backend + frontend read-only). Smoke test live OK avec data réelle DB (DigestBuilder 5.11s, EmailBot, FinanceBot).
+- **Dernière partie done :** P16.A — Admin Control Panel read-only (Vite + React + Tailwind, 3 vues Overview/Agents/Runs avec polling /5s)
+- **Prochaine partie :** **P16.B** (mutations agents : toggle, intensity, run-now, breakers control) ou **Sprint 2** (P11 → P9 ContentBot)
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`)
 - **Décisions P3-P5 + P8 actives :** D-009 à D-019 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first

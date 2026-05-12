@@ -1,49 +1,50 @@
-// Bootstrap minimal P16.A session 1 — Hello placeholder.
-// Les composants Overview / Agents / Runs arrivent en session 2.
+import { useCallback, useEffect, useState } from "react";
+import { fetchHealth, fetchKPIs } from "./api";
+import { Sidebar } from "./components/Sidebar";
+import { Topbar } from "./components/Topbar";
+import { usePolling } from "./hooks/usePolling";
+import { Agents } from "./views/Agents";
+import { Overview } from "./views/Overview";
+import { Runs } from "./views/Runs";
+
+export type View = "overview" | "agents" | "runs";
+
 export function App() {
+  const [view, setView] = useState<View>("overview");
+
+  // Health + KPIs polling au niveau App pour partager les compteurs globaux
+  // (Postgres status dans la topbar + breakers tripped) entre toutes les vues
+  // sans dupliquer les requêtes.
+  const health = usePolling(useCallback((s) => fetchHealth(s), []));
+  const kpis = usePolling(useCallback((s) => fetchKPIs(s), []));
+
+  // Raccourcis 1/2/3 pour switcher rapidement entre les vues (style Linear).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      if (e.key === "1") setView("overview");
+      if (e.key === "2") setView("agents");
+      if (e.key === "3") setView("runs");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
-    <main className="min-h-screen flex items-center justify-center p-8">
-      <div className="max-w-md text-center space-y-4">
-        <p className="font-mono text-xs uppercase tracking-widest text-argos-fg-tertiary">
-          Argos Ops — Admin Control Panel
-        </p>
-        <h1 className="text-3xl font-semibold text-argos-fg">
-          P16.A bootstrap — session 1
-        </h1>
-        <p className="text-argos-fg-secondary text-sm leading-relaxed">
-          Backend FastAPI opérationnel sur{" "}
-          <code className="font-mono text-argos-info">:9000</code>. UI dense
-          dark-mode arrive en session 2 (Overview · Agents · Runs).
-        </p>
-        <p className="text-argos-fg-tertiary text-xs">
-          <a
-            href="/api/health"
-            className="text-argos-healthy hover:underline"
-            target="_blank"
-            rel="noopener"
-          >
-            /api/health
-          </a>{" "}
-          ·{" "}
-          <a
-            href="/api/agents"
-            className="text-argos-healthy hover:underline"
-            target="_blank"
-            rel="noopener"
-          >
-            /api/agents
-          </a>{" "}
-          ·{" "}
-          <a
-            href="/api/kpis/overview"
-            className="text-argos-healthy hover:underline"
-            target="_blank"
-            rel="noopener"
-          >
-            /api/kpis/overview
-          </a>
-        </p>
+    <div className="h-screen flex bg-argos-bg text-argos-fg">
+      <Sidebar current={view} onChange={setView} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Topbar
+          health={health.data}
+          lastRefreshedAt={kpis.lastRefreshedAt}
+          trippedBreakers={kpis.data?.tripped_breakers ?? 0}
+        />
+        <main className="flex-1 overflow-y-auto">
+          {view === "overview" && <Overview />}
+          {view === "agents" && <Agents />}
+          {view === "runs" && <Runs />}
+        </main>
       </div>
-    </main>
+    </div>
   );
 }
