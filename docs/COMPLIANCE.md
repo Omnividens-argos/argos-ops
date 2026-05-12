@@ -14,7 +14,6 @@
 | Formulaires site | email, nom | suivi commercial | consentement | 3 ans après dernier contact |
 | Cold email outbound | email pro, fonction | prospection BtoB | intérêt légitime | 3 ans |
 | Stripe | nom, email, CB tokenisée | facturation | exécution contrat | 10 ans (loi FR) |
-| Chat widget | messages, IP, user-agent | amélioration service | consentement (bandeau) | 1 an |
 
 ### 1.2 Droits utilisateurs
 
@@ -58,20 +57,17 @@ qui collecte de la donnée nouvelle.
 
 ## 3. AI Act UE
 
-### 3.1 Chatbot widget (P8)
+> _Section 3.1 « Chatbot widget » retirée par
+> [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)
+> (2026-05-12) — la P8 chatbot widget est annulée._
 
-- **Bandeau au démarrage** : « Vous discutez avec une intelligence artificielle.
-  Vos messages sont stockés pour amélioration du service. »
-- Lien vers `/legal/ai-disclosure` (à créer en P17)
-- Respect du consentement cookies (pas de tracking analytics sans consent)
-
-### 3.2 Téléphonie IA (phase 2)
+### 3.1 Téléphonie IA (phase 2)
 
 - **Annonce obligatoire** en début d'appel : « Vous êtes en relation avec une
   intelligence artificielle »
 - À implémenter quand CallerBot sera en phase 2 (reporté hors v1)
 
-### 3.3 Génération de contenu (P9 ContentBot)
+### 3.2 Génération de contenu (P9 ContentBot)
 
 - Pas d'AI Act spécifique sur le posting social, mais on garde une trace de
   la génération (champ `interactions.body` + `agent_name='ContentBot'`)

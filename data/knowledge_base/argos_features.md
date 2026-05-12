@@ -1,7 +1,7 @@
 # Argos — Catalogue des modules
 
 > Référentiel exhaustif des 139 modules de scan d'Argos. **Source de vérité**
-> pour SupportBot, ChatBot widget, OutboundBot, ContentBot et toute doc
+> pour SupportBot, OutboundBot, ContentBot et toute doc
 > publique qui décrit la couverture du produit. Si un autre fichier KB ou
 > une page publique cite un compte différent ou décrit un module
 > différemment, **ce fichier prime** — créer une PR pour aligner.
@@ -1054,8 +1054,8 @@ l'inverse.
 Cadre vendeur autant que limites assumées : un prospect qui confond
 scanner DAST et plateforme XDR/SIEM/SOAR doit être recadré rapidement
 pour éviter le mismatch d'attentes. Ce qui suit est exhaustif (8
-hors-scope vérifiés dans le code) et **canonique pour SupportBot,
-ChatBot et OutboundBot**.
+hors-scope vérifiés dans le code) et **canonique pour SupportBot
+et OutboundBot**.
 
 ### 5.1 Pas de BAS / Breach Attack Simulation
 
@@ -1215,7 +1215,7 @@ pas de churn. La refonte v2 du produit est terminée (67/67 sessions +
 
 ## 7. Annexe machine-readable
 
-Pour SupportBot, ChatBot widget et tout pipeline qui a besoin d'une
+Pour SupportBot et tout pipeline qui a besoin d'une
 sortie **structurée** sur les modules (« le module X est-il dans le tier
 Free ? », « combien de modules dans la catégorie cloud ? »), le fichier
 [`argos_modules.raw.json`](argos_modules.raw.json) est l'annexe

@@ -1,7 +1,7 @@
 # Argos — FAQ
 
-> **Source de vérité** des Q&R récurrentes pour SupportBot, ChatBot widget,
-> OutboundBot et la page `/faq` publique. Si une autre source répond
+> **Source de vérité** des Q&R récurrentes pour SupportBot, OutboundBot
+> et la page `/faq` publique. Si une autre source répond
 > différemment à une question listée ici, **ce fichier prime** — créer
 > une PR pour aligner.
 >
@@ -12,10 +12,10 @@
 > dans [`DECISIONS.md`](../../docs/DECISIONS.md).
 >
 > Ton (cf. [`tone_of_voice.md` § 5](tone_of_voice.md#5-tutoiement--vouvoiement)) :
-> tutoiement par défaut sur chat widget / signup / support technique.
+> tutoiement par défaut sur signup / dashboard / support technique.
 > Le « tu » qu'on emploie ici est cohérent avec le canal premier d'usage
-> (chatbot site + dashboard) ; SupportBot adapte au canal réel (vous sur
-> mail facture / légal).
+> (dashboard + emails support entrants) ; SupportBot adapte au canal réel
+> (vous sur mail facture / légal).
 
 ---
 
@@ -766,7 +766,7 @@ formateurs FR comme **Le Comptoir Sécu**, **Sysdream**.
 
 > **À noter** : cette FAQ couvre les ~50 Q&R les plus récurrentes au
 > launch. Elle sera enrichie en P19 (maintenance) à partir des
-> conversations réelles SupportBot / ChatBot. Le seuil pour ajouter
+> conversations réelles SupportBot. Le seuil pour ajouter
 > une nouvelle Q&R est **« la même question est posée 3 fois par
 > 3 users distincts »** — sinon ça reste dans les conversations
 > support sans pollution KB.

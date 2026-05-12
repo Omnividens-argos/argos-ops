@@ -88,9 +88,11 @@ uv run python scripts/health_check.py  # diagnostic agents (P19+)
 
 | Sous-domaine | Service | Partie |
 |--------------|---------|--------|
-| `chat.omnividens.fr` | Endpoint chat widget FastAPI | P8 |
 | `ops.omnividens.fr` | Admin Control Panel | P16 |
 | `analytics.omnividens.fr` | Umami self-host | INFRA-02 |
+
+> _Note : `chat.omnividens.fr` initialement prévu pour la P8 chatbot widget
+> est retiré du périmètre — cf. [D-019](docs/DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)._
 
 Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 `204.168.171.71`. Variable `DOMAIN` configurée via docker-compose env.
@@ -102,12 +104,12 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 8 / 19 (P0+P1+P2+P3+P4+P5+P6+**P7 done** 2026-05-09)
-- **Phase en cours :** Sprint 1 — **P8 ChatBot widget** (FastAPI + Redis queue, D-017)
+- **Sessions terminées :** 8 / 18 (P8 cancelled D-019, P0+P1+P2+P3+P4+P5+P6+**P7 done** 2026-05-09)
+- **Phase en cours :** **Sprint 1 CLOS** (P5+P6+P7 done, P8 cancelled 2026-05-12 par [D-019](docs/DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)). Prochaine partie à arbitrer.
 - **Dernière partie done :** P7 — FinanceBot (test live Stripe OK, MRR=0 early stage, garde-fou DUNNING_ENABLED=false)
-- **Prochaine partie :** **P8 ChatBot widget** — boucle Sprint 1
+- **Prochaine partie :** à trancher entre **P15 (circuit breakers)** et **P16 phase 1 (Admin Control Panel read-only)**.
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`)
-- **Décisions P3-P5 actives :** D-009 à D-018 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
+- **Décisions P3-P5 + P8 actives :** D-009 à D-019 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
   via Claude Code Pro Max (agents) + `fastembed` / `paraphrase-multilingual-mpnet-base-v2`
   (embeddings). Aucune API LLM tierce. **D-018 = stack email** : OVH Zimbra
@@ -158,8 +160,9 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   `lead_chaud / question_tech / sav / spam / partenariat / recrutement /
   presse / autre`. Cf. [`.claude/skills/email-classifier/`](.claude/skills/email-classifier/)
 - **`kb-rag`** (P6) — recherche similarité fastembed local + pgvector cosine
-  sur la KB Argos. Réutilisé par `/check-emails`, `/run-support-tier1`,
-  ChatBot P8. Cf. [`.claude/skills/kb-rag/`](.claude/skills/kb-rag/)
+  sur la KB Argos. Réutilisé par `/check-emails`, `/run-support-tier1`. (Sera
+  aussi consommé par ContentBot P9 et OutboundBot P13.) Cf.
+  [`.claude/skills/kb-rag/`](.claude/skills/kb-rag/)
 - **`stripe-ops`** (P7) — wrapper Stripe + calcul MRR/ARR + classification
   dunning J+3/J+7/J+15 + envoi relances (3 templates dégradés). Réutilisé
   par `/daily-finance-sync`. Cf. [`.claude/skills/stripe-ops/`](.claude/skills/stripe-ops/)
@@ -169,9 +172,10 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   palette / typo / densité / layout. Nécessite Python 3.x pour le search script.
 
 Inventaire métier prévu (P18) — restant à créer :
-`chat-orchestrator` · `content-writer` ·
-`content-scheduler` · `serp-analyzer` · `ads-optimizer` · `ads-creative-writer` ·
-`lead-enricher` · `outbound-personalizer` · `claude-judge`
+`content-writer` · `content-scheduler` · `serp-analyzer` · `ads-optimizer` ·
+`ads-creative-writer` · `lead-enricher` · `outbound-personalizer` · `claude-judge`
+
+_(`chat-orchestrator` retiré de l'inventaire par [D-019](docs/DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).)_
 
 ---
 

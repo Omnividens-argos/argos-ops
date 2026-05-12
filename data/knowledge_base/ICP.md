@@ -1,11 +1,11 @@
 # ICP — Ideal Customer Profile (Argos / Omnividens)
 
 > Qui Argos cherche à servir, qui Argos ignore, comment chaque agent
-> (OutboundBot, AdBot, SupportBot, ChatBot, FinanceBot) doit prioriser
+> (OutboundBot, AdBot, SupportBot, FinanceBot) doit prioriser
 > son effort.
 >
 > Source : interview fondateur en P3-M2 (2026-05-07). Référencé par tous
-> les agents de qualification, scoring BANT, ad targeting et chat triage.
+> les agents de qualification, scoring BANT, ad targeting et email triage.
 
 ---
 
@@ -43,7 +43,8 @@ l'onboarder ? » Si non, c'est mort.
 
 **Cible prioritaire pour :** AdBot (LinkedIn ciblé CTO scaleup FR + Google
 Search « scanner DAST sans faux positif »), OutboundBot (cold email LinkedIn
-à froid), ChatBot widget (la majorité du trafic site).
+à froid), SupportBot (la majorité des emails entrants
+`contact@omnividens.fr`).
 
 ---
 
@@ -135,20 +136,13 @@ Raisons :
 | 12-18 mois | NL / ES | KB EN stable + 1 employé support EN |
 | 18+ mois | Monde anglophone via product-led growth | Reddit `/r/netsec`, Twitter, blog technique EN |
 
-### Langue de la KB / landing / chat
+### Langue de la KB / landing / emails
 
 - **Landing `omnividens.fr` : FR uniquement** au démarrage
 - **KB SupportBot : FR uniquement** (les chunks KB sont en français)
-- **Chat widget (`chat.omnividens.fr`, P8) : FR uniquement.** Si un visiteur
-  tape en EN, ChatBot répond :
-
-  > « Pour l'instant je réponds en français uniquement. Tu peux poser ta
-  > question en français, ou m'écrire à `contact@omnividens.fr` et je te
-  > répondrai par email. »
-
-  → évite que Gemini réponde par défaut en EN et crée un canal de support
-  parallèle non maîtrisé
-
+- **Emails entrants `contact@omnividens.fr` : FR uniquement** au démarrage.
+  Si un visiteur écrit en EN, SupportBot répond en FR avec excuse + invite
+  à reformuler en FR (KB EN reportée au 12-18 mois — cf. tableau).
 - Blog : FR principal, articles EN ponctuels visant Persona 3 (Reddit /
   Hacker News) à partir du Sprint 2
 
@@ -165,7 +159,7 @@ détecter le signal et timer l'approche) :
 | 2 | **Démarrage certif SOC2 / ISO 27001 / HDS / PCI** | Embauche Compliance Officer / Head of Security < 90 j (LinkedIn) | post-embauche | ⭐⭐⭐⭐⭐ |
 | 3 | **Bug bounty program qui démarre** | Nouveau programme HackerOne / YesWeHack < 60 j | post-création | ⭐⭐⭐⭐ |
 | 4 | **Faille publique chez un concurrent / dans la stack** | CVE high-profile (Log4Shell, MoveIt, Okta, …) | 1-7 j post-publication | ⭐⭐⭐⭐ |
-| 5 | **Pentest annuel moisi** | Difficile à détecter externe — signal faible. Plutôt à capter via le chat widget ou un mail entrant qui mentionne un pentest récent | Q4 (cycle budgétaire) + Q1 (post-rapport) | ⭐⭐ |
+| 5 | **Pentest annuel moisi** | Difficile à détecter externe — signal faible. Plutôt à capter via un mail entrant `contact@omnividens.fr` qui mentionne un pentest récent | Q4 (cycle budgétaire) + Q1 (post-rapport) | ⭐⭐ |
 | 6 | **Nouveau Head of Security / RSSI** | Poste créé < 90 j (LinkedIn) — recoupe avec #2 | post-arrivée | ⭐⭐⭐⭐ |
 | 7 | **Dev sénior frustré par un scan FP** | Signal organique : tweets, posts Reddit `/r/netsec` mentionnant Snyk/Acunetix avec frustration | continu | ⭐⭐⭐ (organique, pas outbound) |
 
@@ -229,7 +223,7 @@ email manuel si insistance, lien vers les CERT. **Aucune négociation.**
 
 ## 6. Stack tech & maturité — les 8 cases du scoring lead
 
-OutboundBot, ChatBot et le formulaire signup utilisent ce scoring pour
+OutboundBot, SupportBot et le formulaire signup utilisent ce scoring pour
 qualifier en `bant_score` (cf. CRM `leads.bant_score`).
 
 | # | Case | Idéal (= +1) | Disqualifiant (= -2) |
@@ -297,7 +291,7 @@ qualifier en `bant_score` (cf. CRM `leads.bant_score`).
 
 ## 8. Signaux d'achat — triage en 5 secondes
 
-Quand un signup, mail entrant, ou vue LinkedIn arrive, ChatBot / OutboundBot
+Quand un signup, mail entrant, ou vue LinkedIn arrive, SupportBot / OutboundBot
 / AdBot scannent ces signaux dans cet ordre.
 
 ### Signaux verts (= « va convertir »)

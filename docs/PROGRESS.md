@@ -9,10 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 8 / 19 (P0+P1+P2+P3+P4+P5+P6+**P7** done 2026-05-09)
-- **Phase en cours :** Sprint 1 — **P8 ChatBot widget** (boucle Sprint 1)
+- **Sessions terminées :** 8 / 18 ([P8 cancelled D-019 2026-05-12](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled), P0+P1+P2+P3+P4+P5+P6+**P7** done 2026-05-09)
+- **Phase en cours :** **Sprint 1 CLOS** (P5+P6+P7 done, P8 cancelled). Pivot vers prochaine partie à arbitrer (P15 breakers ou P16 phase 1 dashboard).
 - **Dernière partie done :** P7 — FinanceBot (Stripe sync + dunning + alerte MRR) test live OK 2026-05-09 (`mrr=0` early stage SecHunter, clé restreinte read-only rotatée après fuite IDE transcript)
-- **Prochaine partie :** **P8 ChatBot widget** (FastAPI + Redis queue + Claude Code Pro Max worker, D-017)
+- **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement. Canal entrant = email seul (`contact@omnividens.fr` via EmailBot P5 + SupportBot P6).
+- **Prochaine partie :** à trancher entre **P15 (circuit breakers)** et **P16 phase 1 (Admin Control Panel read-only)**.
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -33,7 +34,7 @@
 | 5 | EmailBot inbound (Zimbra IMAP/SMTP, D-018) | Sprint 1 | ✅ done (test live boucle IMAP→CRM→SMTP) | 2026-05-09 |
 | 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | ✅ done (eval 10/10 PASS) | 2026-05-09 |
 | 7 | FinanceBot (Stripe + relances) | Sprint 1 | ✅ done (test live OK, garde-fou DUNNING_ENABLED=false) | 2026-05-09 |
-| 8 | Chatbot widget site (Claude Code Pro Max + queue Redis, D-017) | Sprint 1 | ⬜ pending | — |
+| ~~8~~ | ~~Chatbot widget site~~ — **🚫 cancelled** ([D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)) | — | 2026-05-12 |
 | 9 | ContentBot multi-canal | Sprint 2 | ⬜ pending | — |
 | 10 | SEOBot stratégie + briefs | Sprint 2 | ⬜ pending | — |
 | 11 | Connecteurs sociaux (LinkedIn / Mastodon / Reddit) | Sprint 2 | ⬜ pending | — |
@@ -282,7 +283,8 @@ répondent avec top doc correct, 5 questions hors-KB escaladent).
 - `scripts/eval_kb_rag.py` — eval golden 10 questions (IN-KB / OUT-KB)
 - `scripts/seed_kb.py` — refactor pour utiliser `argos_ops.rag.embeddings`
 - `.claude/skills/kb-rag/SKILL.md` — skill réutilisable (consommé par
-  `/run-support-tier1`, `/check-emails`, ChatBot P8 plus tard)
+  `/run-support-tier1`, `/check-emails`. _(ChatBot P8 initialement prévu
+  comme consommateur de ce skill — annulé par D-019.)_
 - `.claude/commands/run-support-tier1.md` — slash command interactive
 - `.claude/commands/check-emails.md` — mise à jour pour invoquer `kb-rag`
   (étape 2.b du protocole)

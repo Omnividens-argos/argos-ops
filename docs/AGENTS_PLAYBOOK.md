@@ -12,9 +12,9 @@
 |-------|--------|--------|---------|--------------|--------|
 | Digest | P4 | 0 | cron `0 8 * * *` | 100 % auto | ⬜ |
 | EmailBot | P5 | 1 | cron `*/15 * * * *` | 90 % | ⬜ |
-| SupportBot | P6 | 1 | déclenché par EmailBot/ChatBot | 85 % | ⬜ |
+| SupportBot | P6 | 1 | déclenché par EmailBot | 85 % | ⬜ |
 | FinanceBot | P7 | 1 | cron `0 6 * * *` | 100 % auto | ⬜ |
-| ChatBot | P8 | 1 | webhook (visiteurs site) | 90 % | ⬜ |
+| ~~ChatBot~~ | ~~P8~~ | — | ~~webhook visiteurs site~~ | — | 🚫 cancelled ([D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)) |
 | ContentBot | P9 | 2 | cron 2-5×/jour | 80 % | ⬜ |
 | SEOBot | P10 | 2 | cron `0 6 * * 1` (lundi) | 100 % auto | ⬜ |
 | AdBot | P12 | 3 | cron `0 */4 * * 9-18` | 70 % (shadow mode 100%) | ⬜ |
@@ -65,9 +65,12 @@ si Tier 0/1, sinon Tier 2.
 **Objectif :** facturation Stripe, relances impayés, MRR.
 **Implémentation :** voir P7.
 
-### ChatBot (P8)
-**Objectif :** widget chat live sur `omnividens.fr`.
-**Implémentation :** voir P8.
+### ~~ChatBot (P8)~~ — 🚫 cancelled
+
+Annulé le 2026-05-12 par
+[D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).
+Le canal entrant prospects/visiteurs reste l'email
+(`contact@omnividens.fr` via EmailBot P5 + SupportBot P6).
 
 ### ContentBot (P9)
 **Objectif :** 2-5 posts/jour LinkedIn / Mastodon / Reddit (D-004 : remplacement X).

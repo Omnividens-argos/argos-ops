@@ -170,11 +170,11 @@ breaker…) :
 SKILLS À INVOQUER
 ═══════════════════════════════════════════════════════════════════════════════════
 
-À chaque création de skill `argos-ops` (P4, P5, P6, P7, P8, P9, P10, P12, P13,
+À chaque création de skill `argos-ops` (P4, P5, P6, P7, P9, P10, P12, P13,
 P14) : invoque le skill `skill-creator` pour formaliser proprement la définition,
-les inputs/outputs et les tests du skill créé.
+les inputs/outputs et les tests du skill créé. _(P8 retirée — cf. D-019.)_
 
-À chaque création d'interface utilisateur (P8 chat widget, P16 ops dashboard) :
+À chaque création d'interface utilisateur (P16 ops dashboard) :
 invoque `frontend-design` pour la conception visuelle. Pour P16 spécifiquement,
 si plusieurs styles sont possibles, tu peux invoquer `ui-ux-pro-max` pour
 explorer le catalogue avant de trancher.

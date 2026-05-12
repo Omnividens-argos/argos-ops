@@ -44,9 +44,9 @@ CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
 CREATE TABLE IF NOT EXISTS interactions (
   id BIGSERIAL PRIMARY KEY,
   lead_id BIGINT REFERENCES leads(id) ON DELETE CASCADE,
-  channel TEXT,                   -- 'email' | 'chat' | 'phone' | 'linkedin' | 'mastodon'
+  channel TEXT,                   -- 'email' | 'phone' | 'linkedin' | 'mastodon'
   direction TEXT,                 -- 'in' | 'out'
-  agent_name TEXT,                -- 'EmailBot' | 'ChatBot' | ...
+  agent_name TEXT,                -- 'EmailBot' | 'SupportBot' | 'FinanceBot' | ...
   subject TEXT,
   body TEXT,
   judge_score INT,                -- 0-100, NULL si non jugé

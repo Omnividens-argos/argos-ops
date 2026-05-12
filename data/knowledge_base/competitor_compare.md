@@ -1,7 +1,7 @@
 # Argos vs concurrence — référentiel comparatif
 
-> **Source de vérité** pour SupportBot, ChatBot widget, OutboundBot,
-> ContentBot, page Pricing publique et toute comm comparative. Si un autre
+> **Source de vérité** pour SupportBot, OutboundBot, ContentBot, page
+> Pricing publique et toute comm comparative. Si un autre
 > fichier KB ou une page publique formule une comparaison différemment,
 > **ce fichier prime** — créer une PR pour aligner.
 >
@@ -16,8 +16,8 @@
 
 ### 1.1 Phrase produit canonique
 
-À utiliser en cold call, page Pricing publique, premier message
-ChatBot, abstract de blog post comparatif :
+À utiliser en cold call, page Pricing publique, premier email
+outbound, abstract de blog post comparatif :
 
 > **« Argos est le scanner DAST automatisé qui transforme votre surface
 > web en chaînes d'attaque exploitables — pas une liste de findings — à
@@ -530,7 +530,7 @@ Vitamine pour cold call rapide. À garder ouvert dans un onglet quand on
 
 ## 10. Règles de comm comparative (anti-disparagement)
 
-Pour SupportBot, ChatBot, OutboundBot et toute comm publique. **Ces
+Pour SupportBot, OutboundBot et toute comm publique. **Ces
 règles tiennent même sans avocat dans la boucle**, parce qu'elles sont
 factuelles, pas juridiques. Pour les cas limites légaux (page Pricing
 publique, comparatif en blog post indexé), consulter un avocat

@@ -13,10 +13,10 @@
 
 ```
 ACQUISITION       CONVERSION         RÉTENTION
-ContentBot        ChatBot            SupportBot
-SEOBot            EmailBot in        FinanceBot
-AdBot             DemoBot (P2)       AnalyticsBot
-OutboundBot       CallerBot (P2)
+ContentBot        EmailBot in        SupportBot
+SEOBot            DemoBot (P2)       FinanceBot
+AdBot             CallerBot (P2)     AnalyticsBot
+OutboundBot
 ```
 
 Toutes les couches lisent et écrivent dans un **CRM + Knowledge Base** central

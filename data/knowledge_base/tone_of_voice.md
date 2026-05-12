@@ -1,7 +1,7 @@
 # Tone of Voice — Argos / Omnividens
 
 > Référentiel ton, vocabulaire et typographie pour **tous** les agents et toutes
-> les comms (mails, chat widget, blog, support, rapports, landing, CGV, factures).
+> les comms (mails, blog, support, rapports, landing, CGV, factures).
 >
 > Source : interview fondateur en P3-M2 (2026-05-07). En cas de doute sur un
 > message à envoyer, **relire ce fichier d'abord**. Si le message viole une
@@ -64,7 +64,7 @@ violation directe de cette règle.
 | Blog / changelog technique | ✓✓ | ✓✓✓ | ✓ |
 | Landing page / pricing | ✓✓✓ | ✓ | ✓ |
 | Cold email RSSI | ✓✓✓ | ✓ | ✓✓ |
-| Chat widget site | ✓✓ | ✓✓✓ | — |
+| Email support entrant (`contact@omnividens.fr`) | ✓✓ | ✓✓✓ | — |
 
 ---
 
@@ -131,7 +131,7 @@ défaut), on bascule au tour suivant si l'autre tutoie.
 | Canal | Tu / Vous | Note |
 |---|---|---|
 | Cold email RSSI / DM LinkedIn premier contact | **vous** | Sec et court, pas de « Madame, Monsieur » |
-| Chat widget site / signup | **tu** | Registre dev-tools attendu sur le site |
+| Signup / dashboard / email support sur invite tutoiement | **tu** | Registre dev-tools attendu sur le site |
 | Client post-onboarding, support technique | **tu** | Sauf s'il a vouvoyé en premier |
 | Email facture / légal / docs compliance | **vous** | Le `tu` fait amateur sur ce canal |
 | Réponse à un ticket support | **suit le ton du ticket** | Le client donne le registre |
