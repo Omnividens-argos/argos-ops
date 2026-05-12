@@ -85,6 +85,17 @@ class Settings(BaseSettings):
         alias="EMAIL_SIGNATURE_AI_DISCLOSURE",
     )
 
+    # --- Stripe (P7 FinanceBot — compte partagé avec SecHunter, P0 décision) ---
+    stripe_secret_key: SecretStr | None = Field(default=None, alias="STRIPE_SECRET_KEY")
+    stripe_webhook_secret: SecretStr | None = Field(default=None, alias="STRIPE_WEBHOOK_SECRET")
+    # Garde-fou : tant que le wording des relances n'a pas été validé en
+    # condition réelle, on désactive l'envoi outbound. Le bot fait tout le
+    # reste (sync companies, calcul MRR, notif Discord). À passer à 'true'
+    # une fois le premier run live audité.
+    financebot_dunning_enabled: bool = Field(
+        default=False, alias="FINANCEBOT_DUNNING_ENABLED"
+    )
+
     @property
     def async_database_url(self) -> str:
         """URL adaptée à SQLAlchemy async (driver psycopg v3).

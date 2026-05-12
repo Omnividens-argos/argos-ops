@@ -9,10 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 7 / 19 (P0 + P1 + P2 + P3 + P4 + P5 + **P6** done 2026-05-09)
-- **Phase en cours :** Sprint 1 — **P7 FinanceBot** (Stripe + relances) à venir
-- **Dernière partie done :** P6 — SupportBot Tier 1 (RAG sur KB) — eval 10/10 PASS, skill `kb-rag` réutilisable, slash command `/run-support-tier1`
-- **Prochaine partie :** **P7 FinanceBot** (Stripe webhook + dunning) ou **P11-PREP** (Reddit/Mastodon) selon priorité business
+- **Sessions terminées :** 8 / 19 (P0+P1+P2+P3+P4+P5+P6+**P7** done 2026-05-09)
+- **Phase en cours :** Sprint 1 — **P8 ChatBot widget** (boucle Sprint 1)
+- **Dernière partie done :** P7 — FinanceBot (Stripe sync + dunning + alerte MRR) test live OK 2026-05-09 (`mrr=0` early stage SecHunter, clé restreinte read-only rotatée après fuite IDE transcript)
+- **Prochaine partie :** **P8 ChatBot widget** (FastAPI + Redis queue + Claude Code Pro Max worker, D-017)
+- **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
 - **Décision architecturale majeure (2026-05-08) :** [D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce) — Argos Ops 100 % local-first via Claude Code Pro Max + embeddings open-source `paraphrase-multilingual-mpnet-base-v2` local. Aucune API LLM tierce. Trade-off : agents en pause quand l'ordi du fondateur est éteint.
@@ -31,7 +32,7 @@
 | 4 | `/morning-digest` (premier slash command) | Sprint 0 | ✅ done | 2026-05-08 |
 | 5 | EmailBot inbound (Zimbra IMAP/SMTP, D-018) | Sprint 1 | ✅ done (test live boucle IMAP→CRM→SMTP) | 2026-05-09 |
 | 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | ✅ done (eval 10/10 PASS) | 2026-05-09 |
-| 7 | FinanceBot (Stripe + relances) | Sprint 1 | ⬜ pending | — |
+| 7 | FinanceBot (Stripe + relances) | Sprint 1 | ✅ done (test live OK, garde-fou DUNNING_ENABLED=false) | 2026-05-09 |
 | 8 | Chatbot widget site (Claude Code Pro Max + queue Redis, D-017) | Sprint 1 | ⬜ pending | — |
 | 9 | ContentBot multi-canal | Sprint 2 | ⬜ pending | — |
 | 10 | SEOBot stratégie + briefs | Sprint 2 | ⬜ pending | — |
@@ -291,6 +292,54 @@ répondent avec top doc correct, 5 questions hors-KB escaladent).
 - IN-KB top distance : 0.473–0.561 (largement sous le seuil 0.7)
 - OUT-KB top distance : 0.770+ ou 0 hits (au-dessus du seuil)
 - Seuil 0.7 isole correctement les 2 régimes (calibré pour mpnet-base-v2)
+
+### P7 — FinanceBot (Stripe + relances) ✅ done 2026-05-09 (test live OK)
+
+**Test live passé 2026-05-09** : clé restreinte Stripe live (`rk_live_...`) — Customers/Invoices/Subscriptions read-only — auth OK, premier run `agent_runs status='success'`, `mrr=0.00 active_subs=0/0` (early stage SecHunter, normal). Embed Discord posté sur canal `alerts`. Aucune relance envoyée (`DUNNING_ENABLED=false` garde-fou actif). Le bot se mettra automatiquement en route à la première sub Stripe.
+
+**Task Scheduler créé** : `argos-ops-finance-bot` cron `0 6 * * *` Paris, invocation `uv run python scripts/run_finance_bot.py`.
+
+**Sécurité** : la première clé `rk_live_...` a fuité dans le transcript (IDE remontait `.env.local` modifié dans system-reminders → leak). Clé révoquée, nouvelle clé générée, mémoire `feedback_secrets_via_ide_leak.md` enregistrée pour ne pas reproduire.
+
+**Code livré et tout vert** (ruff + format + mypy strict + 18 nouveaux tests, **106 total**) :
+
+- `argos_ops/integrations/stripe_client.py` — wrapper async (SDK Stripe
+  sync enrobé via `asyncio.to_thread`). API : `fetch_active_subscriptions`,
+  `fetch_open_invoices`, `compute_mrr_eur` (mensuel + annuel/12),
+  `compute_arr_eur` (MRR×12), `classify_dunning_level` (J+3/J+7/J+15/none)
+- `argos_ops/agents/finance_bot.py` — `FinanceBot(BaseAgent)` complet :
+  pull subs → upsert `companies` (stripe_customer_id, subscription_status,
+  mrr_eur, stripe_synced_at) → calcul MRR + ARR + delta vs S-1 → dunning
+  idempotent (skip si déjà envoyé via `interactions.judge_verdict`) →
+  notif Discord embed (canal `alerts`, fallback `ops_logs`)
+- 3 templates de relance dégradés (J+3 amical / J+7 ferme / J+15 escalade)
+- `scripts/run_finance_bot.py` — entrée CLI cron
+- `argos_ops/crm/migrations/0002_p7_stripe.sql` — applique sur DB locale,
+  ajoute 4 colonnes Stripe sur `companies`
+- `argos_ops/crm/models.py` — `Company` étendue (4 champs Stripe)
+- `argos_ops/config.py` — `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+  `FINANCEBOT_DUNNING_ENABLED` (default false)
+- `.claude/skills/stripe-ops/SKILL.md` — skill réutilisable
+- `.claude/commands/daily-finance-sync.md` — slash command cron
+- `tests/test_finance_bot.py` — 18 tests (calcul MRR + dunning levels +
+  templates rendus + couleurs embed)
+
+**Garde-fou explicite** : `FINANCEBOT_DUNNING_ENABLED=false` par défaut.
+Quand désactivé, FinanceBot fait tout (sync + MRR + Discord) sauf l'envoi
+outbound — il logge juste « [DUNNING_DISABLED] J+N aurait été envoyé pour
+{invoice} ». À activer après audit du premier run live.
+
+**Tâches restantes (~15 min côté fondateur)** :
+
+1. Coller `STRIPE_SECRET_KEY=sk_live_...` dans `.env.local` (compte
+   Stripe partagé avec SecHunter — clé déjà existante côté SecHunter)
+2. Premier run live `uv run python scripts/run_finance_bot.py` avec
+   `DUNNING_ENABLED=false` → audit du MRR + companies synchronisées
+3. Vérifier l'embed Discord sur le canal alerts/ops_logs
+4. Si tout OK → passer `FINANCEBOT_DUNNING_ENABLED=true` puis lancer un
+   2e run pour valider 1 ou 2 envois de relance
+5. Créer la Task Scheduler `argos-ops-finance-bot` cron `0 6 * * *` Paris
+   (PowerShell scriptable dans `.claude/skills/stripe-ops/SKILL.md`)
 
 ### P2 — Bootstrap du dossier `argos-ops` ✅
 **Done le 2026-05-07.** Repo privé GitHub créé et premier push effectué.
