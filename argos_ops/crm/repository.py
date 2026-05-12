@@ -175,6 +175,69 @@ async def complete_agent_run(
     run.cost_estimate_eur = cost_estimate_eur
 
 
+async def list_recent_agent_runs(
+    session: AsyncSession,
+    *,
+    agent_name: str | None = None,
+    limit: int = 50,
+) -> list[AgentRun]:
+    """Liste les ``agent_runs`` les plus récents, filtrés optionnellement par agent.
+
+    Utilisé par le Admin Control Panel (P16.A) — page Runs et drawer logs
+    par agent.
+    """
+    stmt = select(AgentRun).order_by(col(AgentRun.started_at).desc()).limit(limit)
+    if agent_name is not None:
+        stmt = stmt.where(col(AgentRun.agent_name) == agent_name)
+    return list((await session.execute(stmt)).scalars().all())
+
+
+async def get_last_run_per_agent(session: AsyncSession) -> dict[str, AgentRun]:
+    """Dernier ``agent_run`` (par ``started_at``) pour chaque agent vu en DB.
+
+    Renvoyé sous forme de dict ``{agent_name: AgentRun}``. Utilisé par
+    l'endpoint dashboard ``GET /api/agents`` pour afficher l'état des
+    agents en une seule vue. Implémenté en SQL pour éviter le N+1 ;
+    fenêtre sur les 30 derniers jours pour borner le volume scanné.
+    """
+    cutoff = datetime.now(UTC) - timedelta(days=30)
+    stmt = (
+        select(AgentRun)
+        .where(col(AgentRun.started_at) >= cutoff)
+        .order_by(col(AgentRun.agent_name), col(AgentRun.started_at).desc())
+    )
+    runs = list((await session.execute(stmt)).scalars().all())
+    out: dict[str, AgentRun] = {}
+    for run in runs:
+        if run.agent_name not in out:
+            out[run.agent_name] = run
+    return out
+
+
+async def count_open_tickets(session: AsyncSession) -> int:
+    """KPI Overview — nombre de tickets ``status='open'``."""
+    stmt = select(Ticket).where(col(Ticket.status) == "open")
+    return len(list((await session.execute(stmt)).scalars().all()))
+
+
+async def count_recent_leads(session: AsyncSession, *, window_hours: int = 24) -> int:
+    """KPI Overview — leads créés sur la fenêtre temporelle."""
+    cutoff = datetime.now(UTC) - timedelta(hours=window_hours)
+    stmt = select(Lead).where(col(Lead.created_at) >= cutoff)
+    return len(list((await session.execute(stmt)).scalars().all()))
+
+
+async def sum_active_mrr_eur(session: AsyncSession) -> Decimal:
+    """KPI Overview — somme MRR des companies en subscription active/trialing.
+
+    Source de vérité : ``companies.mrr_eur`` (synchronisé par FinanceBot
+    depuis Stripe à chaque run quotidien).
+    """
+    stmt = select(Company).where(col(Company.subscription_status).in_(["active", "trialing"]))
+    companies = list((await session.execute(stmt)).scalars().all())
+    return sum((c.mrr_eur or Decimal("0.00") for c in companies), start=Decimal("0.00"))
+
+
 # =============================================================================
 # Knowledge Base — upsert + similarité
 # =============================================================================
