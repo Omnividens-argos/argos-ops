@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 10 / 18 (P8 cancelled, P0-P7 + P15 + **P16.A done** 2026-05-12)
-- **Phase en cours :** P16.A **complet** (backend + frontend read-only). Mutations (toggle/run-now/reset) → P16.B.
-- **Dernière partie done :** P16.A — Admin Control Panel read-only complet (backend FastAPI + 6 endpoints + frontend Vite/React 3 vues Overview/Agents/Runs + smoke test live OK 2026-05-12)
+- **Sessions terminées :** 11 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + **P10-MVP done** 2026-05-12)
+- **Phase en cours :** Sprint 2 démarré — **P10-MVP** (SEOBot brief writer) done. Suite : P16.B (mutations cockpit) puis P11-PREP (sociaux) puis P14 (juge).
+- **Dernière partie done :** P10-MVP — SEOBot brief writer (slash `/generate-seo-brief` + skill `seo-brief-writer` + 19 keywords seed groupés en 7 clusters, D-017 humain-in-the-loop, pas de SERP scraping)
 - **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement.
-- **Prochaine partie :** **P16.B** (controls : toggle ON/OFF + sliders intensity + run-now + breakers control via API mutations) ou **Sprint 2** (P11 connecteurs sociaux → P9 ContentBot).
+- **Prochaine partie :** **P16.B** (mutations cockpit : toggle ON/OFF + sliders intensity + run-now + breakers control).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -36,7 +36,7 @@
 | 7 | FinanceBot (Stripe + relances) | Sprint 1 | ✅ done (test live OK, garde-fou DUNNING_ENABLED=false) | 2026-05-09 |
 | ~~8~~ | ~~Chatbot widget site~~ — **🚫 cancelled** ([D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)) | — | 2026-05-12 |
 | 9 | ContentBot multi-canal | Sprint 2 | ⬜ pending | — |
-| 10 | SEOBot stratégie + briefs | Sprint 2 | ⬜ pending | — |
+| 10 | SEOBot stratégie + briefs | Sprint 2 | 🔄 P10-MVP done (brief writer, sans SERP — option A 2026-05-12) | 2026-05-12 |
 | 11 | Connecteurs sociaux (LinkedIn / Mastodon / Reddit) | Sprint 2 | ⬜ pending | — |
 | 12 | AdBot (pilotage Google/Meta/LinkedIn Ads) | Sprint 3 | ⬜ pending | — |
 | 13 | OutboundBot (cold email volume modéré) | Sprint 3 | ⬜ pending | — |

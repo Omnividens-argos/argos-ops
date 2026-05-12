@@ -1,0 +1,178 @@
+# Argos — Seed keywords SEO (P10-MVP, D-017)
+#
+# Liste de keywords longue traîne BtoB cybersécurité que SEOBot utilise
+# pour générer des briefs blog. Curation manuelle — pas de scraping SERP
+# en P10-MVP (cf. décision « option A » 2026-05-12 dans CLAUDE.md).
+#
+# Format : groupé par cluster sémantique. Chaque entrée a :
+#   keyword : la requête cible (longue traîne, intention transactionnelle)
+#   intent  : awareness | consideration | decision (entonnoir)
+#   priority: 1 (cible prioritaire) à 3 (nice to have)
+#   notes   : contexte éditorial / angle proposé
+#
+# Cible : RSSI / CTO / Head of Security en scaleups tech FR 50-500 employés.
+# Cohérence avec ICP.md (Marc / Sarah / Thomas) et tone_of_voice.md (dev-tools
+# vibe, tutoiement par défaut, anti-FUD).
+#
+# Itération : enrichir au fil des briefs produits. À terme, croiser avec
+# Google Search Console (signature P10.1).
+
+clusters:
+
+  # =============================================================================
+  # Cluster 1 — DAST sans faux positifs (différenciateur produit #1)
+  # =============================================================================
+  - name: dast-faux-positifs
+    description: Différenciateur Argos vs Acunetix/Detectify (cf. competitor_compare.md)
+    keywords:
+      - keyword: "scanner DAST sans faux positifs"
+        intent: decision
+        priority: 1
+        notes: |
+          Article comparatif vs Acunetix/Detectify, factuel, anti-FUD.
+          Mentionne le système Oracle/Finding d'Argos (§ argos_features.md).
+      - keyword: "comment réduire les faux positifs en DAST"
+        intent: consideration
+        priority: 1
+        notes: |
+          Article technique — explique pourquoi les FP existent (signatures
+          vs comportemental), comment Argos s'y attaque (Oracle + multi-stage
+          confirmation). Insérer un schéma de pipeline.
+      - keyword: "Acunetix alternative open source ou abordable"
+        intent: decision
+        priority: 2
+        notes: |
+          Comparatif honnête (pas anti-Acunetix gratuit). Préciser le
+          positionnement BtoB scaleup vs entreprise.
+
+  # =============================================================================
+  # Cluster 2 — Pentest SaaS / continu vs annuel
+  # =============================================================================
+  - name: pentest-continu
+    description: Repositionner « pentest » de l'annuel cabinet vers le continu SaaS
+    keywords:
+      - keyword: "pentest continu SaaS"
+        intent: awareness
+        priority: 1
+        notes: |
+          Article fondateur de positionnement. Réutilise § 3 argos_features
+          (Watch + Strategist) + § anti-ICP ICP.md (pentest annuel moisi).
+      - keyword: "alternative au pentest annuel"
+        intent: consideration
+        priority: 1
+        notes: |
+          Cible Marc post-rapport pentest. Angle ROI : coût annuel cabinet
+          vs Argos Pro Max + boucle continue. Pas de FUD.
+      - keyword: "pentest automatisé fiable"
+        intent: consideration
+        priority: 2
+        notes: |
+          Démystification — auto != faux positifs si Oracle bien construit.
+
+  # =============================================================================
+  # Cluster 3 — Conformité (SOC2 / ISO 27001 / HDS / PCI)
+  # =============================================================================
+  - name: compliance-tech
+    description: Aligné déclencheur #2 OutboundBot (ICP.md — embauche Compliance Officer)
+    keywords:
+      - keyword: "scanner vulnérabilités SOC2 type 2"
+        intent: decision
+        priority: 1
+        notes: |
+          Cible Sarah (compliance officer scaleup). Triple compliance Argos
+          (cf. D-014). Factuel : on liste les contrôles couverts, pas le
+          score marketing.
+      - keyword: "ISO 27001 contrôles techniques scanner"
+        intent: decision
+        priority: 2
+        notes: |
+          Mapping A.12 / A.14 ISO vs modules Argos.
+      - keyword: "HDS scanner santé France"
+        intent: decision
+        priority: 2
+        notes: |
+          Niche FR mais haute intention (santé/HDS = budget bloqué).
+
+  # =============================================================================
+  # Cluster 4 — DevSecOps / CI/CD
+  # =============================================================================
+  - name: devsecops
+    description: Cible Thomas (DevSecOps lead), aligné argos_features § CI/CD
+    keywords:
+      - keyword: "DAST dans CI/CD GitHub Actions"
+        intent: consideration
+        priority: 1
+        notes: |
+          Article tuto avec snippet YAML workflow. Mentionne API + webhooks
+          Argos (P19 maintenance plus tard, mais déjà documenté en KB).
+      - keyword: "intégrer scanner sécurité dans pipeline GitLab"
+        intent: consideration
+        priority: 2
+        notes: |
+          Variante GitLab CI. Snippet `.gitlab-ci.yml`. Token-based auth.
+      - keyword: "shift left security DAST"
+        intent: awareness
+        priority: 3
+        notes: |
+          Sujet large — angle Argos = oui shift left, mais sans bloquer le
+          merge sur des FP (cf. cluster 1).
+
+  # =============================================================================
+  # Cluster 5 — Chaînes d'attaque IA (différenciateur produit #2)
+  # =============================================================================
+  - name: ia-correlation
+    description: Différenciateur Strategist + chaînes d'attaque (cf. D-013)
+    keywords:
+      - keyword: "corrélation vulnérabilités IA scanner"
+        intent: consideration
+        priority: 2
+        notes: |
+          Framing informatif/audit (D-013), pas LLM autonome. Explique le
+          fallback BYOK + Strategist. Pas d'exagération marketing.
+      - keyword: "attack path analysis SaaS"
+        intent: consideration
+        priority: 3
+        notes: |
+          Angle EN aussi possible. Comparer avec graph-based d'entreprise
+          (Tenable, etc.) — Argos = SaaS BtoB scaleup, pas enterprise grade.
+
+  # =============================================================================
+  # Cluster 6 — Bug bounty / surface d'attaque
+  # =============================================================================
+  - name: bug-bounty
+    description: Déclencheur #3 OutboundBot (programme HackerOne/YesWeHack)
+    keywords:
+      - keyword: "préparer programme bug bounty"
+        intent: awareness
+        priority: 2
+        notes: |
+          Comment Argos sert d'audit interne préalable au lancement BB.
+          Réduit le coût des reports doublons.
+      - keyword: "réduire le coût des duplicates HackerOne"
+        intent: decision
+        priority: 3
+        notes: |
+          Niche mais haute intention (RSSI qui paie déjà BB).
+
+  # =============================================================================
+  # Cluster 7 — Argos vs concurrents nommés (longue traîne décision)
+  # =============================================================================
+  - name: vs-competitor
+    description: Articles comparatifs honnêtes (cf. § anti-disparagement competitor_compare)
+    keywords:
+      - keyword: "Argos vs Acunetix"
+        intent: decision
+        priority: 2
+        notes: |
+          Tableau matrice prix × périmètre (competitor_compare § 3).
+      - keyword: "Argos vs Detectify"
+        intent: decision
+        priority: 2
+        notes: |
+          Detectify EASM-first → Argos DAST-first. Cas d'usage distincts.
+      - keyword: "Burp Pro vs scanner SaaS pour scaleup"
+        intent: decision
+        priority: 3
+        notes: |
+          Burp = outil interactif pentester. Argos = automatisable continu.
+          Pas de FUD vs Burp (legend tool).

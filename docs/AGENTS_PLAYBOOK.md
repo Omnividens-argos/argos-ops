@@ -16,7 +16,7 @@
 | FinanceBot | P7 | 1 | cron `0 6 * * *` | 100 % auto | ⬜ |
 | ~~ChatBot~~ | ~~P8~~ | — | ~~webhook visiteurs site~~ | — | 🚫 cancelled ([D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)) |
 | ContentBot | P9 | 2 | cron 2-5×/jour | 80 % | ⬜ |
-| SEOBot | P10 | 2 | cron `0 6 * * 1` (lundi) | 100 % auto | ⬜ |
+| SEOBot | P10 | 2 | slash `/generate-seo-brief` (humain-in-the-loop) | 100 % humain-validé | 🔄 P10-MVP done 2026-05-12 |
 | AdBot | P12 | 3 | cron `0 */4 * * 9-18` | 70 % (shadow mode 100%) | ⬜ |
 | OutboundBot | P13 | 3 | cron `0 9 * * 1-5` | 80 % | ⬜ |
 | ClaudeJudge | P14 | 4 | inline (skill) | 100 % | ⬜ |
@@ -78,7 +78,11 @@ Le canal entrant prospects/visiteurs reste l'email
 
 ### SEOBot (P10)
 **Objectif :** briefs blog hebdomadaires basés sur SERP gaps.
-**Implémentation :** voir P10.
+**Implémentation P10-MVP (2026-05-12) :** slash command
+`/generate-seo-brief` + skill `seo-brief-writer`. Pas de SERP scraping
+(option A acceptée : KB Argos suffit pour démarrer, SERP analyzer en
+P10.1 plus tard). Humain-in-the-loop pour qualité éditoriale.
+Voir P10.
 
 ### AdBot (P12)
 **Objectif :** pilotage Google / Meta / LinkedIn Ads. Shadow mode tant que

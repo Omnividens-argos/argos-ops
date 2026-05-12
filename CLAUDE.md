@@ -104,10 +104,10 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 10 / 18 (P8 cancelled, P0-P7 + P15 + **P16.A done** 2026-05-12)
-- **Phase en cours :** P16.A complet (backend + frontend read-only). Smoke test live OK avec data réelle DB (DigestBuilder 5.11s, EmailBot, FinanceBot).
-- **Dernière partie done :** P16.A — Admin Control Panel read-only (Vite + React + Tailwind, 3 vues Overview/Agents/Runs avec polling /5s)
-- **Prochaine partie :** **P16.B** (mutations agents : toggle, intensity, run-now, breakers control) ou **Sprint 2** (P11 → P9 ContentBot)
+- **Sessions terminées :** 11 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + **P10-MVP done** 2026-05-12)
+- **Phase en cours :** Sprint 2 démarré — P10-MVP (SEOBot brief writer) done. P9 ContentBot bloqué tant que P11 (connecteurs sociaux) pas faite.
+- **Dernière partie done :** P10-MVP — SEOBot brief writer (slash `/generate-seo-brief` + skill `seo-brief-writer`, 19 keywords seed en 7 clusters, D-017 humain-in-the-loop, pas de SERP scraping cf. option A 2026-05-12)
+- **Prochaine partie :** **P16.B** (mutations agents : toggle, intensity, run-now, breakers control depuis le cockpit)
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`)
 - **Décisions P3-P5 + P8 actives :** D-009 à D-019 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
@@ -149,6 +149,10 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 - **`/reset-breaker`** (P15) — reset manuel d'un circuit breaker. Sans
   argument, liste les breakers tripped. Cf.
   [`.claude/commands/reset-breaker.md`](.claude/commands/reset-breaker.md)
+- **`/generate-seo-brief`** (P10-MVP) — drafte un brief blog SEO
+  structuré (titre, outline H2/H3, sources, meta, internal links) à
+  partir d'un keyword + KB Argos. Humain-in-the-loop. Cf.
+  [`.claude/commands/generate-seo-brief.md`](.claude/commands/generate-seo-brief.md)
 
 ---
 
@@ -169,14 +173,19 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 - **`stripe-ops`** (P7) — wrapper Stripe + calcul MRR/ARR + classification
   dunning J+3/J+7/J+15 + envoi relances (3 templates dégradés). Réutilisé
   par `/daily-finance-sync`. Cf. [`.claude/skills/stripe-ops/`](.claude/skills/stripe-ops/)
+- **`seo-brief-writer`** (P10-MVP) — génère un brief blog SEO structuré
+  depuis un keyword + KB Argos (via `kb-rag`). Pas de SERP scraping
+  (option A 2026-05-12). Réutilisé par `/generate-seo-brief` et futur
+  ContentBot P9. Cf. [`.claude/skills/seo-brief-writer/`](.claude/skills/seo-brief-writer/)
 - **`ui-ux-pro-max`** — design intelligence (50+ styles, 161 palettes, 57 font pairings,
   161 product types, 99 UX guidelines). Source : [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill).
   À invoquer en P16 (Admin Control Panel) AVANT toute écriture de code frontend pour figer
   palette / typo / densité / layout. Nécessite Python 3.x pour le search script.
 
 Inventaire métier prévu (P18) — restant à créer :
-`content-writer` · `content-scheduler` · `serp-analyzer` · `ads-optimizer` ·
-`ads-creative-writer` · `lead-enricher` · `outbound-personalizer` · `claude-judge`
+`content-writer` · `content-scheduler` · `serp-analyzer` (reporté en P10.1) ·
+`ads-optimizer` · `ads-creative-writer` · `lead-enricher` ·
+`outbound-personalizer` · `claude-judge`
 
 _(`chat-orchestrator` retiré de l'inventaire par [D-019](docs/DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).)_
 
