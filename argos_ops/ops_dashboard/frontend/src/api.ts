@@ -3,9 +3,17 @@
 // définis dans argos_ops/ops_dashboard/models.py (source de vérité côté
 // Python). Si un schema change côté backend, mettre à jour ici manuellement.
 
+export type RunStatus =
+  | "success"
+  | "failed"
+  | "killed_by_breaker"
+  | "skipped_disabled"
+  | "skipped_paused"
+  | "skipped_daily_limit";
+
 export interface AgentSummary {
   name: string;
-  last_run_status: "success" | "failed" | "killed_by_breaker" | null;
+  last_run_status: RunStatus | null;
   last_run_at: string | null;
   last_run_duration_seconds: number | null;
   last_run_output_summary: string | null;
@@ -21,7 +29,7 @@ export interface AgentRunRow {
   started_at: string;
   ended_at: string | null;
   duration_seconds: number | null;
-  status: "success" | "failed" | "killed_by_breaker" | null;
+  status: RunStatus | null;
   output_summary: string | null;
   error: string | null;
   cost_estimate_eur: number | null;
@@ -56,12 +64,66 @@ export interface HealthCheck {
 }
 
 // =============================================================================
-// fetch helper
+// Mutations P16.B
+// =============================================================================
+export interface AgentConfig {
+  agent_name: string;
+  enabled: boolean;
+  intensity_level: number;
+  schedule_cron: string | null;
+  daily_limit: number | null;
+  max_tokens_per_day: number | null;
+  tier1_threshold: number;
+  paused_until: string | null;
+  notes: string | null;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export interface AgentConfigPatch {
+  enabled?: boolean;
+  intensity_level?: number;
+  schedule_cron?: string | null;
+  daily_limit?: number | null;
+  max_tokens_per_day?: number | null;
+  tier1_threshold?: number;
+  paused_until?: string | null;
+  notes?: string | null;
+  clear_paused?: boolean;
+}
+
+export interface TripBreakerPayload {
+  reason: string;
+  severity?: "critical" | "warning" | "info";
+}
+
+// =============================================================================
+// fetch helpers
 // =============================================================================
 async function getJSON<T>(path: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(path, { signal, headers: { Accept: "application/json" } });
   if (!response.ok) {
     throw new Error(`${path} → HTTP ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
+async function sendJSON<T>(
+  method: "POST" | "PATCH" | "PUT" | "DELETE",
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  const response = await fetch(path, {
+    method,
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`${method} ${path} → HTTP ${response.status} ${detail.slice(0, 200)}`);
   }
   return (await response.json()) as T;
 }
@@ -95,4 +157,23 @@ export function fetchBreakers(signal?: AbortSignal): Promise<BreakerInfo[]> {
 
 export function fetchKPIs(signal?: AbortSignal): Promise<KPIsOverview> {
   return getJSON<KPIsOverview>("/api/kpis/overview", signal);
+}
+
+// =============================================================================
+// Mutations P16.B
+// =============================================================================
+export function fetchAgentConfig(name: string, signal?: AbortSignal): Promise<AgentConfig> {
+  return getJSON<AgentConfig>(`/api/agents/${encodeURIComponent(name)}/config`, signal);
+}
+
+export function patchAgentConfig(name: string, patch: AgentConfigPatch): Promise<AgentConfig> {
+  return sendJSON<AgentConfig>("PATCH", `/api/agents/${encodeURIComponent(name)}/config`, patch);
+}
+
+export function tripBreaker(name: string, payload: TripBreakerPayload): Promise<BreakerInfo> {
+  return sendJSON<BreakerInfo>("POST", `/api/breakers/${encodeURIComponent(name)}/trip`, payload);
+}
+
+export function resetBreaker(name: string): Promise<BreakerInfo> {
+  return sendJSON<BreakerInfo>("POST", `/api/breakers/${encodeURIComponent(name)}/reset`);
 }
