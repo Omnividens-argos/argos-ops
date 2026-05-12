@@ -1,3 +1,4 @@
+import { Info } from "lucide-react";
 import { useCallback, useState } from "react";
 import type { BreakerInfo } from "../api";
 import { fetchBreakers, resetBreaker, tripBreaker } from "../api";
@@ -24,6 +25,24 @@ export function Breakers() {
 
   return (
     <div className="p-6 space-y-4">
+      {/* Encart explicatif — pour l'user qui ne sait pas ce qu'est un breaker. */}
+      <section className="rounded-md border border-argos-info/30 bg-argos-info/5 p-4 flex gap-3">
+        <Info size={16} strokeWidth={2} className="text-argos-info shrink-0 mt-0.5" />
+        <div className="space-y-1.5">
+          <h2 className="text-sm font-semibold text-argos-fg">Disjoncteurs (Breakers)</h2>
+          <p className="text-xs text-argos-fg-secondary leading-relaxed">
+            Comme dans un tableau électrique : si quelque chose d'anormal arrive
+            (chute MRR brutale, 3 erreurs Stripe d'affilée, etc.) un disjoncteur
+            « saute » et coupe l'agent automatiquement pour éviter qu'il fasse
+            des dégâts. Tu peux aussi en activer un manuellement (ex : avant
+            de partir en vacances — `Trip manuel` ci-dessous).
+          </p>
+          <p className="font-mono text-[10px] text-argos-fg-tertiary">
+            Un breaker tripped doit être resetté manuellement après avoir corrigé la cause racine.
+          </p>
+        </div>
+      </section>
+
       {flash && (
         <Flash variant={flash.variant} message={flash.msg} onDismiss={() => setFlash(null)} />
       )}

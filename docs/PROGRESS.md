@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 12 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + **P16.B done** 2026-05-12)
-- **Phase en cours :** P16.B complet (backend + frontend mutations). Smoke test live OK : PATCH `/api/agents/{name}/config` persiste, `/breakers/{name}/trip|reset` fonctionnent depuis l'UI.
-- **Dernière partie done :** P16.B session 2 — frontend controls (toggle inline, pause 1h/24h, drawer config slider/limits/notes, nouvelle vue Breakers avec trip manuel + reset)
+- **Sessions terminées :** 12 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12)
+- **Phase en cours :** Refonte UX du Admin Panel done (light/dark theme, catégorisation 6 catégories d'agents avec slots roadmap, status pills multi-états, Overview enrichi avec heatmap+sparklines, Runs groupé par jour, encart explicatif Breakers). Annexe D ajoutée au plan (7 agents proposés).
+- **Dernière partie done :** Refonte UX P16 — invoque skills `ui-ux-pro-max` (palette light cohérente) + `frontend-design` (composants StatusPill, Sparkline, Heatmap, ThemeToggle). 7 nouveaux agents au plan (Annexe D).
 - **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement.
-- **Prochaine partie :** Sprint 2 reprise — **P11-PREP** (Mastodon `infosec.exchange` + Reddit refresh + LinkedIn approval check, ~30 min manuel) puis **P11** (connecteurs sociaux) puis **P9** (ContentBot multi-canal).
+- **Prochaine partie :** Sprint 2 reprise — **P11-PREP** (Mastodon + Reddit + LinkedIn approval, ~30 min manuel) puis **P11** (connecteurs sociaux) puis **P9** (ContentBot).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)

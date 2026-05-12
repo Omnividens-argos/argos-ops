@@ -1,28 +1,26 @@
 /** @type {import('tailwindcss').Config} */
-// Palette canonique figée dans docs/UI_DECISIONS.md § 2 — dark-only zinc base
-// + accents emerald/sky/amber/rose. La déclaration explicite ci-dessous évite
-// d'avoir à se référer au CSS variable nommage à chaque composant.
+// Dual theme via CSS variables — voir src/index.css pour les valeurs hex.
+// La source de vérité du choix design est docs/UI_DECISIONS.md § 2.
+
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        // Surfaces
-        "argos-bg": "#09090b",        // zinc-950 — fond principal
-        "argos-surface": "#18181b",   // zinc-900 — cards, sidebar, topbar
-        "argos-surface-2": "#27272a", // zinc-800 — hover, table header
-        "argos-border": "#3f3f46",    // zinc-700 — borders cards
-        "argos-border-subtle": "#27272a", // zinc-800 — dividers tableaux
-        // Texte
-        "argos-fg": "#f4f4f5",        // zinc-100 — titres
-        "argos-fg-secondary": "#a1a1aa", // zinc-400 — body
-        "argos-fg-tertiary": "#71717a",  // zinc-500 — captions
-        "argos-fg-disabled": "#52525b",  // zinc-600 — disabled
-        // Status accents
-        "argos-healthy": "#10b981",   // emerald-500
-        "argos-info": "#0ea5e9",      // sky-500
-        "argos-warning": "#f59e0b",   // amber-500
-        "argos-danger": "#f43f5e",    // rose-500
+        "argos-bg": "rgb(var(--color-bg-base) / <alpha-value>)",
+        "argos-surface": "rgb(var(--color-bg-surface) / <alpha-value>)",
+        "argos-surface-2": "rgb(var(--color-bg-surface-2) / <alpha-value>)",
+        "argos-border": "rgb(var(--color-border) / <alpha-value>)",
+        "argos-border-subtle": "rgb(var(--color-border-subtle) / <alpha-value>)",
+        "argos-fg": "rgb(var(--color-fg) / <alpha-value>)",
+        "argos-fg-secondary": "rgb(var(--color-fg-secondary) / <alpha-value>)",
+        "argos-fg-tertiary": "rgb(var(--color-fg-tertiary) / <alpha-value>)",
+        "argos-fg-disabled": "rgb(var(--color-fg-disabled) / <alpha-value>)",
+        "argos-healthy": "rgb(var(--color-healthy) / <alpha-value>)",
+        "argos-info": "rgb(var(--color-info) / <alpha-value>)",
+        "argos-warning": "rgb(var(--color-warning) / <alpha-value>)",
+        "argos-danger": "rgb(var(--color-danger) / <alpha-value>)",
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],

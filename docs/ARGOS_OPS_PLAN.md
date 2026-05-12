@@ -1420,6 +1420,40 @@ peuvent se compresser à ~3-5 jours réels.
 
 ---
 
+# Annexe D — Agents proposés (idées non encore priorisées)
+
+Ces 7 agents sont **proposés au plan** suite à la refonte UX du Admin
+Control Panel le 2026-05-12. Ils complètent les 12 agents canoniques
+(Annexe A). Pas de partie numérotée encore — à instancier en Pn quand le
+fondateur prioritise, avec une décision dans `DECISIONS.md`.
+
+Ils sont **visibles dans la vue Agents** du dashboard comme « slots
+roadmap » (cards désaturées avec badge `Roadmap`), pour que le fondateur
+voie en glance le champ d'action futur sans confondre avec les agents
+actifs.
+
+| Agent | Catégorie | Description | Sprint pressenti | Dépendances |
+|-------|-----------|-------------|------------------|-------------|
+| **ReplyBot** | Comms sortante | Répond aux mentions LinkedIn / Reddit / Mastodon — humain-validé (Tier 1) avant publication | Sprint 3+ | P11 (connecteurs sociaux), P14 (juge) |
+| **ReviewBot** | Comms sortante | Sollicite des vrais avis (G2 / Capterra / Google) post-onboarding J+30. Modère uniquement insultes/diffamation | Sprint 4+ | P5 (EmailBot), P7 (FinanceBot pour repérer onboarding J+30) |
+| **TrendSpotter** | Contenu / SEO | Détecte tendances cybersec sur Reddit `/r/netsec`, Hacker News, blogs RSSI → alimente SEOBot avec keywords + angles. Pas de SERP scraping (D-017) | Sprint 2+ | P10 (SEOBot), P11 (Reddit connecteur) |
+| **CompetitorWatcher** | Monitoring & Intel | Scrape hebdo pages features/pricing des concurrents (Acunetix, Detectify, Burp Pro, Intruder, Pentera) — diff vs semaine précédente, alerte Discord | Sprint 3+ | aucune (HTTP fetch direct + structured extract) |
+| **PressMonitor** | Monitoring & Intel | Alerte mentions « Argos », « Omnividens », « SecHunter » sur le web public (Google Alerts-style) + Reddit mentions | Sprint 3+ | P11 (Reddit) |
+| **ChurnPredictor** | Finance & Admin | Analyse signaux pré-churn (Stripe : `subscription_status` changes, downgrades) + interactions CRM (mails frustrés, support tickets P1) → score risque churn par customer | Sprint 4+ | P7 (FinanceBot), P5 (EmailBot), P6 (SupportBot) |
+| **InvoicePredictor** | Finance & Admin | Forecast cash flow 30j / 60j / 90j basé sur les subs Stripe actives (renouvellements certains + probabilistiques) + dunning en cours | Sprint 4+ | P7 (FinanceBot) |
+
+**Critère de priorisation** : un slot roadmap passe en partie active
+quand le fondateur a une vraie demande pour cet agent OU quand un signal
+business le justifie (ex : ReviewBot devient priorité quand on a 20+
+clients actifs ; ChurnPredictor quand on dépasse 50+ clients).
+
+**Ne pas créer ces agents par anticipation** : YAGNI strict, on les ajoute
+au moment opportun pour ne pas avoir du code mort. Ils sont au plan pour
+**ne pas oublier** et **donner une vision du champ d'action futur** dans
+le dashboard, pas pour être implémentés tout de suite.
+
+---
+
 # Annexe C — Anti-patterns à éviter
 
 - ❌ Mettre Claude Code en charge du chat live client : abonnement pas fait pour ça,

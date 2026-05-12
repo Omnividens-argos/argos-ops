@@ -36,33 +36,43 @@
 
 ## 2. Palette canonique
 
+**Stratégie dual-theme (révision 2026-05-12)** : les tokens sont définis via
+CSS custom properties dans `src/index.css` (`:root` light + `:root.dark`
+dark), et Tailwind les expose via `--color-...` dans `tailwind.config.js`.
+Toggle théme depuis la Topbar (icône Sun/Moon, persisté `localStorage`,
+init synchrone anti-FOUC). Light **et** dark passent les contrôles
+contrast 4.5:1 WCAG AA.
+
 ### 2.1 Surfaces
 
-| Token | Hex | Usage |
-|---|---|---|
-| `bg-base` | `#09090b` (zinc-950) | Fond principal de l'app |
-| `bg-surface` | `#18181b` (zinc-900) | Cards, sidebar, topbar |
-| `bg-surface-2` | `#27272a` (zinc-800) | Hover, active state, table header |
-| `border` | `#3f3f46` (zinc-700) | Bordures cards, dividers |
-| `border-subtle` | `#27272a` (zinc-800) | Dividers tableaux |
+| Token | Dark hex | Light hex | Usage |
+|---|---|---|---|
+| `bg-base` | `#09090b` (zinc-950) | `#fafafa` (zinc-50) | Fond principal app |
+| `bg-surface` | `#18181b` (zinc-900) | `#ffffff` (white) | Cards, sidebar, topbar |
+| `bg-surface-2` | `#27272a` (zinc-800) | `#f4f4f5` (zinc-100) | Hover, table header |
+| `border` | `#3f3f46` (zinc-700) | `#d4d4d8` (zinc-300) | Bordures cards |
+| `border-subtle` | `#27272a` (zinc-800) | `#e4e4e7` (zinc-200) | Dividers tableaux |
 
 ### 2.2 Texte
 
-| Token | Hex | Usage |
-|---|---|---|
-| `text-primary` | `#f4f4f5` (zinc-100) | Titres, labels principaux |
-| `text-secondary` | `#a1a1aa` (zinc-400) | Body, contenu secondaire |
-| `text-tertiary` | `#71717a` (zinc-500) | Captions, métadonnées |
-| `text-disabled` | `#52525b` (zinc-600) | Disabled states |
+| Token | Dark hex | Light hex | Usage |
+|---|---|---|---|
+| `fg` | `#f4f4f5` (zinc-100) | `#18181b` (zinc-900) | Titres, labels principaux |
+| `fg-secondary` | `#a1a1aa` (zinc-400) | `#3f3f46` (zinc-700) | Body, contenu secondaire |
+| `fg-tertiary` | `#71717a` (zinc-500) | `#71717a` (zinc-500) | Captions, métadonnées |
+| `fg-disabled` | `#52525b` (zinc-600) | `#a1a1aa` (zinc-400) | Disabled states |
 
 ### 2.3 Accents (status colors)
 
-| Token | Hex | Quand |
-|---|---|---|
-| `healthy` | `#10b981` (emerald-500) | Agent success, KPI vert, breaker reset |
-| `info` | `#0ea5e9` (sky-500) | Liens, actions navigation, badge neutre |
-| `warning` | `#f59e0b` (amber-500) | Escalades en attente humain, MRR baisse modérée |
-| `danger` | `#f43f5e` (rose-500) | Breaker actif, agent failed, MRR chute > 5 % |
+Accents légèrement assombris en light pour respecter le ratio 4.5:1 sur
+fond clair (les `-500` Tailwind sont trop pâles sur blanc).
+
+| Token | Dark hex (-500) | Light hex (-600) | Quand |
+|---|---|---|---|
+| `healthy` | `#10b981` (emerald-500) | `#059669` (emerald-600) | Agent success, KPI vert, breaker reset |
+| `info` | `#0ea5e9` (sky-500) | `#0284c7` (sky-600) | Liens, badge neutre, sparkline normale |
+| `warning` | `#f59e0b` (amber-500) | `#d97706` (amber-600) | Pause active, escalades en attente |
+| `danger` | `#f43f5e` (rose-500) | `#e11d48` (rose-600) | Breaker actif, agent failed, MRR chute |
 
 **Règle :** maximum 1-2 accents par vue à la fois. La vue par défaut
 doit être à 95 % monochrome zinc, l'accent attire l'œil sur ce qui

@@ -1,5 +1,6 @@
 import type { HealthCheck } from "../api";
 import { formatAbsoluteTime } from "../lib/format";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface Props {
   health: HealthCheck | null;
@@ -11,7 +12,7 @@ export function Topbar({ health, lastRefreshedAt, trippedBreakers }: Props) {
   const dbOk = health?.ok ?? false;
 
   return (
-    <header className="h-12 shrink-0 border-b border-argos-border-subtle bg-argos-surface flex items-center justify-between px-5">
+    <header className="h-12 shrink-0 border-b border-argos-border-subtle bg-argos-surface flex items-center justify-between px-5 theme-transition">
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2">
           <div
@@ -29,7 +30,7 @@ export function Topbar({ health, lastRefreshedAt, trippedBreakers }: Props) {
         )}
       </div>
 
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-4">
         {trippedBreakers > 0 && (
           <div className="flex items-center gap-2 px-2.5 py-1 rounded-md border border-argos-danger/40 bg-argos-danger/10">
             <span className="size-1.5 rounded-full bg-argos-danger animate-pulse" />
@@ -38,9 +39,10 @@ export function Topbar({ health, lastRefreshedAt, trippedBreakers }: Props) {
             </span>
           </div>
         )}
-        <span className="font-mono text-[11px] text-argos-fg-tertiary">
+        <span className="font-mono text-[11px] text-argos-fg-tertiary hidden md:inline">
           Last refresh : {lastRefreshedAt ? formatAbsoluteTime(lastRefreshedAt.toISOString()) : "—"}
         </span>
+        <ThemeToggle />
       </div>
     </header>
   );
