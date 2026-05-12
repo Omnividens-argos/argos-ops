@@ -233,7 +233,7 @@ visuelle. Le code production de 16.A démarre Sprint 1 post-P7.
 
 - Fichier : [`mockup/admin-dashboard.html`](../mockup/admin-dashboard.html)
 - Stack mockup : Tailwind CSS via CDN + Alpine.js + Inter/JetBrains Mono via Google Fonts. **Aucune dépendance npm**, ouvre directement dans un navigateur
-- Données : DigestBuilder run réel (id=2 success, 5.11 s) ; les autres agents (EmailBot, ChatBot, FinanceBot) en `inactive`
+- Données : DigestBuilder run réel (id=2 success, 5.11 s) ; les autres agents (EmailBot, SupportBot, FinanceBot) en `inactive`. _(Le mockup initial 2026-05-08 listait un « ChatBot widget » placeholder — retiré par [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).)_
 - Validation visuelle direction : palette zinc + accent healthy/danger, layout sidebar+topbar+main, cards denses
 - **Action de suivi avant code prod 16.A** : invoquer `ui-ux-pro-max`
   pour exploration plus large + valider les choix actuels (densité,

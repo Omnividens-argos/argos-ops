@@ -16,16 +16,21 @@
         ┌─────────────────────┼─────────────────────┐
    ACQUISITION            CONVERSION            RÉTENTION
    (top funnel)           (mid funnel)          (bottom funnel)
-   ContentBot P9          ChatBot P8            SupportBot P6
-   SEOBot    P10          EmailBot in P5        FinanceBot P7
-   AdBot     P12          DemoBot (phase 2)     AnalyticsBot
-   OutboundBot P13        CallerBot (phase 2)
+   ContentBot P9          EmailBot in P5        SupportBot P6
+   SEOBot    P10          DemoBot (phase 2)     FinanceBot P7
+   AdBot     P12          CallerBot (phase 2)   AnalyticsBot
+   OutboundBot P13
                               ▲
                               │
                     Agent-juge Tier 1 (P14)
                     Breakers (P15)
                     Admin Panel (P16)
 ```
+
+> _Note : ChatBot widget P8 retiré du périmètre 2026-05-12 — cf.
+> [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).
+> Le canal entrant prospects/visiteurs reste l'email
+> (`contact@omnividens.fr` via EmailBot P5 + SupportBot P6)._
 
 Les agents sont des **slash commands Claude Code** lancés par cron **sur
 l'ordi du fondateur** (cf. [`DECISIONS.md` D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce)).
@@ -42,11 +47,10 @@ sortant** : tout passe par l'abonnement Claude Code Pro Max du fondateur.
 |-----------|------|-------|------|
 | **Runtime de pensée** | Exécute les slash commands Claude Code périodiquement | Claude Code Pro/Max | **ordi fondateur** (D-017) |
 | **CRM + KB** | Stocke leads, interactions, tickets, agent_runs, kb_chunks | Postgres 16 (DB `argos_ops`) + pgvector | serveur SecHunter (D-001) |
-| **Cache / state / queue** | Quotas, rate limits, idempotency keys, queue `inbox_pending` pour webhooks 24/7 | Redis 7 (DB index 3) | serveur SecHunter (D-001) |
-| **Webhook receivers** | Endpoints HTTP `chat.omnividens.fr`, push Stripe/Gmail | FastAPI + Caddy reverse proxy | serveur SecHunter (24/7) |
-| **Embeddings KB** | Génère les vecteurs 768d des chunks markdown pour pgvector | `fastembed` + `intfloat/multilingual-e5-base` (CPU, ONNX, ~280 MB poids) | **ordi fondateur** (D-017) |
-| **Chat live** | Réponses temps réel sur `omnividens.fr` | **Claude Code Pro Max + queue Redis pull-based** (différé si ordi éteint, cf. D-017) | runtime ordi fondateur, queue serveur |
-| **Email inbound** | Lecture / draft / réponse `contact@omnividens.fr` | Gmail API + IMAP | runtime ordi fondateur |
+| **Cache / state / queue** | Quotas, rate limits, idempotency keys | Redis 7 (DB index 3) | serveur SecHunter (D-001) |
+| **Webhook receivers** | Endpoints HTTP futurs (Stripe push, etc.) | FastAPI + Caddy reverse proxy | serveur SecHunter (24/7) |
+| **Embeddings KB** | Génère les vecteurs 768d des chunks markdown pour pgvector | `fastembed` + `paraphrase-multilingual-mpnet-base-v2` (CPU, ONNX, ~280 MB poids) | **ordi fondateur** (D-017) |
+| **Email inbound** | Lecture / draft / réponse `contact@omnividens.fr` | IMAP/SMTP OVH Zimbra (D-018) | runtime ordi fondateur |
 | **Email outbound** | Cold email volume modéré (≤ 50/jour) | Gmail API depuis domaine secondaire | runtime ordi fondateur |
 | **Sociaux** | Posting LinkedIn / Mastodon / Reddit | API natives via `argos_ops.integrations.*` | runtime ordi fondateur |
 | **Ads** | Pilotage Google / Meta / LinkedIn Ads | API natives, shadow mode tant que budget = 0 | runtime ordi fondateur |
@@ -94,29 +98,10 @@ log agent_runs              Postgres distant
 END
 ```
 
-**Webhook 24/7 (chat widget P8, push Stripe / Gmail) — flux pull-based :**
-
-```
-[Visiteur omnividens.fr — n'importe quelle heure]
-POST chat.omnividens.fr/message
-   ↓
-[Serveur SecHunter — endpoint FastAPI, 24/7]
-LPUSH inbox_pending {message, session_id, ts}    Redis serveur
-HTTP 202 Accepted (réponse différée)
-   ↓
-                                        [ORDI fondateur, quand allumé]
-                                        cron */1 * * * *
-                                           ↓
-                                        claude --print "/process-inbox"
-                                           ↓
-                                        BRPOP inbox_pending          Redis serveur
-                                           ↓
-                                        Pour chaque message :
-                                          embed local + similarity KB
-                                          réponse Claude Code (Pro Max)
-                                          push réponse vers session
-                                          (websocket back / polling)
-```
+> _Flux webhook 24/7 chat widget retiré par
+> [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).
+> Les futurs webhooks (Stripe push, etc.) reprendront un pattern pull-based
+> Redis similaire si besoin se présente._
 
 ---
 
@@ -141,8 +126,7 @@ Voir [`ESCALATION_RULES.md`](ESCALATION_RULES.md) pour les règles précises.
 | Runtime de pensée | Claude Code Pro/Max via cron / Task Scheduler | **déjà payé** (abonnement fondateur) | ordi fondateur |
 | Orchestration | cron / Windows Task Scheduler + scripts Python | 0 € | ordi fondateur |
 | CRM | Postgres + pgvector | 0 € (DB existante) | serveur SecHunter |
-| Cache + queue | Redis (cache + `inbox_pending` queue webhooks) | 0 € (déjà en prod) | serveur SecHunter |
-| **LLM chat live** | **Claude Code Pro Max + queue Redis pull-based** | **0 € (forfait Pro Max)** | runtime ordi, queue serveur |
+| Cache + queue | Redis (cache + idempotency keys agents) | 0 € (déjà en prod) | serveur SecHunter |
 | **LLM agents (tous)** | **Claude Code Pro Max via slash commands** | **0 € (forfait Pro Max)** | runtime ordi |
 | **Embeddings KB** | **`fastembed` + `multilingual-e5-base` (CPU local)** | **0 € forever** | ordi fondateur |
 | Email | Gmail API | 0 € (≤ 500/jour) | runtime ordi |
@@ -169,9 +153,10 @@ Ubuntu 24.04, mutualisé) :
 
 - Postgres 16 : DB `argos_ops` (D-001)
 - Redis 7 : DB index 3 (D-001)
-- Caddy 2 reverse proxy : `ops.omnividens.fr` + `chat.omnividens.fr` (P8 / P16)
-- FastAPI webhook receivers : pour les événements 24/7 (chat, Stripe push,
-  Gmail push) → poussent dans la queue Redis `inbox_pending`
+- Caddy 2 reverse proxy : `ops.omnividens.fr` (P16). _(`chat.omnividens.fr`
+  retiré par [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).)_
+- FastAPI webhook receivers : pour de futurs événements 24/7 (Stripe push,
+  etc.) si besoin se présente
 
 **Couche calcul agents IA — ordi fondateur** (D-017) :
 

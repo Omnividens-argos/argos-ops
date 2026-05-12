@@ -1,7 +1,7 @@
 # Pricing — Argos / Omnividens
 
 > Référentiel pricing canonique. **Source de vérité** pour la page Pricing
-> publique, SupportBot, ChatBot widget, OutboundBot, FinanceBot et tout
+> publique, SupportBot, OutboundBot, FinanceBot et tout
 > document mentionnant un prix.
 >
 > Source : interview fondateur en P3-M2 (2026-05-07). Si un autre fichier
@@ -312,7 +312,7 @@ pricing sans halluciner. **Détail technique complet → voir
 
 ---
 
-## 11. Réponses-types pricing pour SupportBot / ChatBot
+## 11. Réponses-types pricing pour SupportBot
 
 ### « C'est combien ? »
 

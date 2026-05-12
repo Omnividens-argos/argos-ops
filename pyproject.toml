@@ -20,7 +20,7 @@ dependencies = [
   "redis>=5.0",
   "alembic>=1.13",
 
-  # Web (chat widget + ops dashboard)
+  # Web (ops dashboard P16 + futurs webhook receivers)
   "fastapi>=0.110",
   "uvicorn[standard]>=0.29",
   "sse-starlette>=2.1",

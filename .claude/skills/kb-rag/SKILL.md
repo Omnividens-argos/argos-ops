@@ -1,6 +1,6 @@
 ---
 name: kb-rag
-description: Recherche similarité dans la Knowledge Base Argos via fastembed local + pgvector cosine. Utilise ce skill quand le user demande de répondre à une question produit, de drafter un email avec contexte KB, ou de débugger pourquoi une réponse RAG escalade. Réutilisé par /run-support-tier1, /check-emails, ChatBot widget P8.
+description: Recherche similarité dans la Knowledge Base Argos via fastembed local + pgvector cosine. Utilise ce skill quand le user demande de répondre à une question produit, de drafter un email avec contexte KB, ou de débugger pourquoi une réponse RAG escalade. Réutilisé par /run-support-tier1, /check-emails, et futurs ContentBot P9 / OutboundBot P13.
 ---
 
 # kb-rag
@@ -111,6 +111,7 @@ intégration : 5 questions dans la KB → réponse + citations, 5 hors KB
 - **Pas de re-ranking** : on prend les top_k directs de pgvector. À
   améliorer en P14 (agent-juge) si besoin
 - **Pas de cache** des embeddings de query : chaque ``embed_query`` paie
-  les 50 ms. Pour /chat widget temps réel (P8), un cache LRU sera utile
+  les 50 ms. Pour des futurs canaux temps réel (à concevoir, hors P8 qui
+  est annulée — D-019), un cache LRU sera utile
 - **Modèle bloquant CPU** : pas de GPU. Acceptable pour le volume actuel
   (Sprint 1-2). À reconsidérer si > 100 queries/sec

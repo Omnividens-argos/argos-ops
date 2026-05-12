@@ -23,7 +23,7 @@
 | 5 | EmailBot inbound | Sprint 1 | `skill-creator` |
 | 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | `skill-creator` |
 | 7 | FinanceBot (Stripe + relances) | Sprint 1 | `skill-creator` |
-| 8 | Chatbot widget site (Claude Code Pro Max + queue Redis, D-017) | Sprint 1 | `frontend-design`, `skill-creator` |
+| ~~8~~ | ~~Chatbot widget site~~ — **cancelled par [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)** (2026-05-12) | — | — |
 | 9 | ContentBot multi-canal | Sprint 2 | `skill-creator` |
 | 10 | SEOBot stratégie + briefs | Sprint 2 | `skill-creator` |
 | 11 | Connecteurs sociaux (LinkedIn / X / Reddit) | Sprint 2 | — |
@@ -56,7 +56,7 @@
 
 L'objectif n'est pas de remplacer le fondateur, mais de **lui rendre du temps** :
 - Acquisition automatisée (content + SEO + ads + outbound)
-- Conversion semi-auto (chatbot + email + démo)
+- Conversion semi-auto (formulaire contact + email + démo) — pas de chatbot live (D-019)
 - Support 24/7 sans humain (Tier 0-1) avec escalade asynchrone (Tier 2)
 - Admin financière auto (Stripe + relances + reporting)
 - Le fondateur ne touche que le Tier 4 (cas critiques rares) et la stratégie
@@ -71,10 +71,10 @@ L'objectif n'est pas de remplacer le fondateur, mais de **lui rendre du temps** 
         ┌─────────────────┼─────────────────┐
    ACQUISITION       CONVERSION         RÉTENTION
    (top funnel)      (mid funnel)       (bottom funnel)
-   ContentBot        ChatBot             SupportBot
-   SEOBot            EmailBot in         CSMBot
-   AdBot             DemoBot (P2)        FinanceBot
-   OutboundBot       CallerBot (P2)      AnalyticsBot
+   ContentBot        EmailBot in         SupportBot
+   SEOBot            DemoBot (P2)        CSMBot
+   AdBot             CallerBot (P2)      FinanceBot
+   OutboundBot                           AnalyticsBot
 ```
 
 ## 0.3 Système d'escalade Tier 0-4
@@ -104,8 +104,9 @@ fait (Partie 2).
 ## 0.5 Implications immédiates des choix
 
 - **Caddy** existant doit être étendu pour router `ops.omnividens.fr` → `127.0.0.1:9000`
-  (Ops Dashboard, Partie 16) et un éventuel `chat.omnividens.fr` → endpoint chat widget
-  (Partie 8). Ces blocs Caddy sont à ajouter dans le container `sechunter-caddy-1`.
+  (Ops Dashboard, Partie 16). Ce bloc Caddy est à ajouter dans le container
+  `sechunter-caddy-1`. (Le sous-domaine `chat.omnividens.fr` initialement prévu
+  pour la Partie 8 n'est plus utilisé — cf. [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).)
 - **Postgres** : `CREATE DATABASE argos_ops OWNER argos_ops;` + user dédié + extension
   pgvector (`CREATE EXTENSION vector;` dans la nouvelle DB). Pas de partage de données
   avec `sechunter` — toute donnée nécessaire (clients, MRR Stripe…) sera répliquée par
@@ -138,15 +139,14 @@ fait (Partie 2).
 | Runtime de pensée | Claude Code Pro/Max via cron / Task Scheduler | déjà payé | **ordi fondateur** |
 | Orchestration | cron / Windows Task Scheduler + scripts Python | 0 € | ordi fondateur |
 | CRM | PostgreSQL + pgvector (extension) | 0 € (DB existante) | serveur SecHunter |
-| Cache + queue | Redis (cache + `inbox_pending` queue webhooks) | 0 € | serveur SecHunter |
-| **LLM chat live** | **Claude Code Pro Max + queue Redis pull-based** (D-017) | **0 € (forfait Pro Max)** | runtime ordi |
+| Cache + queue | Redis (cache + idempotency keys agents) | 0 € | serveur SecHunter |
 | **LLM agents (tous)** | **Claude Code Pro Max via slash commands** (D-017) | **0 € (forfait Pro Max)** | runtime ordi |
 | **Embeddings KB** | **`fastembed` + `multilingual-e5-base`** (CPU local) (D-017) | **0 € forever** | ordi fondateur |
 | Email inbound | Gmail API + IMAP | 0 € | runtime ordi |
 | Email outbound (volume modéré) | Gmail API (≤ 500/jour) | 0 € | runtime ordi |
 | Social posting | API natives LinkedIn / Mastodon / Reddit (D-004 remplace X) | 0 € | runtime ordi |
 | Ads pilotage | Google Ads / Meta / LinkedIn Marketing APIs | 0 € (budget pub à part) | runtime ordi |
-| Webhook receivers | FastAPI + Caddy reverse proxy (`chat.omnividens.fr` etc.) | 0 € | serveur SecHunter |
+| Webhook receivers | FastAPI + Caddy reverse proxy (Stripe webhook, futur) | 0 € | serveur SecHunter |
 | Analytics | Umami self-host (D-007 reporte à INFRA-02) | 0 € | serveur SecHunter |
 | Téléphonie IA | reporté en phase 2 | — | — |
 | Avatar démo | reporté en phase 2 | — | — |
@@ -233,9 +233,6 @@ argos-ops/
 │   │   ├── google_ads.py
 │   │   ├── meta_ads.py
 │   │   └── umami.py                   # D-007 (analytics, INFRA-02)
-│   ├── chat_widget/
-│   │   ├── server.py                  # FastAPI receiver 24/7 (serveur SecHunter)
-│   │   └── worker.py                  # Worker pull queue Redis (ordi fondateur, D-017)
 │   └── ops_dashboard/
 │       └── app.py
 ├── docs/
@@ -375,7 +372,7 @@ CREATE TABLE interactions (
   lead_id BIGINT REFERENCES leads(id),
   channel TEXT,                   -- 'email' | 'chat' | 'phone' | 'linkedin' | 'x'
   direction TEXT,                 -- 'in' | 'out'
-  agent_name TEXT,                -- 'EmailBot' | 'ChatBot' | ...
+  agent_name TEXT,                -- 'EmailBot' | 'SupportBot' | 'FinanceBot' | ...
   subject TEXT,
   body TEXT,
   judge_score INT,                -- 0-100, NULL si non jugé
@@ -645,10 +642,10 @@ en s'appuyant sur la KB pgvector.
 📦 **Livrables** :
 - `.claude/commands/run-support-tier1.md`
 - Skill `kb-rag` (recherche similarité + assemblage contexte)
-- Intégration EmailBot et ChatBot consomment ce skill
+- Intégration EmailBot consomme ce skill via `/check-emails`
 
 🛠️ **Skills à utiliser** :
-- `skill-creator` pour `kb-rag` (réutilisable par EmailBot, ChatBot, ContentBot)
+- `skill-creator` pour `kb-rag` (réutilisable par EmailBot, ContentBot, OutboundBot)
 
 ## 6.1 Pipeline RAG
 
@@ -706,84 +703,32 @@ relances impayées sont déclenchées automatiquement à J+3.
 
 ---
 
-# Partie 8 — Chatbot widget site (Claude Code Pro Max + queue Redis)
+# Partie 8 — Chatbot widget site — ❌ CANCELLED (D-019)
 
-🎯 **Objectif** : widget chat sur `omnividens.fr` qui répond aux visiteurs,
-qualifie les leads, propose démo. **Réponse différée si l'ordi du fondateur
-est éteint (D-017)** — la queue Redis absorbe les messages 24/7.
+> **Statut : annulée le 2026-05-12** par
+> [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).
+> Argos Ops n'aura pas de chatbot widget sur `omnividens.fr`. Le canal entrant
+> reste **email exclusivement** (`contact@omnividens.fr`, EmailBot P5 +
+> SupportBot P6 + `/check-emails` humain-validé).
 
-🧱 **Prérequis** : Parties 3, 6.
+**Pourquoi (résumé)** :
+- Latence pull-based Claude Code Pro Max (D-017) incompatible avec UX chat
+  temps-réel (visiteur attendrait 1-5 min en heures ouvrées, hors heures ouvrées
+  jusqu'au réveil de l'ordi du fondateur).
+- Surface fonctionnelle déjà couverte par EmailBot P5 + formulaire contact
+  HTML (à brancher côté repo SecHunter, mailto `contact@omnividens.fr`).
+- Compliance RGPD / AI Act simplifiée : pas de bandeau IA chat, pas de cookie
+  de session, pas de retention 1 an de conversations.
 
-📦 **Livrables** :
-- Endpoint FastAPI `argos_ops/chat_widget/server.py` (déployé sur **serveur
-  SecHunter** — couche données, 24/7)
-- Composant React intégré au frontend SecHunter (`sechunter/dashboard/frontend/`)
-- Worker Python local `argos_ops/chat_widget/worker.py` lancé par cron sur
-  l'ordi du fondateur (D-017) qui pull la queue Redis
-- Stockage conversations dans `interactions`
+Cf. [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)
+pour les détails complets (alternatives écartées, scope du cleanup, conditions
+de réversibilité future).
 
-🛠️ **Skills à utiliser** :
-- `frontend-design` pour la conception visuelle du widget (apparence, animations,
-  responsive, dark/light mode cohérent avec la landing)
-- `skill-creator` pour formaliser le skill `chat-orchestrator` (qui orchestre
-  KB-RAG + lead-scoring + booking)
-
-## 8.1 Architecture (révisée par D-017)
-
-```
-[Visiteur omnividens.fr — n'importe quelle heure]
-   ↓
-[Widget React] ──── WebSocket / SSE ───► [FastAPI /chat]   ← serveur SecHunter, 24/7
-                                              ↓
-                                         LPUSH inbox_pending {message, session_id}   Redis
-                                              ↓
-                                         HTTP 202 Accepted (réponse différée)
-                                              ↓
-                                         Widget affiche « Argos rédige… »
-
-
-[ORDI fondateur — quand allumé]
-cron */1 * * * * → claude --print "/process-chat-inbox"   ← Claude Code Pro Max
-                       ↓
-                   BRPOP inbox_pending   Redis distant
-                       ↓
-                   Embed local (multilingual-e5-base) + similarity search KB pgvector
-                       ↓
-                   Skill chat-orchestrator (Claude inline) → réponse + BANT score
-                       ↓
-                   Insert interaction direction='in/out'    Postgres distant
-                       ↓
-                   Push réponse vers la session (websocket back / polling endpoint)
-                       ↓
-                   Si BANT >= 70 → propose Cal.com auto-booked
-                       ↓
-                   Si signal hot → escalade Discord (webhook)
-```
-
-## 8.2 Pourquoi Claude Code Pro Max et pas Gemini / API tierce ?
-
-Décision figée par [D-017](DECISIONS.md#d-017--argos-ops-100--local-first--claude-code-pro-max--embeddings-open-source-z%C3%A9ro-api-llm-tierce) :
-
-- **Pas d'API LLM tierce** dans Argos Ops — souveraineté donnée + cohérence
-  avec la contrainte « 0 € de SaaS récurrent »
-- **Claude Code Pro Max consomme l'abonnement** (forfait connu) — pas de
-  quota free tier qui peut sauter (cf. blocage P3-M3 sur Gemini)
-- **Trade-off accepté** : latence non-réelle-temps. Le widget affiche
-  « Argos rédige… », le visiteur reçoit la réponse quand l'ordi du fondateur
-  pull la queue (typiquement < 5 min en heures ouvrées, plus si nuit)
-- **Acceptable au launch** pour le volume early stage (≤ 100 chats/jour).
-  Quand le coût d'opportunité (visiteurs qui décrochent en attendant)
-  dépasse le coût d'un Mac mini / Pi 5 dédié 24/7 → on bascule sur ce relai
-
-## 8.3 Booking démo
-
-Pas de Cal.com payant : un simple lien Calendly free tier OU `cal.com` self-host. Le bot
-propose 3 créneaux disponibles, le lead clique → booking Google Calendar du fondateur.
-
-✅ **Done quand** : un visiteur sur `omnividens.fr` peut poser une question, voir un état
-« Argos rédige… », recevoir une réponse (en heures ouvrées : < 5 min ; hors heures
-ouvrées : différé jusqu'au réveil de l'ordi), et réserver un créneau qui apparaît dans le
-Calendar du fondateur.
+**Implication sur le plan** :
+- Sprint 1 ne contient plus que P5 / P6 / P7 (clos officiellement 2026-05-12).
+- Sous-domaine `chat.omnividens.fr` non provisionné.
+- Skill `chat-orchestrator` retiré de l'inventaire P18.
+- KPI « Latence p95 ChatBot » retiré de § 19.3.
 
 ---
 
@@ -984,7 +929,7 @@ sur 3 axes (factuel / ton / risque légal).
 
 📦 **Livrables** :
 - Skill `claude-judge` (le cœur du Tier 1)
-- Intégré dans EmailBot, SupportBot, ChatBot, ContentBot, OutboundBot
+- Intégré dans EmailBot, SupportBot, ContentBot, OutboundBot
 - Champ `judge_score` et `judge_verdict` rempli partout
 
 🛠️ **Skills à utiliser** :
@@ -1150,7 +1095,6 @@ async def run_if_enabled(agent_name: str, action: Callable[[AgentConfig], Any]) 
 L'`intensity_level` (1-10) sert à scaler le travail réel de l'agent. Exemples :
 - ContentBot : intensité 5 = 3 posts/jour, intensité 10 = 6 posts/jour, intensité 1 = 1
 - OutboundBot : intensité 5 = 30 emails/jour, intensité 10 = 50, intensité 1 = 5
-- ChatBot : intensité contrôle la longueur de réponse + temp + RAG depth
 
 ## 16.2 Pages et fonctionnalités
 
@@ -1325,13 +1269,10 @@ réécrire tous les agents quand on ajoute le panel — anti-pattern.
   (accès / rectification / suppression / portabilité)
 - DPO externe à prévoir si > 250 prospects ou > 50 clients (~80 €/mois)
 
-## 17.4 Chatbot site
+## 17.4 Avis clients
 
-- Bandeau au démarrage : « Vous discutez avec une IA. Vos messages sont stockés pour
-  amélioration du service. »
-- Respect du choix cookies (pas de tracking sans consentement)
-
-## 17.5 Avis clients
+> Note : la section « Chatbot site » de la version v1 du plan est supprimée
+> ([D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)).
 
 - JAMAIS générer de faux avis (interdit, sanction CNIL + DGCCRF)
 - Solliciter des avis vrais via email post-onboarding J+30
@@ -1357,9 +1298,9 @@ parties.
 | `digest-builder` | 4 | AnalyticsBot |
 | `gmail-ops` | 5 | EmailBot, OutboundBot |
 | `email-classifier` | 5 | EmailBot |
-| `kb-rag` | 6 | EmailBot, ChatBot, ContentBot, SupportBot |
+| `kb-rag` | 6 | EmailBot, SupportBot, ContentBot, OutboundBot |
 | `stripe-ops` | 7 | FinanceBot |
-| `chat-orchestrator` | 8 | ChatBot |
+| ~~`chat-orchestrator`~~ | ~~8~~ | ~~ChatBot~~ — **annulé par D-019** |
 | `content-writer` | 9 | ContentBot |
 | `content-scheduler` | 9 | ContentBot |
 | `serp-analyzer` | 10 | SEOBot |
@@ -1379,7 +1320,8 @@ via `skill-creator`. Le skill devient l'unité de réutilisation entre agents.
 Pour la conception du projet lui-même (fondateur en train de coder avec Claude Code) :
 
 - `skill-creator` — créer chaque skill `argos-ops`
-- `frontend-design` — chatbot widget (Partie 8) + Ops Dashboard (Partie 16)
+- `frontend-design` — Ops Dashboard (Partie 16). _(La Partie 8 chatbot widget est
+  annulée — D-019.)_
 - `ui-ux-pro-max` — exploration de styles si plusieurs options à comparer (Partie 16)
 - `claude-api` — si un jour l'abonnement Claude Code ne suffit plus et on bascule sur
   l'API directe pour certains agents (phase 3)
@@ -1423,7 +1365,6 @@ Trois niveaux de logs :
 
 - Taux de slash commands réussis > 98 %
 - Latence p95 EmailBot < 30 s
-- Latence p95 ChatBot < 5 s
 - 0 breaker actif > 4 h
 - 0 escalade Tier 2 sans réponse > 48 h
 
@@ -1437,7 +1378,6 @@ Trois niveaux de logs :
 P0 → P1 → P2 → P3 → P4
                 P3 → P5 → P6 → P14 → P15 → P16
                 P3 → P7
-                P3 → P8 (besoin P6)
                 P3 → P11 → P9 → P10
                 P3 → P12 (besoin P14, P15)
                 P3 → P13 (besoin P5, P14, P15, P17)
@@ -1464,7 +1404,7 @@ Si le fondateur doit choisir 1 partie par jour pendant les 4 premières semaines
 | 13 | P7 (FinanceBot) | Sprint 1 |
 | 14 | **P16.A — Admin Panel MVP (read-only)** | Sprint 1 |
 | 15 | P17 (compliance) | Continu |
-| 16-18 | P8 (ChatBot widget) | Sprint 1 |
+| ~~16-18~~ | ~~P8 (ChatBot widget)~~ — **cancelled D-019** | — |
 | 19-20 | P11 (connecteurs sociaux) | Sprint 2 |
 | 21-22 | P9 (ContentBot) | Sprint 2 |
 | 23-24 | P10 (SEOBot) | Sprint 2 |

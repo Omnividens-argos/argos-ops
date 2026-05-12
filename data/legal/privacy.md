@@ -44,7 +44,7 @@ l'objet d'une mise à jour de ce document.
 | **Findings de scan** (vulnérabilités détectées sur vos cibles) | Métadonnées techniques (URL endpoint, sévérité CVSS, payload, oracle) | Restitution rapport, historique, comparaison run-à-run (Watch) | Exécution d'un contrat | Idem cibles scannées |
 | **Cold email outbound** (prospection BtoB) | Email professionnel, fonction, raison sociale | Prospection BtoB ciblée | Intérêt légitime BtoB (jurisprudence CNIL ; opt-out 1-clic systématique) | 3 ans, ou jusqu'à opt-out (suppression sous 7 jours) |
 | **Stripe** (paiements abonnements) | Nom, email, partie tokenisée carte bancaire (Stripe ne nous expose **jamais** le numéro complet) | Facturation, prélèvements récurrents, gestion abonnements | Exécution d'un contrat + obligation légale (article L.123-22 Code de commerce) | 10 ans (durée légale comptable FR) |
-| **Chat widget (`omnividens.fr`)** | Messages saisis, adresse IP, user-agent navigateur, identifiant de session | Réponse temps-réel, qualification commerciale, amélioration de la base de connaissance | Consentement (bandeau au démarrage du widget) | 1 an, puis purge automatique |
+| **Emails entrants** (`contact@omnividens.fr`) | Adresse expéditeur, sujet, corps du message, pièces jointes | Réponse au message, qualification commerciale, support technique | Exécution de mesures pré-contractuelles (vous nous contactez) + intérêt légitime (suivi commercial) | 3 ans après le dernier échange, puis purge automatique |
 | **Logs serveurs / agents IA** | Adresses IP appelantes, requêtes HTTP, identifiants de scan | Sécurité, débogage, observabilité | Intérêt légitime (sécurité du service) | 90 jours, puis purge automatique |
 
 **Aucun cookie de tracking publicitaire n'est déposé** sans votre

@@ -711,6 +711,96 @@ Gmail API ni self-host. La mention « Gmail API » dans le plan
 
 ---
 
+## D-019 — Abandon définitif du chatbot widget site (P8 cancelled)
+**Date :** 2026-05-12
+**Partie :** P8 (Chatbot widget site — cancelled)
+**Décision :** **Argos Ops n'aura pas de chatbot widget sur `omnividens.fr`.**
+La Partie 8 du plan (`ARGOS_OPS_PLAN.md`) est **annulée** et retirée de
+l'inventaire actif. Le canal entrant prospects/visiteurs reste **l'email
+`contact@omnividens.fr` exclusivement** (EmailBot P5 + SupportBot P6
+déjà en prod). Le sous-domaine `chat.omnividens.fr` n'est pas provisionné.
+
+**Pourquoi :**
+- **Latence incompatible avec D-017** : la stack 100 % local-first via
+  Claude Code Pro Max impose une queue Redis pull-based qui répond en
+  différé (≥ 1-5 min en heures ouvrées, plus si l'ordi du fondateur est
+  éteint). Un chat widget qui affiche « Argos rédige… » et répond 4 h
+  plus tard est pire que pas de chat — il signale aux RSSI un produit
+  amateur. L'email asynchrone est lui culturellement attendu en BtoB
+  pentest.
+- **Surface fonctionnelle déjà couverte** par EmailBot P5 (lecture + tri
+  + classification + draft humain-validé via `/check-emails`). Un
+  formulaire « contact » HTML simple côté site SecHunter → email →
+  EmailBot remplit le même rôle sans dette technique.
+- **Coût de maintenance disproportionné** vs valeur attendue early
+  stage : FastAPI receiver + Caddy + Redis queue + worker cron + widget
+  React + bandeau RGPD/AI Act = ~4-6 h dev × 12 surfaces à maintenir
+  (privacy.md, ai-disclosure.md § 4, COMPLIANCE.md § 3.1, etc.). Pour
+  un volume early stage estimé ≤ 5 visiteurs/jour qui auraient cliqué.
+- **Conformité RGPD/AI Act simplifiée** : retirer le chat widget supprime
+  le besoin de bandeau IA + détection mots-clés « humain » + cookie de
+  session + retention 1 an des conversations. Reste uniquement
+  l'email asynchrone, plus standard juridiquement.
+- **Réversibilité préservée** : si un jour le volume site le justifie,
+  on rouvrira une nouvelle partie (P20+) avec une stack adaptée
+  (probablement un Mac mini / Pi 5 dédié 24/7 hors D-017, ou une
+  bascule sur Claude API). Pas d'effort perdu — aucun code fonctionnel
+  P8 n'avait été écrit (seul stub `argos_ops/chat_widget/__init__.py`
+  retiré dans cette PR).
+
+**Implication technique — ce que cette décision retire :**
+- **Sommaire `ARGOS_OPS_PLAN.md`** : Partie 8 retirée de la table, sprint
+  1 ne contient plus que P5/P6/P7
+- **Inventaire skills `ARGOS_OPS_PLAN.md` § 18.1** : `chat-orchestrator`
+  retiré de la liste à créer
+- **Stack `ARGOS_OPS_PLAN.md` § 1.1** : ligne « LLM chat live » retirée
+  de la table technologique
+- **Sous-domaines `CLAUDE.md`** : `chat.omnividens.fr` retiré de la
+  table des sous-domaines à brancher
+- **`ARCHITECTURE.md`** : flux webhook chat retiré (§ 3.1.2 « Webhook
+  24/7 »), Caddy chat.omnividens retiré, table stack mise à jour
+- **`AGENTS_PLAYBOOK.md`** : entrée « ChatBot P8 » retirée de la table
+  des 12 agents, section dédiée retirée
+- **`COMPLIANCE.md`** : § 3.1 « Chatbot widget » retiré
+- **`data/legal/privacy.md`** : ligne « Chat widget » retirée du tableau
+  des traitements
+- **`data/legal/ai-disclosure.md`** : § 4 entier « Chat widget — bandeau
+  et stockage » retiré + mentions résiduelles dans § 5.2 (mots-clés
+  « humain ») + grille AI Act § 6 mises à jour
+- **6 fichiers KB** (`tone_of_voice.md`, `pricing.md`, `faq.md`,
+  `competitor_compare.md`, `argos_features.md`, `ICP.md`) : retirer
+  toutes les mentions « ChatBot widget » comme consommateur futur.
+  Re-seed `seed_kb.py` derrière pour aligner les embeddings.
+- **Code stubs** : suppression de `argos_ops/chat_widget/`,
+  retrait des mentions ChatBot dans `argos_ops/rag/__init__.py`,
+  `argos_ops/notifications/__init__.py`, `pyproject.toml` (commentaire)
+- **Schéma DB** : commentaire ligne 49 de `0001_init.sql`
+  (`agent_name TEXT — 'EmailBot' | 'ChatBot' | ...`) → retrait
+  `'ChatBot'` (cosmétique, pas de migration nécessaire)
+- **Mockup `mockup/admin-dashboard.html`** : entrée ChatBot widget
+  retirée de la liste d'agents pilotables
+
+**Annule :**
+- `ARGOS_OPS_PLAN.md` Partie 8 (entière, lignes 709-787 environ)
+- `ARGOS_OPS_PLAN.md` table § 1.1 stack v2 → ligne « LLM chat live »
+- `ARGOS_OPS_PLAN.md` § 18.1 → skill `chat-orchestrator`
+- `ARGOS_OPS_PLAN.md` § 19.3 → KPI latence p95 ChatBot < 5 s
+- `CLAUDE.md` → ligne `chat.omnividens.fr` table sous-domaines
+- D-017 → mention « chat widget visiteurs nocturnes (P8) » reste
+  historique (D-017 est antérieure, on ne la réécrit pas, on précise
+  juste dans D-019 que cet exemple ne sera pas implémenté)
+
+**Action de suivi :**
+- Cette PR (`chore/drop-p8-chatbot`) effectue tout le cleanup mécanique
+- Une fois mergée : créer un formulaire contact HTML simple côté repo
+  SecHunter (`omnividens.fr`) qui mailto `contact@omnividens.fr`. Pas
+  de dépendance Argos Ops — c'est juste du frontend SecHunter.
+- Sprint 1 est officiellement clos : 3 agents en prod (DigestBuilder,
+  EmailBot, SupportBot, FinanceBot). Prochaine partie à arbitrer entre
+  P15 (circuit breakers) et P16 phase 1 (Admin Control Panel).
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown
