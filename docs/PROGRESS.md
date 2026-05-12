@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 11 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + **P10-MVP done** 2026-05-12)
-- **Phase en cours :** Sprint 2 démarré — **P10-MVP** (SEOBot brief writer) done. Suite : P16.B (mutations cockpit) puis P11-PREP (sociaux) puis P14 (juge).
-- **Dernière partie done :** P10-MVP — SEOBot brief writer (slash `/generate-seo-brief` + skill `seo-brief-writer` + 19 keywords seed groupés en 7 clusters, D-017 humain-in-the-loop, pas de SERP scraping)
+- **Sessions terminées :** 11 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP done, **P16.B session 1 done** 2026-05-12)
+- **Phase en cours :** P16.B session 1 (backend mutations) livrée. Session 2 = frontend controls (toggles, sliders, pause buttons, breaker trip/reset UI).
+- **Dernière partie done :** P16.B session 1 — backend mutations + wrapper `agent_runtime.py` + intégration `BaseAgent.run_agent()` + 17 nouveaux tests (151 total)
 - **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement.
-- **Prochaine partie :** **P16.B** (mutations cockpit : toggle ON/OFF + sliders intensity + run-now + breakers control).
+- **Prochaine partie :** **P16.B session 2** — frontend controls (toggles `/api/agents/{name}/config`, sliders intensity, pause buttons, breakers trip/reset UI). Puis Sprint 2 reprise (P11-PREP → P11 → P9).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -42,7 +42,7 @@
 | 13 | OutboundBot (cold email volume modéré) | Sprint 3 | ⬜ pending | — |
 | 14 | Agent-juge Tier 1 (supervision IA) | Sprint 4 | ⬜ pending | — |
 | 15 | Circuit breakers et kill switches | Sprint 4 | ✅ done | 2026-05-12 |
-| 16 | Admin Control Panel (4 phases) | Sprints 1→4 | 🔄 P16.A done (read-only complet) | 2026-05-12 |
+| 16 | Admin Control Panel (4 phases) | Sprints 1→4 | 🔄 P16.A done + P16.B session 1 done (backend mutations) | 2026-05-12 |
 | 17 | Conformité RGPD / AI Act / Bloctel | Continu | ⬜ pending | — |
 | 18 | Inventaire des skills | Continu | ⬜ pending | — |
 | 19 | Maintenance et observabilité | Continu | ⬜ pending | — |

@@ -69,3 +69,50 @@ class KPIsOverview(BaseModel):
 def _decimal_to_float(value: Decimal | None) -> float | None:
     """Helper sérialisation Decimal → float (les Decimal ne sont pas JSON-natifs)."""
     return float(value) if value is not None else None
+
+
+# =============================================================================
+# Mutations P16.B — payloads request + responses
+# =============================================================================
+class AgentConfigPayload(BaseModel):
+    """PATCH partiel sur ``agent_config``. Tous les champs sont optionnels.
+
+    Sémantique :
+    - ``None`` = ne pas toucher
+    - valeur explicite = appliquer
+    - ``clear_paused=true`` = effacer ``paused_until`` (seul moyen de
+      faire ``paused_until = NULL``, car ``None`` est ambigu)
+    """
+
+    enabled: bool | None = None
+    intensity_level: int | None = None
+    schedule_cron: str | None = None
+    daily_limit: int | None = None
+    max_tokens_per_day: int | None = None
+    tier1_threshold: int | None = None
+    paused_until: datetime | None = None
+    notes: str | None = None
+    clear_paused: bool = False
+
+
+class AgentConfigResponse(BaseModel):
+    """Snapshot de ``agent_config`` retourné après PATCH."""
+
+    agent_name: str
+    enabled: bool
+    intensity_level: int
+    schedule_cron: str | None
+    daily_limit: int | None
+    max_tokens_per_day: int | None
+    tier1_threshold: int
+    paused_until: datetime | None
+    notes: str | None
+    updated_at: datetime
+    updated_by: str | None
+
+
+class TripBreakerPayload(BaseModel):
+    """Trip manuel d'un breaker depuis l'Admin Panel."""
+
+    reason: str
+    severity: Literal["critical", "warning", "info"] = "warning"

@@ -23,21 +23,29 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from argos_ops.breakers import reset as reset_breaker_facade
+from argos_ops.breakers import trip as trip_breaker_facade
 from argos_ops.crm.db import session_scope
-from argos_ops.crm.models import AgentRun, Breaker
+from argos_ops.crm.models import AgentConfig, AgentRun, Breaker
 from argos_ops.crm.repository import (
     count_open_tickets,
     count_recent_leads,
+    get_agent_config,
+    get_breaker,
     get_last_run_per_agent,
     list_recent_agent_runs,
     list_tripped_breakers,
     sum_active_mrr_eur,
+    update_agent_config,
 )
 from argos_ops.ops_dashboard.models import (
+    AgentConfigPayload,
+    AgentConfigResponse,
     AgentRunRow,
     AgentSummary,
     BreakerInfo,
     KPIsOverview,
+    TripBreakerPayload,
 )
 
 # Agents pilotés par l'admin panel. La table peut être enrichie au fur et
@@ -191,6 +199,100 @@ async def list_breakers() -> list[BreakerInfo]:
     async with session_scope() as session:
         breakers = await list_tripped_breakers(session)
     return [_breaker_to_info(b) for b in breakers]
+
+
+# =============================================================================
+# Mutations P16.B
+# =============================================================================
+def _config_to_response(config: AgentConfig) -> AgentConfigResponse:
+    return AgentConfigResponse(
+        agent_name=config.agent_name,
+        enabled=config.enabled,
+        intensity_level=config.intensity_level,
+        schedule_cron=config.schedule_cron,
+        daily_limit=config.daily_limit,
+        max_tokens_per_day=config.max_tokens_per_day,
+        tier1_threshold=config.tier1_threshold,
+        paused_until=config.paused_until,
+        notes=config.notes,
+        updated_at=config.updated_at,
+        updated_by=config.updated_by,
+    )
+
+
+@app.get("/api/agents/{name}/config", response_model=AgentConfigResponse)
+async def get_agent_config_endpoint(name: str) -> AgentConfigResponse:
+    """Charge ``agent_config`` (créée à defaults si absente)."""
+    if name not in KNOWN_AGENTS:
+        raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
+    async with session_scope() as session:
+        config = await get_agent_config(session, name)
+    return _config_to_response(config)
+
+
+@app.patch("/api/agents/{name}/config", response_model=AgentConfigResponse)
+async def patch_agent_config(name: str, payload: AgentConfigPayload) -> AgentConfigResponse:
+    """PATCH partiel sur ``agent_config``. Prend effet au prochain run.
+
+    Source de la mutation : Admin Control Panel (P16.B). L'agent
+    ``BaseAgent.run_agent()`` consultera la nouvelle config au prochain
+    cycle cron via le wrapper ``argos_ops.agent_runtime.check_runtime_state``.
+    """
+    if name not in KNOWN_AGENTS:
+        raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
+    async with session_scope() as session:
+        config = await update_agent_config(
+            session,
+            name,
+            enabled=payload.enabled,
+            intensity_level=payload.intensity_level,
+            schedule_cron=payload.schedule_cron,
+            daily_limit=payload.daily_limit,
+            max_tokens_per_day=payload.max_tokens_per_day,
+            tier1_threshold=payload.tier1_threshold,
+            paused_until=payload.paused_until,
+            notes=payload.notes,
+            updated_by="admin_panel",
+            clear_paused=payload.clear_paused,
+        )
+        # Capture snapshot avant fermeture session (lazy loading garde la
+        # référence ouverte sinon).
+        snapshot = _config_to_response(config)
+    return snapshot
+
+
+@app.post("/api/breakers/{name}/trip", response_model=BreakerInfo, status_code=201)
+async def trip_breaker_endpoint(name: str, payload: TripBreakerPayload) -> BreakerInfo:
+    """Trip manuel d'un breaker depuis l'Admin Panel (P16.B).
+
+    Idempotent : si déjà tripped, met à jour la raison + le timestamp.
+    Pas de push Discord ici (l'admin agit consciemment, pas besoin de se
+    s'auto-notifier). Le push automatique reste utilisé par les agents
+    via ``argos_ops.breakers.trip_with_notification``.
+    """
+    await trip_breaker_facade(name, payload.reason)
+    async with session_scope() as session:
+        breaker = await get_breaker(session, name)
+    if breaker is None:
+        raise HTTPException(status_code=500, detail="Breaker créé mais introuvable")
+    return _breaker_to_info(breaker)
+
+
+@app.post("/api/breakers/{name}/reset", response_model=BreakerInfo)
+async def reset_breaker_endpoint(name: str) -> BreakerInfo:
+    """Reset manuel d'un breaker depuis l'Admin Panel. No-op si jamais tripped."""
+    await reset_breaker_facade(name)
+    async with session_scope() as session:
+        breaker = await get_breaker(session, name)
+    if breaker is None:
+        # Reset sur un breaker jamais tripped → renvoyer un état "synthétique"
+        # plutôt qu'une 404, pour simplifier le frontend.
+        return BreakerInfo(
+            name=name,
+            tripped=False,
+            severity=BREAKER_SEVERITY.get(name, "unknown"),
+        )
+    return _breaker_to_info(breaker)
 
 
 @app.get("/api/kpis/overview", response_model=KPIsOverview)
