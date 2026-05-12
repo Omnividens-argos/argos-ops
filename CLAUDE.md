@@ -104,10 +104,10 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 8 / 18 (P8 cancelled D-019, P0+P1+P2+P3+P4+P5+P6+**P7 done** 2026-05-09)
-- **Phase en cours :** **Sprint 1 CLOS** (P5+P6+P7 done, P8 cancelled 2026-05-12 par [D-019](docs/DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)). Prochaine partie à arbitrer.
-- **Dernière partie done :** P7 — FinanceBot (test live Stripe OK, MRR=0 early stage, garde-fou DUNNING_ENABLED=false)
-- **Prochaine partie :** à trancher entre **P15 (circuit breakers)** et **P16 phase 1 (Admin Control Panel read-only)**.
+- **Sessions terminées :** 9 / 18 (P8 cancelled D-019, P0+P1+P2+P3+P4+P5+P6+P7+**P15 done** 2026-05-12)
+- **Phase en cours :** **Sprint 4 anticipé** — P15 (circuit breakers) done. Prochaine = **P16 phase 1** (Admin Control Panel read-only).
+- **Dernière partie done :** P15 — Circuit breakers et kill switches (3 breakers métier câblés sur EmailBot + FinanceBot, slash `/reset-breaker`, 16 tests)
+- **Prochaine partie :** **P16 phase 1** (Admin Control Panel read-only, backend FastAPI + dashboard React lecture seule)
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`)
 - **Décisions P3-P5 + P8 actives :** D-009 à D-019 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
@@ -146,6 +146,9 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 - **`/daily-finance-sync`** (P7) — sync Stripe quotidienne (subs + factures +
   MRR/ARR + dunning J+3/J+7/J+15 + alerte Discord baisse MRR). Cf.
   [`.claude/commands/daily-finance-sync.md`](.claude/commands/daily-finance-sync.md)
+- **`/reset-breaker`** (P15) — reset manuel d'un circuit breaker. Sans
+  argument, liste les breakers tripped. Cf.
+  [`.claude/commands/reset-breaker.md`](.claude/commands/reset-breaker.md)
 
 ---
 

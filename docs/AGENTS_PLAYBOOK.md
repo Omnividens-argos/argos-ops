@@ -20,7 +20,7 @@
 | AdBot | P12 | 3 | cron `0 */4 * * 9-18` | 70 % (shadow mode 100%) | ⬜ |
 | OutboundBot | P13 | 3 | cron `0 9 * * 1-5` | 80 % | ⬜ |
 | ClaudeJudge | P14 | 4 | inline (skill) | 100 % | ⬜ |
-| Breakers | P15 | 4 | hooks PreToolUse | 100 % | ⬜ |
+| Breakers | P15 | 4 | trip auto par agents (run-time) | 100 % | ✅ done 2026-05-12 |
 | AdminPanel | P16 | 1→4 | UI react | n/a (humain) | ⬜ |
 
 Status : ⬜ pending · 🔄 in progress · ✅ done

@@ -7,7 +7,7 @@ sous contrôle (cf. ``session_scope`` dans ``db.py``).
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -299,6 +299,45 @@ async def reset_breaker(session: AsyncSession, name: str) -> None:
     breaker.tripped = False
     breaker.reason = None
     breaker.reset_after = None
+
+
+async def get_breaker(session: AsyncSession, name: str) -> Breaker | None:
+    """Lecture brute du breaker (None si jamais tripped)."""
+    return await session.get(Breaker, name)
+
+
+async def list_tripped_breakers(session: AsyncSession) -> list[Breaker]:
+    """Liste tous les breakers actuellement tripped (auto-reset par délai pris en compte).
+
+    Utilisé par :
+    - ``/reset-breaker`` (slash command) pour l'auto-complétion
+    - Admin Control Panel P16 pour afficher le panneau « breakers actifs »
+    - DigestBuilder pour mentionner les breakers actifs dans le récap matin
+    """
+    stmt = select(Breaker).where(col(Breaker.tripped).is_(True))
+    breakers = list((await session.execute(stmt)).scalars().all())
+    now = datetime.now(UTC)
+    return [b for b in breakers if b.reset_after is None or b.reset_after > now]
+
+
+async def count_recent_failed_runs(
+    session: AsyncSession, *, agent_name: str, window_minutes: int = 60 * 24
+) -> int:
+    """Compte les runs ``status='failed'`` d'un agent sur une fenêtre temporelle.
+
+    Utilisé par la logique de trip auto : si un agent enchaîne N échecs
+    consécutifs sur une fenêtre courte, on trip un breaker métier pour
+    alerter le fondateur (cf. P15).
+    """
+    cutoff = datetime.now(UTC) - timedelta(minutes=window_minutes)
+    stmt = (
+        select(AgentRun)
+        .where(col(AgentRun.agent_name) == agent_name)
+        .where(col(AgentRun.status) == "failed")
+        .where(col(AgentRun.started_at) >= cutoff)
+    )
+    runs = list((await session.execute(stmt)).scalars().all())
+    return len(runs)
 
 
 # =============================================================================

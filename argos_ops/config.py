@@ -92,9 +92,7 @@ class Settings(BaseSettings):
     # condition réelle, on désactive l'envoi outbound. Le bot fait tout le
     # reste (sync companies, calcul MRR, notif Discord). À passer à 'true'
     # une fois le premier run live audité.
-    financebot_dunning_enabled: bool = Field(
-        default=False, alias="FINANCEBOT_DUNNING_ENABLED"
-    )
+    financebot_dunning_enabled: bool = Field(default=False, alias="FINANCEBOT_DUNNING_ENABLED")
 
     @property
     def async_database_url(self) -> str:
