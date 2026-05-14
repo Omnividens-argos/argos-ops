@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 14 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P11-PREP-B Mastodon + P9-DRAFT + P14 ClaudeJudge + P19 health_check** 2026-05-14)
+- **Sessions terminées :** 15 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P11-PREP-B Mastodon + P9-DRAFT + P14 ClaudeJudge + P19.0 health_check + P12 shadow** 2026-05-14)
 - **Phase en cours :** Refonte UX du Admin Panel done (light/dark theme, catégorisation 6 catégories d'agents avec slots roadmap, status pills multi-états, Overview enrichi avec heatmap+sparklines, Runs groupé par jour, encart explicatif Breakers). Annexe D ajoutée au plan (7 agents proposés).
 - **Dernière partie done :** Refonte UX P16 — invoque skills `ui-ux-pro-max` (palette light cohérente) + `frontend-design` (composants StatusPill, Sparkline, Heatmap, ThemeToggle). 7 nouveaux agents au plan (Annexe D).
 - **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement.
-- **Prochaine partie :** Mastodon P11-PREP-B ✅ + P9-DRAFT ✅ + P14 ClaudeJudge ✅ + P19.0 health_check ✅ done (2026-05-14). Reddit reporté (compte encore bugué), LinkedIn en attente d'approbation. Prochain candidat : **P11** dès comptes débloqués, sinon **P17** (compliance — rédaction faite, intégration frontend SecHunter restante) ou **P12 AdBot shadow mode** (Sprint 3, sans budget).
+- **Prochaine partie :** Mastodon P11-PREP-B ✅ + P9-DRAFT ✅ + P14 ClaudeJudge ✅ + P19.0 health_check ✅ + P12 shadow ✅ done (2026-05-14). Reddit reporté, LinkedIn en attente d'approbation. Prochain candidat : **P11** dès comptes débloqués, sinon **P17** (compliance — intégration frontend SecHunter restante) ou **P13 OutboundBot** (cold email volume modéré, nécessite domaine secondaire `try-omnividens.com` ~10 €/an).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -38,7 +38,7 @@
 | 9 | ContentBot multi-canal | Sprint 2 | 🔄 P9-DRAFT done (skill `content-writer` + slash `/draft-content`, mode local-draft only — posting manuel jusqu'à P11) | 2026-05-14 |
 | 10 | SEOBot stratégie + briefs | Sprint 2 | 🔄 P10-MVP done (brief writer, sans SERP — option A 2026-05-12) | 2026-05-12 |
 | 11 | Connecteurs sociaux (LinkedIn / Mastodon / Reddit) | Sprint 2 | ⬜ pending | — |
-| 12 | AdBot (pilotage Google/Meta/LinkedIn Ads) | Sprint 3 | ⬜ pending | — |
+| 12 | AdBot (pilotage Google/Meta/LinkedIn Ads) | Sprint 3 | 🔄 P12 shadow done (skills `ads-creative-writer` + `ads-optimizer` + slashs `/draft-ad` + `/analyze-ads` + data/ads/ tree, mode shadow only — pas d'API tant que budget pub pas branché) | 2026-05-14 |
 | 13 | OutboundBot (cold email volume modéré) | Sprint 3 | ⬜ pending | — |
 | 14 | Agent-juge Tier 1 (supervision IA) | Sprint 4 | ✅ done (skill `claude-judge` + helper `argos_ops/judge.py` + 31 tests + 5 fixtures + stubs intégration 3 slash commands) | 2026-05-14 |
 | 15 | Circuit breakers et kill switches | Sprint 4 | ✅ done | 2026-05-12 |
@@ -459,6 +459,79 @@ des drafts ne bougera pas — pas de migration data nécessaire.
 - [ ] `/draft-content reddit "<topic>"` sans validation 9:1 → refus +
       proposition alternative
 - [ ] Garde-fou stat inventée → refus
+
+### P12 — AdBot shadow mode 🔄 done 2026-05-14
+
+Pattern aligné P9-DRAFT / P10-MVP : skills markdown + slash commands,
+pas d'agent Python tant que les credentials Google Ads / LinkedIn
+Marketing / Meta Marketing ne sont pas branchés. Sous D-017 et sans
+budget pub, le plan § 12.1 prescrit explicitement le shadow mode comme
+default — l'agent analyse + propose, l'humain applique manuellement.
+
+**Livrables (aucun code Python — skills éditoriaux / analytiques purs)** :
+
+- [`.claude/skills/ads-creative-writer/SKILL.md`](../.claude/skills/ads-creative-writer/SKILL.md)
+  — génère 3 variantes A/B/C diversifiées (tech / bénéfice ops / risque
+  légitime sans FUD) par draft. Respect strict contraintes plateforme :
+  - Google Search RSA : 3-15 headlines ≤ 30 chars, 2-4 descriptions ≤ 90 chars
+  - LinkedIn Sponsored : 1 headline ≤ 150 chars, 1 intro ≤ 600 chars
+  - Meta : 1 primary text ≤ 125 chars, 1 headline ≤ 40 chars
+  Audit `claude-judge` (P14) par variante avant écriture — variante
+  `killed` rejetée + remplacée par une 4e.
+
+- [`.claude/skills/ads-optimizer/SKILL.md`](../.claude/skills/ads-optimizer/SKILL.md)
+  — lit CSV export Google Ads / LinkedIn Campaign Manager / Meta Ads
+  Manager. Calcule CTR / CPC / CPA / conv rate vs S-1 (si CSV semaine
+  précédente disponible). Produit 3-5 recommandations chiffrées
+  (€/semaine d'impact) priorisées :
+  1. PAUSE bleeding ≥ 2 sem
+  2. DROP keyword (Google) ≥ 100 € spend / 0 conv / 2 sem
+  3. TEST créa nouvelle (CTR < benchmark mais conv rate OK)
+  4. SCALE +X % healthy ≥ 6 sem
+  5. DIAGNOSTIC LP (CTR OK mais conv rate < 1 %)
+  Évalue le breaker `ad_spend_runaway` (P15 § 15.1) et le trip
+  proactivement si dépense > 1.5× budget cible / 24h, même en mode
+  shadow (pour bloquer tout AdBot live mode futur).
+
+- [`.claude/commands/draft-ad.md`](../.claude/commands/draft-ad.md)
+  — slash command humain-in-the-loop. Demande explicitement
+  `platform / objective / persona`. Refuse les paraphrases 3×, les
+  superlatifs Google-bannis, les buzzwords corporate. Confirme avant
+  d'attaquer Meta (canal bas priorité BtoB).
+
+- [`.claude/commands/analyze-ads.md`](../.claude/commands/analyze-ads.md)
+  — slash command humain-in-the-loop sur CSV. Demande CPA cible
+  (défaut 80 € selon LTV Pro Max). Renomme automatiquement le CSV
+  source vers `data/ads/campaigns/YYYY-MM-DD-<platform>.csv` après
+  analyse pour servir de base de comparaison S+1.
+
+- [`data/ads/`](../data/ads/) — pipeline complet documenté
+  ([README](../data/ads/README.md)) :
+  - `drafts/` — sortie `/draft-ad` (3 variantes par fichier)
+  - `campaigns/` — CSV historiques pour comparaison S vs S-1
+  - `recommendations/` — sortie `/analyze-ads` (3-5 actions chiffrées)
+
+**Cycle de vie d'un draft Ad** : `draft → validated → live → (rejected)`
+avec transitions manuelles côté fondateur. Quand P12.B live mode
+arrivera (budget pub + credentials), un agent Python `ad_bot.py`
+consommera la queue `validated`, soumettra à `claude-judge`, et postera
+via API avec les hard caps du plan § 12.1 (pause auto si CPA > 2×
+cible, +10 %/jour max sur budget, alerte si spend > 1.5× cible).
+
+**Hors scope (reporté à P12.B live mode)** :
+
+- Agent Python `argos_ops/agents/ad_bot.py` — nécessite credentials
+  Google Ads (developer token + OAuth refresh token), LinkedIn Marketing
+  API (déjà 2 apps créées en P1.E, en attente d'approbation Community
+  Management), Meta Marketing API
+- Wrappers API dans `argos_ops/integrations/{google_ads,linkedin_ads,meta_ads}.py`
+- Cron Task Scheduler `argos-ops-ad-bot` (toutes les 4h en heures
+  ouvrées selon plan § 12 livrables)
+
+**Validation du critère plan § 12** (« 1 recommandation/jour Discord
+avec rationale chiffré ») : reportée à la première campagne live du
+fondateur. Pour l'instant les skills sont prêts, le pipeline est testé
+côté workflow, il manque les vraies données pour calibrer.
 
 ### P19 — Maintenance et observabilité 🔄 P19.0 done 2026-05-14
 

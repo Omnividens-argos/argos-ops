@@ -158,6 +158,15 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   canal (LinkedIn / Mastodon / Reddit r/netsec / X) depuis un topic + KB
   Argos. Mode local-draft only — posting manuel jusqu'à P11. Humain-in-the-loop.
   Cf. [`.claude/commands/draft-content.md`](.claude/commands/draft-content.md)
+- **`/draft-ad`** (P12 shadow) — drafte 3 variantes d'annonce Ads
+  (Google Search RSA / LinkedIn Sponsored / Meta) avec audit `claude-judge`
+  par variante. Mode shadow uniquement — pas de publication API tant que
+  P12.B live mode n'est pas activé. Humain-in-the-loop. Cf.
+  [`.claude/commands/draft-ad.md`](.claude/commands/draft-ad.md)
+- **`/analyze-ads`** (P12 shadow) — analyse un CSV export Ads et produit
+  3-5 recommandations chiffrées (€/semaine) dans `data/ads/recommendations/`.
+  Évalue le breaker `ad_spend_runaway`. Aucune action plateforme. Cf.
+  [`.claude/commands/analyze-ads.md`](.claude/commands/analyze-ads.md)
 
 ---
 
@@ -203,10 +212,23 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   À invoquer en P16 (Admin Control Panel) AVANT toute écriture de code frontend pour figer
   palette / typo / densité / layout. Nécessite Python 3.x pour le search script.
 
+- **`ads-creative-writer`** (P12 shadow, 2026-05-14) — génère 3
+  variantes d'annonce Ads (Google Search RSA / LinkedIn Sponsored /
+  Meta) à partir d'un objectif + persona ICP + KB Argos. Respecte
+  contraintes plateforme (longueurs, headlines count). Audit
+  `claude-judge` par variante avant écriture. Réutilisé par `/draft-ad`
+  et futur AdBot Python P12.B. Cf.
+  [`.claude/skills/ads-creative-writer/`](.claude/skills/ads-creative-writer/)
+- **`ads-optimizer`** (P12 shadow, 2026-05-14) — lit un CSV export
+  Google Ads / LinkedIn Campaign Manager / Meta Ads Manager, calcule
+  CTR/CPC/CPA/conv rate vs S-1, propose 3-5 actions chiffrées (€/semaine
+  d'impact). Évalue le breaker `ad_spend_runaway` (P15). Réutilisé par
+  `/analyze-ads` et futur AdBot Python P12.B. Cf.
+  [`.claude/skills/ads-optimizer/`](.claude/skills/ads-optimizer/)
+
 Inventaire métier prévu (P18) — restant à créer :
 `content-scheduler` · `serp-analyzer` (reporté en P10.1) ·
-`ads-optimizer` · `ads-creative-writer` · `lead-enricher` ·
-`outbound-personalizer`
+`lead-enricher` · `outbound-personalizer`
 
 _(`chat-orchestrator` retiré de l'inventaire par [D-019](docs/DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).)_
 
