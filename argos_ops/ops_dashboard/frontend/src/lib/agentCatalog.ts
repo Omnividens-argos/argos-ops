@@ -5,7 +5,6 @@ import {
   Eye,
   Inbox,
   Send,
-  Shield,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -25,20 +24,6 @@ export interface CatalogAgent {
   status: AgentStatusInCatalog;
   /** Référence dans le plan (P14, P9, etc.). */
   roadmapRef?: string;
-  /**
-   * Peut être déclenché manuellement via "Run now". Faux pour les agents
-   * interactifs (SupportBot, SEOBot) qui s'invoquent via slash command.
-   */
-  runnable?: boolean;
-  /**
-   * Demande une confirmation modale avant le run manuel (agents qui envoient
-   * du sortant : FinanceBot dunning Stripe, futurs OutboundBot/AdBot).
-   */
-  outboundConfirmation?: boolean;
-  /** Sprint pressenti (affiché dans la page Roadmap). */
-  sprint?: string;
-  /** Dépendances (autres parties / agents) — affiché dans la page Roadmap. */
-  dependencies?: string[];
 }
 
 export interface CatalogCategory {
@@ -65,7 +50,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         description:
           "Récap quotidien Discord 8h Paris (KPIs J-1 + escalades + breakers).",
         status: "active",
-        runnable: true,
       },
       {
         name: null,
@@ -75,8 +59,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
           "Scrape hebdo features/pricing des concurrents — détecte changements.",
         status: "roadmap",
         roadmapRef: "Annexe D · Sprint 3+",
-        sprint: "Sprint 3+",
-        dependencies: ["aucune (HTTP fetch + structured extract)"],
       },
       {
         name: null,
@@ -86,8 +68,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
           "Alerte mentions Argos / Omnividens / SecHunter sur le web public.",
         status: "roadmap",
         roadmapRef: "Annexe D · Sprint 3+",
-        sprint: "Sprint 3+",
-        dependencies: ["P11 (Reddit connecteur)"],
       },
       {
         name: null,
@@ -97,8 +77,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
           "Détecte tendances cybersec qui peuvent alimenter SEOBot/ContentBot.",
         status: "roadmap",
         roadmapRef: "Annexe D · Sprint 2+",
-        sprint: "Sprint 2+",
-        dependencies: ["P10 (SEOBot)", "P11 (Reddit connecteur)"],
       },
     ],
   },
@@ -114,7 +92,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         shortLabel: "Inbox",
         description: "Pull IMAP toutes les 15 min, ingestion CRM, notif Discord.",
         status: "active",
-        runnable: true,
       },
       {
         name: "SupportBot",
@@ -123,7 +100,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         description:
           "Répond aux questions techniques Tier 1 via RAG sur la KB Argos.",
         status: "active",
-        runnable: false,
       },
     ],
   },
@@ -140,8 +116,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         description: "Séquence 5-touch BtoB (P13, domaine secondaire).",
         status: "roadmap",
         roadmapRef: "P13 · Sprint 3",
-        sprint: "Sprint 3",
-        dependencies: ["P5 (EmailBot)", "P6 (kb-rag)", "domaine secondaire"],
       },
       {
         name: null,
@@ -151,8 +125,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
           "Réponse aux mentions LinkedIn / Reddit / Mastodon — humain-validé.",
         status: "roadmap",
         roadmapRef: "Annexe D · Sprint 3+",
-        sprint: "Sprint 3+",
-        dependencies: ["P11 (connecteurs sociaux)", "P14 (ClaudeJudge)"],
       },
       {
         name: null,
@@ -162,8 +134,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
           "Sollicite les vrais avis G2/Capterra/Google post-onboarding J+30.",
         status: "roadmap",
         roadmapRef: "Annexe D · Sprint 4+",
-        sprint: "Sprint 4+",
-        dependencies: ["P5 (EmailBot)", "P7 (FinanceBot)"],
       },
     ],
   },
@@ -180,7 +150,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         description:
           "Briefs blog markdown depuis la KB — humain-in-the-loop (P10-MVP).",
         status: "active",
-        runnable: false,
       },
       {
         name: null,
@@ -189,8 +158,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         description: "2-5 posts/jour LinkedIn / Mastodon / Reddit (P9).",
         status: "roadmap",
         roadmapRef: "P9 · Sprint 2",
-        sprint: "Sprint 2",
-        dependencies: ["P6 (kb-rag)", "P10 (SEOBot)", "P11 (connecteurs sociaux)"],
       },
     ],
   },
@@ -207,11 +174,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         description: "Pilotage shadow mode → live à budget > 0 (P12).",
         status: "roadmap",
         roadmapRef: "P12 · Sprint 3",
-        sprint: "Sprint 3",
-        dependencies: [
-          "breaker ad_spend_runaway",
-          "Google Ads / Meta / LinkedIn Ads APIs",
-        ],
       },
       {
         name: null,
@@ -220,8 +182,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         description: "Enrichit les leads inbound (LinkedIn intel auto).",
         status: "roadmap",
         roadmapRef: "P18 · skill réutilisé",
-        sprint: "P18",
-        dependencies: ["P5 (EmailBot)"],
       },
     ],
   },
@@ -238,8 +198,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         description:
           "Sync quotidienne Stripe (MRR + ARR + dunning J+3/J+7/J+15).",
         status: "active",
-        runnable: true,
-        outboundConfirmation: true,
       },
       {
         name: null,
@@ -249,8 +207,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
           "Analyse signaux pré-churn depuis Stripe + interactions CRM.",
         status: "roadmap",
         roadmapRef: "Annexe D · Sprint 4+",
-        sprint: "Sprint 4+",
-        dependencies: ["P7 (FinanceBot)", "P5 (EmailBot)", "P6 (SupportBot)"],
       },
       {
         name: null,
@@ -259,27 +215,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         description: "Forecast cash flow basé sur les subs Stripe actives.",
         status: "roadmap",
         roadmapRef: "Annexe D · Sprint 4+",
-        sprint: "Sprint 4+",
-        dependencies: ["P7 (FinanceBot)"],
-      },
-    ],
-  },
-  {
-    id: "supervision",
-    title: "Supervision IA",
-    icon: Shield,
-    description: "Agent-juge — valide les décisions des autres agents.",
-    agents: [
-      {
-        name: null,
-        displayName: "ClaudeJudge",
-        shortLabel: "Agent-juge",
-        description:
-          "Supervise les autres agents (Tier 1) — flag les drafts à risque humain-validé.",
-        status: "roadmap",
-        roadmapRef: "P14 · Sprint 4",
-        sprint: "Sprint 4",
-        dependencies: ["tous les agents producteurs", "breaker judge_disagreement"],
       },
     ],
   },
@@ -306,20 +241,4 @@ export function categoryCounts(categoryId: string): { active: number; roadmap: n
     active: cat.agents.filter((a) => a.status === "active").length,
     roadmap: cat.agents.filter((a) => a.status === "roadmap").length,
   };
-}
-
-/** Cherche un agent dans le catalogue par son ``displayName`` (matche les
- * slots roadmap) ou son ``name`` canonique (matche les agents actifs).
- * Retourne aussi la catégorie pour le breadcrumb / le badge. */
-export function findAgentInCatalog(
-  key: string,
-): { agent: CatalogAgent; category: CatalogCategory } | null {
-  for (const category of AGENT_CATEGORIES) {
-    for (const agent of category.agents) {
-      if (agent.name === key || agent.displayName === key) {
-        return { agent, category };
-      }
-    }
-  }
-  return null;
 }
