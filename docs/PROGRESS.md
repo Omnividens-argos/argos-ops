@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 13 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P11-PREP-B Mastodon + P9-DRAFT + P14 ClaudeJudge** 2026-05-14)
+- **Sessions terminées :** 14 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P11-PREP-B Mastodon + P9-DRAFT + P14 ClaudeJudge + P19 health_check** 2026-05-14)
 - **Phase en cours :** Refonte UX du Admin Panel done (light/dark theme, catégorisation 6 catégories d'agents avec slots roadmap, status pills multi-états, Overview enrichi avec heatmap+sparklines, Runs groupé par jour, encart explicatif Breakers). Annexe D ajoutée au plan (7 agents proposés).
 - **Dernière partie done :** Refonte UX P16 — invoque skills `ui-ux-pro-max` (palette light cohérente) + `frontend-design` (composants StatusPill, Sparkline, Heatmap, ThemeToggle). 7 nouveaux agents au plan (Annexe D).
 - **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement.
-- **Prochaine partie :** Sprint 2/4 reprise — Mastodon P11-PREP-B ✅ + P9-DRAFT ✅ + P14 ClaudeJudge ✅ done (2026-05-14). Reddit reporté (compte encore bugué), LinkedIn en attente d'approbation. Prochain candidat : **P11** dès que comptes débloqués, sinon **P12 AdBot shadow mode** (Sprint 3) ou **P19 maintenance** (health_check, observabilité).
+- **Prochaine partie :** Mastodon P11-PREP-B ✅ + P9-DRAFT ✅ + P14 ClaudeJudge ✅ + P19.0 health_check ✅ done (2026-05-14). Reddit reporté (compte encore bugué), LinkedIn en attente d'approbation. Prochain candidat : **P11** dès comptes débloqués, sinon **P17** (compliance — rédaction faite, intégration frontend SecHunter restante) ou **P12 AdBot shadow mode** (Sprint 3, sans budget).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -45,7 +45,7 @@
 | 16 | Admin Control Panel (4 phases) | Sprints 1→4 | 🔄 P16.A + P16.B done (cockpit pilote en live, sans escalations queue) | 2026-05-12 |
 | 17 | Conformité RGPD / AI Act / Bloctel | Continu | ⬜ pending | — |
 | 18 | Inventaire des skills | Continu | ⬜ pending | — |
-| 19 | Maintenance et observabilité | Continu | ⬜ pending | — |
+| 19 | Maintenance et observabilité | Continu | 🔄 P19.0 done — `argos_ops/health.py` + `scripts/health_check.py` (DB / KB / agent freshness / breakers / queued escalations) + 23 tests. Hooks Claude Code reportés (déjà couverts par `run_agent()` wrapper P15) | 2026-05-14 |
 
 Légende : ✅ done · 🔄 in progress · ⚠️ partial · 🚫 blocked · ⬜ pending
 
@@ -459,6 +459,74 @@ des drafts ne bougera pas — pas de migration data nécessaire.
 - [ ] `/draft-content reddit "<topic>"` sans validation 9:1 → refus +
       proposition alternative
 - [ ] Garde-fou stat inventée → refus
+
+### P19 — Maintenance et observabilité 🔄 P19.0 done 2026-05-14
+
+**Premier livrable** : diagnostic CLI + module réutilisable. Hooks
+Claude Code `PreToolUse`/`PostToolUse` du plan reportés (déjà couverts
+fonctionnellement par `run_agent()` wrapper P15 qui check les breakers
++ logge `agent_runs` à chaque exécution).
+
+**Code livré et tout vert** (ruff + format + mypy strict + **209 tests
+passed** = 186 P0-P14 + 23 nouveaux) :
+
+- [`argos_ops/health.py`](../argos_ops/health.py) — module réutilisable :
+  - `HealthCheck` frozen dataclass (`name / status / detail / metric`)
+  - `check_db_connectivity` — ping SELECT count sur kb_chunks
+  - `check_kb_seeded` — red si 0 chunks, yellow si < `min_chunks` (50
+    par défaut, critère P3), green sinon
+  - `check_agent_freshness` — pour chaque agent attendu
+    (DigestBuilder 26h / EmailBot 14.5h / FinanceBot 26h, cadences
+    dérivées des Task Schedulers actifs CLAUDE.md) : red si run
+    manquant ou trop vieux, yellow à 80 % du seuil (early warning),
+    green sinon
+  - `check_tripped_breakers` — yellow si breaker tripped, red si stale
+    > 4 h (plan § 19.3 « 0 breaker actif > 4 h »)
+  - `check_queued_escalations` — fenêtre 48 h sur `judge_verdict='queued'`
+    (P14). Yellow > 10 items, red > 20 (le breaker
+    `support_low_confidence` P15 trip à 50, on alerte avant)
+  - `run_all_checks` — exécution **séquentielle** sur la même
+    AsyncSession (SQLAlchemy interdit les ops concurrentes sur une
+    session). Swallow individuel : un check qui crash devient red
+    avec l'erreur en detail
+  - `aggregate_health` — « worst status wins » + counts par statut
+
+- [`scripts/health_check.py`](../scripts/health_check.py) — CLI :
+  - Sortie humaine par défaut (overall + 5 checks avec status badges)
+  - `--json` pour piping / dashboard
+  - `--no-notify` pour skipper Discord (utile en debug local)
+  - Notif Discord auto sur `DISCORD_WEBHOOK_OPS_LOGS` si overall != green
+  - Exit code 0/1/2 (green/yellow/red) — compatible cron monitoring
+
+- [`tests/test_health.py`](../tests/test_health.py) — 23 tests :
+  - Immutabilité `HealthCheck`
+  - Agrégation (vide, all-green, one-yellow, one-red dominates,
+    detail formatting)
+  - `check_kb_seeded` (3 cas : green / yellow / red)
+  - `check_agent_freshness` (5 cas : tous frais, un stale, boundary
+    80 %, jamais run, custom thresholds)
+  - `check_tripped_breakers` (3 cas)
+  - `check_queued_escalations` (3 cas + default threshold sanity)
+  - `run_all_swallows_crash_per_check` — un check qui crash devient
+    red, les autres tournent, agrégat reste cohérent
+
+**Smoke test live (2026-05-14)** : `health_check.py --no-notify` a
+détecté en condition réelle qu'`EmailBot` n'avait pas tourné depuis
+115 h (cron probablement off depuis 5 jours côté fondateur). Le
+diagnostic fait son job — la Task Scheduler est à investiguer côté
+utilisateur.
+
+**Hors scope (reporté à P19.1)** :
+
+- Hooks Claude Code `PreToolUse` / `PostToolUse` — fonctionnalité déjà
+  couverte par `run_agent()` (P15 breaker check + agent_runs log) +
+  `check_runtime_state()` (P16.B disabled/paused/daily_limit). Sans
+  doublons à introduire
+- Endpoint dashboard `GET /health/detailed` — branchable trivialement
+  sur `argos_ops.health.run_all_checks` quand le besoin se présente
+- Cron Task Scheduler `argos-ops-health-check` (5h45 daily) — à créer
+  côté fondateur via PowerShell scriptable (procédure type
+  `digest-builder/SKILL.md`)
 
 ### P14 — Agent-juge Tier 1 (claude-judge) ✅ done 2026-05-14
 

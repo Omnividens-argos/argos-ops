@@ -44,7 +44,8 @@ uv run ruff check .                  # lint
 uv run ruff format .                 # format
 uv run mypy argos_ops/               # type check strict
 uv run python scripts/seed_kb.py     # rebuild KB embeddings (P3+)
-uv run python scripts/health_check.py  # diagnostic agents (P19+)
+uv run python scripts/health_check.py  # diagnostic agents + DB + breakers + queued (P19)
+uv run python scripts/health_check.py --json --no-notify  # variantes (CI / debug)
 ```
 
 ---
