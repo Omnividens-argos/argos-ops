@@ -97,6 +97,14 @@ export interface TripBreakerPayload {
   severity?: "critical" | "warning" | "info";
 }
 
+export interface ManualRunResponse {
+  agent_name: string;
+  triggered_at: string;
+  status: string;
+  output_summary: string | null;
+  error: string | null;
+}
+
 // =============================================================================
 // fetch helpers
 // =============================================================================
@@ -176,4 +184,8 @@ export function tripBreaker(name: string, payload: TripBreakerPayload): Promise<
 
 export function resetBreaker(name: string): Promise<BreakerInfo> {
   return sendJSON<BreakerInfo>("POST", `/api/breakers/${encodeURIComponent(name)}/reset`);
+}
+
+export function runAgentNow(name: string): Promise<ManualRunResponse> {
+  return sendJSON<ManualRunResponse>("POST", `/api/agents/${encodeURIComponent(name)}/runs`);
 }

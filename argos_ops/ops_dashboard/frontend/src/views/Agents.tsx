@@ -1,13 +1,14 @@
+import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import type { AgentConfig, AgentRunRow, AgentSummary } from "../api";
+import type { AgentConfig, AgentSummary } from "../api";
 import {
   fetchAgentConfig,
-  fetchAgentRuns,
   fetchAgents,
   patchAgentConfig,
+  runAgentNow,
 } from "../api";
 import { StatusPill } from "../components/StatusPill";
-import { Badge, Button, Flash, Slider, TextInput, Toggle } from "../components/ui";
+import { Badge, Button, Flash, Toggle } from "../components/ui";
 import { usePolling } from "../hooks/usePolling";
 import {
   AGENT_CATEGORIES,
@@ -15,22 +16,23 @@ import {
   type CatalogCategory,
   categoryCounts,
 } from "../lib/agentCatalog";
-import {
-  formatAbsoluteTime,
-  formatDuration,
-  formatRelativeTime,
-  statusBgColor,
-  statusColor,
-} from "../lib/format";
+import { formatDuration, formatRelativeTime } from "../lib/format";
 
 // Vue Agents — 6 catégories empilées avec headers sticky + cards agent
 // inline. Slots roadmap visibles mais désaturés. Décision 2026-05-12 (option a).
+// Click sur une card → page dédiée (P16.C, via ``onOpenAgent``).
 
-export function Agents() {
+interface Props {
+  /** Navigation vers la page dédiée d'un agent (P16.C). */
+  onOpenAgent: (key: string) => void;
+}
+
+type FlashState = { variant: "success" | "error"; msg: string } | null;
+
+export function Agents({ onOpenAgent }: Props) {
   const fetcher = useCallback((s?: AbortSignal) => fetchAgents(s), []);
   const { data: agents, error } = usePolling(fetcher);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [flash, setFlash] = useState<{ variant: "success" | "error"; msg: string } | null>(null);
+  const [flash, setFlash] = useState<FlashState>(null);
   const [activeCategory, setActiveCategory] = useState<string | "all">("all");
   const [bumpKey, setBumpKey] = useState(0);
 
@@ -88,8 +90,7 @@ export function Agents() {
             category={cat}
             agentsData={agents ?? []}
             configs={configs}
-            onSelect={setSelected}
-            selected={selected}
+            onOpenAgent={onOpenAgent}
             onFlash={setFlash}
             onMutated={refetch}
           />
@@ -99,21 +100,12 @@ export function Agents() {
       {error && (
         <Flash variant="error" message={`Erreur API : ${error.message}`} />
       )}
-
-      {selected && (
-        <AgentDrawer
-          agentName={selected}
-          onClose={() => setSelected(null)}
-          onFlash={setFlash}
-          onMutated={refetch}
-        />
-      )}
     </div>
   );
 }
 
 // =============================================================================
-// Filtre catégorie (chips multi-select simplifié — un seul à la fois ou Toutes)
+// Filtre catégorie
 // =============================================================================
 function CategoryFilter({
   activeCategory,
@@ -178,9 +170,8 @@ interface CategorySectionProps {
   category: CatalogCategory;
   agentsData: AgentSummary[];
   configs: Record<string, AgentConfig>;
-  onSelect: (name: string) => void;
-  selected: string | null;
-  onFlash: (flash: { variant: "success" | "error"; msg: string } | null) => void;
+  onOpenAgent: (key: string) => void;
+  onFlash: (flash: FlashState) => void;
   onMutated: () => void;
 }
 
@@ -188,8 +179,7 @@ function CategorySection({
   category,
   agentsData,
   configs,
-  onSelect,
-  selected,
+  onOpenAgent,
   onFlash,
   onMutated,
 }: CategorySectionProps) {
@@ -218,8 +208,7 @@ function CategorySection({
             agent={agent}
             liveData={agent.name ? agentsData.find((a) => a.name === agent.name) ?? null : null}
             config={agent.name ? configs[agent.name] ?? null : null}
-            onSelect={() => agent.name && onSelect(agent.name)}
-            selected={agent.name === selected}
+            onOpenAgent={onOpenAgent}
             onFlash={onFlash}
             onMutated={onMutated}
           />
@@ -236,17 +225,29 @@ interface AgentCardProps {
   agent: CatalogAgent;
   liveData: AgentSummary | null;
   config: AgentConfig | null;
-  onSelect: () => void;
-  selected: boolean;
-  onFlash: (flash: { variant: "success" | "error"; msg: string } | null) => void;
+  onOpenAgent: (key: string) => void;
+  onFlash: (flash: FlashState) => void;
   onMutated: () => void;
 }
 
-function AgentCard({ agent, liveData, config, onSelect, selected, onFlash, onMutated }: AgentCardProps) {
-  // Slot roadmap : card désaturée, pas d'actions.
+function AgentCard({
+  agent,
+  liveData,
+  config,
+  onOpenAgent,
+  onFlash,
+  onMutated,
+}: AgentCardProps) {
+  const cardKey = agent.name ?? agent.displayName;
+
+  // Slot roadmap : card désaturée, cliquable pour ouvrir la preview.
   if (agent.status === "roadmap") {
     return (
-      <div className="rounded-md border border-dashed border-argos-border-subtle bg-argos-surface/40 p-4 opacity-60">
+      <button
+        type="button"
+        onClick={() => onOpenAgent(cardKey)}
+        className="text-left rounded-md border border-dashed border-argos-border-subtle bg-argos-surface/40 p-4 opacity-70 hover:opacity-100 hover:border-argos-border transition-all"
+      >
         <div className="flex items-center justify-between mb-1">
           <span className="text-sm font-semibold text-argos-fg-secondary">
             {agent.displayName}
@@ -264,21 +265,23 @@ function AgentCard({ agent, liveData, config, onSelect, selected, onFlash, onMut
             {agent.roadmapRef}
           </div>
         )}
-      </div>
+      </button>
     );
   }
 
-  // Slot actif sans data API (jamais exécuté, ex : SupportBot interactif).
   const enabled = config?.enabled ?? true;
   const paused = Boolean(
     config?.paused_until && new Date(config.paused_until).getTime() > Date.now(),
   );
   const breakerTripped = liveData?.breaker_tripped ?? false;
-  const [pending, setPending] = useState(false);
+  const runnable = agent.runnable ?? false;
+  const outboundConfirmation = agent.outboundConfirmation ?? false;
+  const [pending, setPending] = useState<string | null>(null);
+  const [confirmRun, setConfirmRun] = useState(false);
 
   const handleToggle = async () => {
     if (!agent.name) return;
-    setPending(true);
+    setPending("toggle");
     try {
       const next = !enabled;
       await patchAgentConfig(agent.name, { enabled: next });
@@ -290,13 +293,13 @@ function AgentCard({ agent, liveData, config, onSelect, selected, onFlash, onMut
     } catch (e) {
       onFlash({ variant: "error", msg: `${agent.name} toggle : ${(e as Error).message}` });
     } finally {
-      setPending(false);
+      setPending(null);
     }
   };
 
   const handlePause = async (minutes: number | "clear") => {
     if (!agent.name) return;
-    setPending(true);
+    setPending("pause");
     try {
       if (minutes === "clear") {
         await patchAgentConfig(agent.name, { clear_paused: true });
@@ -313,20 +316,43 @@ function AgentCard({ agent, liveData, config, onSelect, selected, onFlash, onMut
     } catch (e) {
       onFlash({ variant: "error", msg: `${agent.name} pause : ${(e as Error).message}` });
     } finally {
-      setPending(false);
+      setPending(null);
+    }
+  };
+
+  const handleRunNow = async () => {
+    if (!agent.name) return;
+    if (outboundConfirmation && !confirmRun) {
+      setConfirmRun(true);
+      return;
+    }
+    setConfirmRun(false);
+    setPending("run");
+    try {
+      const result = await runAgentNow(agent.name);
+      onFlash({
+        variant: result.status === "success" ? "success" : "error",
+        msg: `${agent.name} → ${result.status}${
+          result.output_summary ? ` · ${result.output_summary}` : ""
+        }${result.error ? ` · ${result.error}` : ""}`,
+      });
+      onMutated();
+    } catch (e) {
+      onFlash({ variant: "error", msg: `${agent.name} run : ${(e as Error).message}` });
+    } finally {
+      setPending(null);
     }
   };
 
   return (
-    <div
-      className={`rounded-md border bg-argos-surface p-4 transition-colors ${
-        selected
-          ? "border-argos-info/50 ring-1 ring-argos-info/20"
-          : "border-argos-border-subtle hover:border-argos-border"
-      }`}
-    >
+    <div className="relative rounded-md border bg-argos-surface p-4 border-argos-border-subtle hover:border-argos-border transition-colors">
       <div className="flex items-start justify-between mb-2">
-        <div className="cursor-pointer flex-1 min-w-0" onClick={onSelect}>
+        <button
+          type="button"
+          className="text-left flex-1 min-w-0 cursor-pointer hover:text-argos-info transition-colors"
+          onClick={() => onOpenAgent(cardKey)}
+          title="Ouvrir la page dédiée"
+        >
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-semibold text-argos-fg truncate">
               {agent.displayName}
@@ -335,11 +361,11 @@ function AgentCard({ agent, liveData, config, onSelect, selected, onFlash, onMut
           <div className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
             {agent.shortLabel}
           </div>
-        </div>
+        </button>
         <Toggle
           enabled={enabled}
           onChange={handleToggle}
-          disabled={pending || !agent.name}
+          disabled={pending !== null || !agent.name}
           label={`Activer / désactiver ${agent.displayName}`}
         />
       </div>
@@ -368,253 +394,88 @@ function AgentCard({ agent, liveData, config, onSelect, selected, onFlash, onMut
       )}
 
       <div className="flex items-center gap-1.5 flex-wrap">
+        {runnable && (
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={handleRunNow}
+            disabled={pending !== null || breakerTripped}
+            title={
+              breakerTripped
+                ? "Breaker tripped — reset avant de relancer"
+                : "Déclencher un run manuel (respecte breaker / disabled / paused)"
+            }
+          >
+            <span className="inline-flex items-center gap-1">
+              <RefreshCw size={10} className={pending === "run" ? "animate-spin" : ""} />
+              {pending === "run" ? "…" : "Run now"}
+            </span>
+          </Button>
+        )}
         {paused ? (
-          <Button size="sm" variant="primary" onClick={() => handlePause("clear")} disabled={pending}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => handlePause("clear")}
+            disabled={pending !== null}
+          >
             Reprendre
           </Button>
         ) : (
           <>
-            <Button size="sm" onClick={() => handlePause(60)} disabled={pending || !enabled}>
+            <Button
+              size="sm"
+              onClick={() => handlePause(60)}
+              disabled={pending !== null || !enabled}
+            >
               Pause 1h
             </Button>
             <Button
               size="sm"
               onClick={() => handlePause(24 * 60)}
-              disabled={pending || !enabled}
+              disabled={pending !== null || !enabled}
             >
               24h
             </Button>
           </>
         )}
-        <Button size="sm" variant="ghost" onClick={onSelect}>
-          Détails
+        <Button size="sm" variant="ghost" onClick={() => onOpenAgent(cardKey)}>
+          Détails →
         </Button>
       </div>
-    </div>
-  );
-}
 
-// =============================================================================
-// Drawer agent : Config + Logs (inchangé depuis session 2, simplifié)
-// =============================================================================
-interface DrawerProps {
-  agentName: string;
-  onClose: () => void;
-  onFlash: (flash: { variant: "success" | "error"; msg: string } | null) => void;
-  onMutated: () => void;
-}
-
-function AgentDrawer({ agentName, onClose, onFlash, onMutated }: DrawerProps) {
-  const [config, setConfig] = useState<AgentConfig | null>(null);
-  const [runs, setRuns] = useState<AgentRunRow[] | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchAgentConfig(agentName, controller.signal)
-      .then(setConfig)
-      .catch((e) => {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        console.warn(e);
-      });
-    fetchAgentRuns(agentName, 50, controller.signal)
-      .then(setRuns)
-      .catch((e) => {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        console.warn(e);
-      });
-    return () => controller.abort();
-  }, [agentName]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  return (
-    <div className="fixed inset-0 z-20 flex">
-      <div className="flex-1 bg-argos-bg/60 backdrop-blur-[2px]" onClick={onClose} />
-      <aside className="w-[720px] max-w-full bg-argos-surface border-l border-argos-border-subtle flex flex-col">
-        <div className="px-5 py-4 border-b border-argos-border-subtle flex items-center justify-between">
-          <div>
-            <div className="font-mono text-[11px] uppercase tracking-widest text-argos-fg-tertiary">
-              Détails agent
-            </div>
-            <div className="text-base font-semibold text-argos-fg">{agentName}</div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="font-mono text-xs text-argos-fg-secondary hover:text-argos-fg px-2 py-1 rounded border border-argos-border-subtle hover:bg-argos-surface-2"
-          >
-            Esc
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
-          <section>
-            <h3 className="font-mono text-[11px] uppercase tracking-widest text-argos-fg-tertiary mb-3">
-              Config runtime
-            </h3>
-            {config === null && (
-              <div className="text-sm text-argos-fg-tertiary">Chargement…</div>
-            )}
-            {config && (
-              <ConfigForm
-                config={config}
-                onSaved={(next) => {
-                  setConfig(next);
-                  onMutated();
-                  onFlash({ variant: "success", msg: `${agentName} : config sauvegardée` });
-                }}
-                onError={(e) =>
-                  onFlash({ variant: "error", msg: `${agentName} config : ${e.message}` })
-                }
-              />
-            )}
-          </section>
-
-          <section>
-            <h3 className="font-mono text-[11px] uppercase tracking-widest text-argos-fg-tertiary mb-3">
-              50 derniers runs
-            </h3>
-            {runs === null && (
-              <div className="text-sm text-argos-fg-tertiary">Chargement…</div>
-            )}
-            {runs?.length === 0 && (
-              <div className="text-sm text-argos-fg-tertiary">Aucun run enregistré.</div>
-            )}
-            <div className="space-y-2">
-              {runs?.map((run) => <RunCard key={run.id} run={run} />)}
-            </div>
-          </section>
-        </div>
-      </aside>
-    </div>
-  );
-}
-
-interface ConfigFormProps {
-  config: AgentConfig;
-  onSaved: (next: AgentConfig) => void;
-  onError: (err: Error) => void;
-}
-
-function ConfigForm({ config, onSaved, onError }: ConfigFormProps) {
-  const [intensity, setIntensity] = useState(config.intensity_level);
-  const [dailyLimit, setDailyLimit] = useState(
-    config.daily_limit === null ? "" : String(config.daily_limit),
-  );
-  const [tier1, setTier1] = useState(config.tier1_threshold);
-  const [notes, setNotes] = useState(config.notes ?? "");
-  const [saving, setSaving] = useState(false);
-
-  const dirty =
-    intensity !== config.intensity_level ||
-    String(config.daily_limit ?? "") !== dailyLimit ||
-    tier1 !== config.tier1_threshold ||
-    (config.notes ?? "") !== notes;
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const patched = await patchAgentConfig(config.agent_name, {
-        intensity_level: intensity,
-        daily_limit: dailyLimit === "" ? null : Number(dailyLimit),
-        tier1_threshold: tier1,
-        notes: notes || null,
-      });
-      onSaved(patched);
-    } catch (e) {
-      onError(e as Error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
-            Intensity level
-          </label>
-          <span className="font-mono text-xs text-argos-fg">{intensity} / 10</span>
-        </div>
-        <Slider value={intensity} onValueChange={setIntensity} />
-        <p className="mt-1 font-mono text-[10px] text-argos-fg-tertiary">
-          1 = éco · 5 = défaut · 10 = max gourmand (scale interne aux agents)
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <TextInput
-          label="Daily limit (vide = illimité)"
-          type="number"
-          min="0"
-          value={dailyLimit}
-          onChange={(e) => setDailyLimit(e.target.value)}
-          placeholder="ex. 50"
-        />
-        <TextInput
-          label="Tier 1 threshold (0-100)"
-          type="number"
-          min="0"
-          max="100"
-          value={String(tier1)}
-          onChange={(e) => setTier1(Number(e.target.value))}
-        />
-      </div>
-
-      <TextInput
-        label="Notes"
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        placeholder="raison d'un état exceptionnel, contexte…"
-      />
-
-      <div className="flex items-center gap-2 pt-1 flex-wrap">
-        <Button
-          variant="primary"
-          onClick={handleSave}
-          disabled={!dirty || saving}
+      {/* Confirmation modale Run now pour les agents sortants */}
+      {confirmRun && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-30 flex items-center justify-center bg-argos-bg/60 backdrop-blur-[2px]"
+          onClick={() => setConfirmRun(false)}
         >
-          {saving ? "Sauvegarde…" : "Sauvegarder"}
-        </Button>
-        {config.paused_until && (
-          <Badge tone="warning">
-            Paused until {formatAbsoluteTime(config.paused_until)}
-          </Badge>
-        )}
-        <Badge tone={config.enabled ? "healthy" : "danger"}>
-          {config.enabled ? "enabled" : "disabled"}
-        </Badge>
-      </div>
-    </div>
-  );
-}
-
-function RunCard({ run }: { run: AgentRunRow }) {
-  return (
-    <div className={`rounded-md border px-3 py-2.5 ${statusBgColor(run.status)}`}>
-      <div className="flex items-center justify-between text-xs">
-        <div className={`font-mono ${statusColor(run.status)}`}>
-          #{run.id} · {run.status ?? "?"}
-        </div>
-        <div className="font-mono text-argos-fg-tertiary">
-          {formatAbsoluteTime(run.started_at)} · {formatDuration(run.duration_seconds)}
-        </div>
-      </div>
-      {run.output_summary && (
-        <div className="mt-1.5 font-mono text-[11px] text-argos-fg-secondary break-words">
-          {run.output_summary}
-        </div>
-      )}
-      {run.error && (
-        <div className="mt-1.5 font-mono text-[11px] text-argos-danger break-words">
-          {run.error}
+          <div
+            className="bg-argos-surface border border-argos-warning/40 rounded-md p-5 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="font-mono text-[10px] uppercase tracking-widest text-argos-warning mb-1">
+              Confirmation
+            </div>
+            <h3 className="text-base font-semibold text-argos-fg mb-2">
+              Lancer {agent.name} maintenant ?
+            </h3>
+            <p className="text-xs text-argos-fg-secondary mb-4">
+              Cet agent peut envoyer du sortant (emails / relances Stripe).
+              Vérifie son dernier run avant de confirmer — son idempotence
+              évite les doublons, mais c'est plus sûr de regarder.
+            </p>
+            <div className="flex items-center gap-2 justify-end">
+              <Button variant="ghost" size="sm" onClick={() => setConfirmRun(false)}>
+                Annuler
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleRunNow}>
+                Confirmer le run
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

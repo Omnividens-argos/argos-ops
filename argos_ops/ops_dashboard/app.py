@@ -23,6 +23,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from argos_ops.agents.base import BaseAgent, run_agent
 from argos_ops.breakers import reset as reset_breaker_facade
 from argos_ops.breakers import trip as trip_breaker_facade
 from argos_ops.crm.db import session_scope
@@ -45,6 +46,7 @@ from argos_ops.ops_dashboard.models import (
     AgentSummary,
     BreakerInfo,
     KPIsOverview,
+    ManualRunResponse,
     TripBreakerPayload,
 )
 
@@ -56,6 +58,31 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "SupportBot",
     "FinanceBot",
 )
+
+# Agents qu'on peut déclencher manuellement via "Run now" du panel. SupportBot
+# et SEOBot sont interactifs (slash commands) — pas de BaseAgent subclass à
+# instancier, donc pas runnables ici. Les autres héritent de BaseAgent et
+# passent par ``run_agent`` qui respecte les checks runtime (breaker, disabled,
+# paused, daily_limit).
+RUNNABLE_AGENTS: frozenset[str] = frozenset({"DigestBuilder", "EmailBot", "FinanceBot"})
+
+
+def _build_agent(name: str) -> BaseAgent:
+    """Instancie la classe agent pour le run manuel. Lazy imports pour garder
+    le startup FastAPI rapide."""
+    if name == "DigestBuilder":
+        from argos_ops.agents.digest_builder import DigestBuilder
+
+        return DigestBuilder()
+    if name == "EmailBot":
+        from argos_ops.agents.email_bot import EmailBot
+
+        return EmailBot()
+    if name == "FinanceBot":
+        from argos_ops.agents.finance_bot import FinanceBot
+
+        return FinanceBot()
+    raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 # Mapping breaker → sévérité affichée dans l'UI. Cohérent avec la liste
 # du module ``argos_ops.breakers`` (mrr_drop_critical, etc.). Les
@@ -259,6 +286,38 @@ async def patch_agent_config(name: str, payload: AgentConfigPayload) -> AgentCon
         # référence ouverte sinon).
         snapshot = _config_to_response(config)
     return snapshot
+
+
+@app.post("/api/agents/{name}/runs", response_model=ManualRunResponse, status_code=202)
+async def run_agent_now(name: str) -> ManualRunResponse:
+    """Déclenche manuellement un agent depuis le panel (P16.C).
+
+    Exécution synchrone : les agents Sprint 1 finissent en < 30 s. Le wrapper
+    ``run_agent`` applique les runtime checks (breaker tripped, agent disabled,
+    paused, daily_limit) — un agent désactivé renverra ``skipped_disabled``
+    sans être exécuté, exactement comme via cron. ``status=202`` reflète bien
+    que le run a été déclenché ; le verdict final est dans le payload.
+
+    Agents interactifs (SupportBot, SEOBot) : rejetés avec 400 car ils
+    n'ont pas de subclass ``BaseAgent`` — ils s'invoquent via slash commands.
+    """
+    if name not in KNOWN_AGENTS:
+        raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
+    if name not in RUNNABLE_AGENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{name} est interactif — utiliser la slash command associée",
+        )
+    agent = _build_agent(name)
+    triggered_at = datetime.now(UTC)
+    result = await run_agent(agent)
+    return ManualRunResponse(
+        agent_name=name,
+        triggered_at=triggered_at,
+        status=result.status,
+        output_summary=result.output_summary,
+        error=result.error,
+    )
 
 
 @app.post("/api/breakers/{name}/trip", response_model=BreakerInfo, status_code=201)
