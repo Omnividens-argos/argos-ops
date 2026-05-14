@@ -5,6 +5,7 @@ import {
   fetchAgentRuns,
   fetchAgents,
   patchAgentConfig,
+  runAgentNow,
 } from "../api";
 import { StatusPill } from "../components/StatusPill";
 import { Badge, Button, Flash, Slider, TextInput, Toggle } from "../components/ui";
@@ -25,6 +26,11 @@ import {
 
 // Vue Agents — 6 catégories empilées avec headers sticky + cards agent
 // inline. Slots roadmap visibles mais désaturés. Décision 2026-05-12 (option a).
+
+// Agents qu'on peut déclencher manuellement via "Run now" du drawer.
+// Doit rester aligné avec ``argos_ops/ops_dashboard/app.py::RUNNABLE_AGENTS``.
+// SupportBot et SEOBot sont interactifs (slash commands) — pas de bouton ici.
+const RUNNABLE_AGENTS = new Set<string>(["DigestBuilder", "EmailBot", "FinanceBot"]);
 
 export function Agents() {
   const fetcher = useCallback((s?: AbortSignal) => fetchAgents(s), []);
@@ -407,6 +413,20 @@ interface DrawerProps {
 function AgentDrawer({ agentName, onClose, onFlash, onMutated }: DrawerProps) {
   const [config, setConfig] = useState<AgentConfig | null>(null);
   const [runs, setRuns] = useState<AgentRunRow[] | null>(null);
+  const [running, setRunning] = useState(false);
+
+  const refetchRuns = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        const next = await fetchAgentRuns(agentName, 50, signal);
+        setRuns(next);
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        console.warn(e);
+      }
+    },
+    [agentName],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -416,14 +436,9 @@ function AgentDrawer({ agentName, onClose, onFlash, onMutated }: DrawerProps) {
         if (e instanceof DOMException && e.name === "AbortError") return;
         console.warn(e);
       });
-    fetchAgentRuns(agentName, 50, controller.signal)
-      .then(setRuns)
-      .catch((e) => {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        console.warn(e);
-      });
+    refetchRuns(controller.signal);
     return () => controller.abort();
-  }, [agentName]);
+  }, [agentName, refetchRuns]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -433,24 +448,60 @@ function AgentDrawer({ agentName, onClose, onFlash, onMutated }: DrawerProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const handleRunNow = async () => {
+    setRunning(true);
+    try {
+      const result = await runAgentNow(agentName);
+      // Le verdict final est dans result.status — le wrapper run_agent peut
+      // renvoyer skipped_* si l'agent était disabled/paused/over-quota.
+      const variant = result.status === "success" ? "success" : "error";
+      const msg =
+        result.status === "success"
+          ? `${agentName} : run OK${result.output_summary ? ` — ${result.output_summary.slice(0, 80)}` : ""}`
+          : `${agentName} : ${result.status}${result.error ? ` — ${result.error.slice(0, 100)}` : ""}`;
+      onFlash({ variant, msg });
+      await refetchRuns();
+      onMutated();
+    } catch (e) {
+      onFlash({ variant: "error", msg: `${agentName} Run now : ${(e as Error).message}` });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const isRunnable = RUNNABLE_AGENTS.has(agentName);
+
   return (
     <div className="fixed inset-0 z-20 flex">
       <div className="flex-1 bg-argos-bg/60 backdrop-blur-[2px]" onClick={onClose} />
       <aside className="w-[720px] max-w-full bg-argos-surface border-l border-argos-border-subtle flex flex-col">
-        <div className="px-5 py-4 border-b border-argos-border-subtle flex items-center justify-between">
-          <div>
+        <div className="px-5 py-4 border-b border-argos-border-subtle flex items-center justify-between gap-3">
+          <div className="min-w-0">
             <div className="font-mono text-[11px] uppercase tracking-widest text-argos-fg-tertiary">
               Détails agent
             </div>
-            <div className="text-base font-semibold text-argos-fg">{agentName}</div>
+            <div className="text-base font-semibold text-argos-fg truncate">{agentName}</div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="font-mono text-xs text-argos-fg-secondary hover:text-argos-fg px-2 py-1 rounded border border-argos-border-subtle hover:bg-argos-surface-2"
-          >
-            Esc
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {isRunnable && (
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={handleRunNow}
+                disabled={running}
+                title="Déclenche un run immédiat (respecte breaker/disabled/paused/daily_limit)"
+              >
+                {running ? "Run…" : "Run now"}
+              </Button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="font-mono text-xs text-argos-fg-secondary hover:text-argos-fg px-2 py-1 rounded border border-argos-border-subtle hover:bg-argos-surface-2"
+            >
+              Esc
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
