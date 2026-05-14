@@ -87,6 +87,34 @@ pour examen humain. `suggested_priority` ∈ `{P0, P1, P2, P3}` selon urgence.
 - Si l'expéditeur est `is_noreply()` (cf. `zimbra-ops`), ce skill n'est PAS
   invoqué — l'email est juste loggé puis ignoré
 
+### Override AI Act § 5.2 — « Réponse humaine SVP »
+
+Conformément à l'AI Act (article 13) et à notre engagement public
+[`data/legal/ai-disclosure.md`](../../data/legal/ai-disclosure.md) § 5.2,
+**tout email dont le sujet OU les 200 premiers caractères contiennent**
+l'une des expressions suivantes (matching **case-insensitive** sur le
+texte normalisé sans accents) **doit être classé** :
+
+- `category = "autre"`
+- `confidence = 1.0`
+- `suggested_priority = "P1"`
+- `rationale = "AI Act § 5.2 — réponse humaine demandée explicitement"`
+- `suggested_response_skeleton = "PAS DE DRAFT IA. Escalade Tier 2 (file fondateur), réponse humaine sous 24 h ouvrées."`
+
+Expressions déclencheuses (liste exhaustive, mise à jour si on observe
+des variantes en prod) :
+
+- `"réponse humaine"` / `"reponse humaine"`
+- `"un humain svp"` / `"un humain s'il vous plaît"` / `"un humain s'il vous plait"`
+- `"pas de bot"` / `"pas de chatbot"` / `"pas d'ia"` / `"pas d'iA"`
+- `"human reply"` / `"human please"` / `"talk to a human"`
+- `"no bot"` / `"no AI"`
+
+Cet override **bypasse** toutes les autres heuristiques. Il garantit
+qu'un user qui exerce son droit AI Act art. 13/14 voit son message
+quitter le pipeline IA immédiatement. Le check fait partie du contrat
+de conformité — ne pas le retirer sans révision juridique.
+
 ## Évolution prévue
 
 - **Calibration mensuelle** : tous les 30 emails classifiés, l'opérateur
