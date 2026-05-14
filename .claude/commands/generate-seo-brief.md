@@ -52,14 +52,34 @@ Pour chaque section du brief, **proposer** + **demander validation** :
 7. **Mots-clés secondaires** — 3-5 variantes longue traîne du cluster.
 8. **Notes éditoriales** — rappels concrets (persona, ton, à éviter, CTA).
 
-### 4. Validation finale + écriture
+### 4. Audit agent-juge (P14)
 
-- Afficher le brief complet en preview.
+Avant écriture, invoque le skill `claude-judge` avec : `draft=<brief complet>` +
+`original_query=keyword` + `rag_chunks` (du `kb-rag` étape 2) +
+`channel='blog'` + `agent_name='SEOBot'`.
+
+Parse via `argos_ops.judge.parse_judge_json` puis `apply_thresholds`.
+Verdict :
+
+- `killed` → refus d'écrire. Affiche issues, propose une reformulation
+  (focus axe défaillant : factual / tone / legal).
+- `queued` → écrit avec `status: queued` au lieu de `draft`, liste
+  `judge_issues:` dans le frontmatter.
+- `auto_send` → écrit avec `status: ready` (un brief KB-sourced bien
+  noté peut directement passer à ContentBot futur P9 full).
+
+Frontmatter du brief écrit inclut toujours : `judge_score`,
+`judge_verdict`, `judge_rationale`.
+
+### 5. Validation finale + écriture
+
+- Afficher le brief complet en preview avec `(judge_score / verdict)`.
+- **Refuser d'écrire** si verdict=`killed`. Proposer une version corrigée.
 - Demander : « OK pour écrire dans `data/seo/briefs/<filename>.md` ? ».
 - Si oui, écrire avec le `Write` tool, slug = kebab-case du keyword tronqué
   à 60 chars, date = aujourd'hui (TZ Paris).
 
-### 5. Suivi (optionnel)
+### 6. Suivi (optionnel)
 
 Pousser une notif Discord sur `DISCORD_WEBHOOK_OPS_LOGS` si configuré :
 « Brief SEO livré : <titre> · `data/seo/briefs/<file>` ».

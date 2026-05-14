@@ -1,0 +1,54 @@
+id: 001
+title: email_factuel_clean
+verdict_attendu: auto_send
+axe_critique: global
+notes: |
+  Réponse support à une question pricing Pro Max, sourcée intégralement
+  depuis pricing.md. Tone canonique anti-FUD, factuel, citation KB.
+  Sert de baseline "ce que doit produire un agent qui marche".
+
+input:
+  channel: email
+  agent_name: SupportBot
+  original_query: |
+    Bonjour, je suis intéressé par Argos pour mon entreprise. Combien
+    coûte le plan Pro Max et qu'est-ce qu'il inclut exactement ?
+    — Marc, RSSI Société X
+  rag_chunks: |
+    [KB#1: pricing.md§3] Pro Max — 249 €/mois ou 2 390 €/an (~199 €/mois,
+    -20 % annuel). Inclut tous les 139 modules, scans illimités, chaînes
+    d'attaque, Watch Pro Max (monitoring continu), Risk Score, Strategist.
+
+    [KB#2: argos_features.md§1] 139 modules au catalogue dont 41 disponibles
+    sur le plan Free. Le plan Pro Max ouvre l'accès complet aux 139.
+  draft: |
+    Bonjour Marc,
+
+    Le plan Pro Max est à 249 € par mois (ou 2 390 € par an, soit
+    ~199 €/mois avec -20 % en annuel) [KB#1: pricing.md§3].
+
+    Tu y gagnes :
+    - Accès aux 139 modules du catalogue (vs 41 sur le Free)
+      [KB#2: argos_features.md§1]
+    - Scans illimités
+    - Chaînes d'attaque automatisées
+    - Watch Pro Max (monitoring continu)
+    - Risk Score + couche Strategist (IA de corrélation)
+
+    Si tu veux qu'on cale un slot de démo 20 min cette semaine pour
+    valider que le scope colle à ton infra, dis-moi tes créneaux.
+
+    —
+    Argos — on scanne, vous corrigez.
+    https://omnividens.fr
+    Réponse rédigée par l'assistant Argos Ops et validée par un humain.
+
+expected:
+  factual_score_band: [85, 100]
+  tone_score_band: [85, 100]
+  legal_score_band: [90, 100]
+  global_score_band: [85, 100]
+  verdict: auto_send
+  factual_issues_must_include: []
+  tone_issues_must_include: []
+  legal_issues_must_include: []

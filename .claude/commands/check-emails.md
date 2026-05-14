@@ -65,9 +65,34 @@ c. **Drafter** — rédige une réponse en respectant strictement
    Cite des modules / prix / features uniquement s'ils sont confirmés dans
    la KB — pas d'invention.
 
-d. **Soumettre au fondateur** — affiche : sujet + draft + catégorie +
-   confidence. Demande validation explicite (`"envoyer"`, `"corriger : ..."`,
-   `"skip"`, `"escalade"`)
+d. **Soumettre à l'agent-juge (P14)** — invoque le skill `claude-judge`
+   avec : `draft` + `original_query=email.body` + `rag_chunks` (issus du
+   `kb-rag` étape b) + `channel='email'` + `agent_name='SupportBot'`.
+
+   Parse la sortie JSON via :
+
+   ```python
+   from argos_ops.judge import parse_judge_json, apply_thresholds
+
+   report = parse_judge_json(judge_output_text)
+   verdict = apply_thresholds(report)  # auto_send / queued / killed
+   ```
+
+   - `verdict='killed'` → ne propose pas l'envoi. Affiche les
+     `factual_issues / tone_issues / legal_issues`. Demande au fondateur
+     soit de reformuler, soit de skipper.
+   - `verdict='queued'` → flag les issues au fondateur, demande
+     **validation renforcée** (le fondateur doit explicitement OK le
+     wording avant envoi).
+   - `verdict='auto_send'` → continue la procédure standard ci-dessous.
+
+   Le verdict du juge est **toujours** stocké dans `interactions.judge_score`
+   + `interactions.judge_verdict` à l'étape 3, même si le fondateur
+   override (pour audit + calibration P14.1).
+
+e. **Soumettre au fondateur** — affiche : sujet + draft + catégorie +
+   confidence + `(judge_score / verdict)`. Demande validation explicite
+   (`"envoyer"`, `"corriger : ..."`, `"skip"`, `"escalade"`)
 
 ### 3. Sur validation
 
@@ -78,8 +103,12 @@ Utilise le skill `zimbra-ops` pour appeler `send_email(...)` avec :
 - `in_reply_to=message_id_original` + `references=[...]` pour threader
 - `from_name=settings.email_reply_name`
 
-Puis insère une `interaction(direction='out', agent_name='EmailBot+human',
-judge_verdict='human_validated', body=la_draft)`.
+Puis insère l'interaction via `argos_ops.judge.save_judge_verdict(...)`
+qui appelle `add_interaction` avec `judge_score=report.global_score` +
+`judge_verdict=verdict` (auto_send / queued / killed). Si le fondateur a
+overridé un `queued` en envoi → garde le verdict du juge (« le juge
+disait queued mais l'humain a validé » est une info de calibration
+précieuse).
 
 ### 4. Garde-fous
 
@@ -95,7 +124,9 @@ judge_verdict='human_validated', body=la_draft)`.
 
 - Cette commande tourne **dans une session Claude Code interactive**, pas
   via cron. C'est volontaire : l'envoi d'email engage la marque, on ne le
-  laisse pas passer en auto avant l'agent-juge (P14)
+  laisse pas passer en auto. L'agent-juge (P14, skill `claude-judge`) note
+  chaque draft mais ne décide pas seul — le fondateur valide en dernier
+  recours, même sur verdict `auto_send`
 - Convention de ton : court, concret, factuel, pas de faux enthousiasme.
   Cf. `data/kb/tone_of_voice.md`
 - Limite par session : pas de hard limit, mais reste raisonnable (10-15 emails

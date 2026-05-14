@@ -62,3 +62,9 @@ node_modules/
 dist/
 .next/
 *.tsbuildinfo
+
+# ui-ux-pro-max skill data — symlinks vers clone externe
+# (nextlevelbuilder/ui-ux-pro-max-skill). Pas committables sur Windows
+# (NTFS symlinks). Installer en local via la procédure du SKILL.md.
+.claude/skills/ui-ux-pro-max/data
+.claude/skills/ui-ux-pro-max/scripts

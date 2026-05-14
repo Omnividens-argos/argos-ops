@@ -116,3 +116,18 @@ class TripBreakerPayload(BaseModel):
 
     reason: str
     severity: Literal["critical", "warning", "info"] = "warning"
+
+
+class ManualRunResponse(BaseModel):
+    """Réponse de ``POST /api/agents/{name}/runs`` — run manuel depuis le panel.
+
+    L'exécution est synchrone (les agents Sprint 1 finissent en < 30 s), donc le
+    verdict final est connu au moment du retour : ``status`` reflète la même
+    valeur que la ligne ``agent_runs`` créée par ``run_agent``.
+    """
+
+    agent_name: str
+    triggered_at: datetime
+    status: str
+    output_summary: str | None = None
+    error: str | None = None

@@ -387,3 +387,53 @@ def test_reset_breaker_never_tripped_returns_synthetic_state(client: TestClient)
     assert body["name"] == "never_seen"
     assert body["tripped"] is False
     assert body["severity"] == "unknown"
+
+
+# =============================================================================
+# POST /api/agents/{name}/runs (P16.C — Run now manuel)
+# =============================================================================
+def test_run_agent_now_unknown_agent_404(client: TestClient) -> None:
+    response = client.post("/api/agents/UnknownBot/runs")
+    assert response.status_code == 404
+
+
+def test_run_agent_now_interactive_agent_400(client: TestClient) -> None:
+    """SupportBot est interactif (slash command) — pas runnable via panel."""
+    response = client.post("/api/agents/SupportBot/runs")
+    assert response.status_code == 400
+    assert "interactif" in response.json()["detail"].lower()
+
+
+def test_run_agent_now_dispatches_to_run_agent(client: TestClient) -> None:
+    """Le endpoint instancie l'agent et passe par run_agent (qui applique les
+    checks runtime). On mocke run_agent pour ne pas toucher la vraie DB."""
+    from argos_ops.agents.base import RunResult
+
+    fake_run = AsyncMock(
+        return_value=RunResult(status="success", output_summary="leads=0 customers=0")
+    )
+    with patch.object(app_module, "run_agent", fake_run):
+        response = client.post("/api/agents/DigestBuilder/runs")
+    assert response.status_code == 202
+    body = response.json()
+    assert body["agent_name"] == "DigestBuilder"
+    assert body["status"] == "success"
+    assert body["output_summary"] == "leads=0 customers=0"
+    fake_run.assert_awaited_once()
+
+
+def test_run_agent_now_reports_failed_status(client: TestClient) -> None:
+    """Si run_agent renvoie un verdict skip/failed, le endpoint le propage tel quel."""
+    from argos_ops.agents.base import RunResult
+
+    fake_run = AsyncMock(
+        return_value=RunResult(
+            status="skipped_disabled", error="agent disabled via Admin Panel"
+        )
+    )
+    with patch.object(app_module, "run_agent", fake_run):
+        response = client.post("/api/agents/EmailBot/runs")
+    assert response.status_code == 202
+    body = response.json()
+    assert body["status"] == "skipped_disabled"
+    assert body["error"] == "agent disabled via Admin Panel"
