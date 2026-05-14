@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 12 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12)
+- **Sessions terminées :** 13 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P11-PREP-B Mastodon + P9-DRAFT + P14 ClaudeJudge** 2026-05-14)
 - **Phase en cours :** Refonte UX du Admin Panel done (light/dark theme, catégorisation 6 catégories d'agents avec slots roadmap, status pills multi-états, Overview enrichi avec heatmap+sparklines, Runs groupé par jour, encart explicatif Breakers). Annexe D ajoutée au plan (7 agents proposés).
 - **Dernière partie done :** Refonte UX P16 — invoque skills `ui-ux-pro-max` (palette light cohérente) + `frontend-design` (composants StatusPill, Sparkline, Heatmap, ThemeToggle). 7 nouveaux agents au plan (Annexe D).
 - **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement.
-- **Prochaine partie :** Sprint 2 reprise — **P11-PREP** (Mastodon + Reddit + LinkedIn approval, ~30 min manuel) puis **P11** (connecteurs sociaux) puis **P9** (ContentBot).
+- **Prochaine partie :** Sprint 2/4 reprise — Mastodon P11-PREP-B ✅ + P9-DRAFT ✅ + P14 ClaudeJudge ✅ done (2026-05-14). Reddit reporté (compte encore bugué), LinkedIn en attente d'approbation. Prochain candidat : **P11** dès que comptes débloqués, sinon **P12 AdBot shadow mode** (Sprint 3) ou **P19 maintenance** (health_check, observabilité).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -35,12 +35,12 @@
 | 6 | SupportBot Tier 1 (RAG sur KB) | Sprint 1 | ✅ done (eval 10/10 PASS) | 2026-05-09 |
 | 7 | FinanceBot (Stripe + relances) | Sprint 1 | ✅ done (test live OK, garde-fou DUNNING_ENABLED=false) | 2026-05-09 |
 | ~~8~~ | ~~Chatbot widget site~~ — **🚫 cancelled** ([D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)) | — | 2026-05-12 |
-| 9 | ContentBot multi-canal | Sprint 2 | ⬜ pending | — |
+| 9 | ContentBot multi-canal | Sprint 2 | 🔄 P9-DRAFT done (skill `content-writer` + slash `/draft-content`, mode local-draft only — posting manuel jusqu'à P11) | 2026-05-14 |
 | 10 | SEOBot stratégie + briefs | Sprint 2 | 🔄 P10-MVP done (brief writer, sans SERP — option A 2026-05-12) | 2026-05-12 |
 | 11 | Connecteurs sociaux (LinkedIn / Mastodon / Reddit) | Sprint 2 | ⬜ pending | — |
 | 12 | AdBot (pilotage Google/Meta/LinkedIn Ads) | Sprint 3 | ⬜ pending | — |
 | 13 | OutboundBot (cold email volume modéré) | Sprint 3 | ⬜ pending | — |
-| 14 | Agent-juge Tier 1 (supervision IA) | Sprint 4 | ⬜ pending | — |
+| 14 | Agent-juge Tier 1 (supervision IA) | Sprint 4 | ✅ done (skill `claude-judge` + helper `argos_ops/judge.py` + 31 tests + 5 fixtures + stubs intégration 3 slash commands) | 2026-05-14 |
 | 15 | Circuit breakers et kill switches | Sprint 4 | ✅ done | 2026-05-12 |
 | 16 | Admin Control Panel (4 phases) | Sprints 1→4 | 🔄 P16.A + P16.B done (cockpit pilote en live, sans escalations queue) | 2026-05-12 |
 | 17 | Conformité RGPD / AI Act / Bloctel | Continu | ⬜ pending | — |
@@ -388,6 +388,145 @@ outbound — il logge juste « [DUNNING_DISABLED] J+N aurait été envoyé pour
 5. Créer la Task Scheduler `argos-ops-finance-bot` cron `0 6 * * *` Paris
    (PowerShell scriptable dans `.claude/skills/stripe-ops/SKILL.md`)
 
+### P9-DRAFT — ContentBot mode local-draft only 🔄 done 2026-05-14
+
+**Pivot Sprint 2** : P11 (connecteurs sociaux) bloqué (compte Reddit
+encore bugué + LinkedIn en attente d'approbation Community Management API).
+Pour produire de la valeur côté comms en parallèle, on livre la couche
+draft du ContentBot sans toucher au posting automatique. Pattern aligné
+sur P10-MVP (skill markdown + slash command, pas d'agent Python à ce stade).
+
+**Livrables (aucun code Python — skill éditorial pur)** :
+
+- `.claude/skills/content-writer/SKILL.md` — skill éditorial. 4 canaux
+  supportés (LinkedIn 1300-2000 chars / Mastodon 450-500 / Reddit r/netsec
+  800-2000 mots / X ≤ 280), contraintes par canal, garde-fous (zéro stat
+  inventée, zéro FUD, zéro buzzword corporate, zéro cross-posting
+  identique, règle 9:1 Reddit stricte). Consomme `kb-rag` (P6) +
+  `tone_of_voice.md` + `ICP.md` systématiquement.
+- `.claude/commands/draft-content.md` — slash command humain-in-the-loop.
+  Drafting mode interview court (angle → hook → corps → CTA → hashtags).
+  Refuse fermement les anti-patterns avant écriture fichier.
+- `data/content/drafts/` — queue locale de drafts (créée vide).
+  `data/content/README.md` documente workflow actuel (manuel) vs futur
+  (post-P11 — ContentBot lit cette même queue et poste auto).
+
+**Frontmatter draft canonique** (parseable par futur ContentBot agent
+quand P11 sera live) :
+
+```yaml
+---
+channel: linkedin | mastodon | reddit | x
+status: draft | validated | posted | rejected
+date_created: YYYY-MM-DD
+posted_at: null | YYYY-MM-DDTHH:MM
+topic: "<topic court>"
+angle: "<angle retenu>"
+character_count: <int>
+word_count: <int>     # Reddit longform
+kb_sources: ["pricing.md§Pro Max", ...]
+cta: "<lien ou null>"
+url_posted: null      # rempli manuellement après posting
+---
+```
+
+**Workflow boucle hebdo (jusqu'à P11)** :
+
+1. `/draft-content <channel> <topic>` 2-5×/semaine
+2. Skill produit draft validé dans `data/content/drafts/`
+3. Fondateur copie-colle dans le canal et publie
+4. Fondateur édite frontmatter : `status: posted` + `posted_at` + `url_posted`
+
+**Transition P9 full (post-P11)** : ContentBot agent Python lira cette
+queue, filtrera `status: validated`, soumettra à `ClaudeJudge` (P14),
+postera via `argos_ops/integrations/{linkedin,mastodon,reddit}.py` puis
+récupérera engagement J+1 dans `interactions.judge_score`. Le format
+des drafts ne bougera pas — pas de migration data nécessaire.
+
+**Hors scope P9-DRAFT** (volontaire — couvert par P9 full) :
+- Table `editorial_calendar` (P9 § 9.1) — pas nécessaire tant que le
+  fondateur drive le rythme manuellement
+- Skill `content-scheduler` (heure optimale par canal) — utile seulement
+  quand le posting devient automatique
+- Connecteurs sociaux Python (P11)
+- Agent-juge (P14)
+
+**Test plan (à dérouler avant clôture finale P9-DRAFT)** :
+- [ ] `/draft-content linkedin "faux positifs DAST"` → draft généré,
+      character_count 1300-2000, kb_sources non vide
+- [ ] `/draft-content mastodon "<topic>"` → 450-500 chars, pas d'emoji
+      marketing, lien à la fin
+- [ ] `/draft-content reddit "<topic>"` sans validation 9:1 → refus +
+      proposition alternative
+- [ ] Garde-fou stat inventée → refus
+
+### P14 — Agent-juge Tier 1 (claude-judge) ✅ done 2026-05-14
+
+**Pivot D-017** : sous le régime local-first, le « juge » n'est pas un
+appel API LLM autonome — c'est Claude Code lui-même, invoqué via le
+skill `claude-judge` depuis un slash command de drafting AVANT validation
+humaine. Pas de coût marginal (compris dans Pro Max abonnement fondateur).
+
+**Code livré et tout vert** (ruff + format + mypy strict + **186 tests
+passed** = 155 P0-P15 + 31 nouveaux) :
+
+- [`argos_ops/judge.py`](../argos_ops/judge.py) — plomberie Python :
+  - `JudgeReport` dataclass frozen avec validation des scores [0, 100]
+  - `parse_judge_json(text)` robuste : accepte JSON brut, fenced
+    ```json ... ```, texte parasite around, propage les erreurs
+    de validation des scores
+  - `apply_thresholds(report)` — règles déterministes ESCALATION_RULES.md
+    (auto_send si global ≥ 80 ∧ factual ≥ 70 ∧ legal ≥ 90 ; killed si
+    factual < 50 ∨ legal < 50 ∨ global < 50 ; sinon queued)
+  - `save_judge_verdict(...)` async — persiste l'interaction avec
+    `judge_score = report.global_score` + `judge_verdict =
+    apply_thresholds(report)`. Python tranche, jamais le LLM directement
+- [`.claude/skills/claude-judge/SKILL.md`](../.claude/skills/claude-judge/SKILL.md)
+  — grille de scoring 3 axes documentée :
+  - **factual** : chaque claim soutenu par les chunks RAG ? Fail = stat
+    inventée, prix faux, feature inventée, citation fictive
+  - **tone** : alignement `tone_of_voice.md` (anti-buzzword, anti-FUD,
+    vocabulaire registre maison)
+  - **legal** : RGPD / AI Act / Bloctel / anti-disparagement
+    (`competitor_compare.md` § 10) / PII tiers / secret leak
+  - JSON output strict, fenced markdown recommandé, **pas** de champ
+    `verdict` côté LLM
+- [`data/judge/`](../data/judge/) — fixtures golden starter :
+  - `001_email_factuel_clean.yaml` — auto_send (baseline)
+  - `002_email_hallucination_prix.yaml` — killed (factual < 50)
+  - `003_linkedin_buzzword_innovant.yaml` — queued (tone)
+  - `004_outbound_pas_optout.yaml` — killed (legal < 50)
+  - `005_seo_brief_disparage_burp.yaml` — queued (legal modéré)
+  - Target P14.1 : étendre vers 50 fixtures
+- [`tests/test_judge.py`](../tests/test_judge.py) — 31 tests :
+  validation `JudgeReport`, parsing robuste (4 formats), règles
+  thresholds (incluant table paramétrée de boundary cases)
+- **Stubs intégration** dans :
+  - [`.claude/commands/check-emails.md`](../.claude/commands/check-emails.md)
+    — invoque claude-judge entre RAG et soumission au fondateur, persiste
+    le verdict via `save_judge_verdict`
+  - [`.claude/commands/draft-content.md`](../.claude/commands/draft-content.md)
+    — refuse d'écrire si verdict=killed, marque `status: queued` si
+    queued, intègre `judge_score / judge_verdict / judge_rationale` au
+    frontmatter
+  - [`.claude/commands/generate-seo-brief.md`](../.claude/commands/generate-seo-brief.md)
+    — même pattern, status `ready` si auto_send (consommable direct par
+    ContentBot futur P9 full)
+
+**Schéma DB** : `interactions.judge_score` + `interactions.judge_verdict`
+existaient déjà depuis P3 (migration `0001_init.sql`). Aucune migration
+nécessaire.
+
+**Hors scope P14** (reporté à P14.1 quand on observera des FP/FN en prod) :
+
+- `scripts/eval_judge.py` — boucle sur toutes les fixtures, calcule taux
+  de désaccord. Bloqué tant que Claude Code n'expose pas un mode
+  scriptable headless pour invoquer un skill — pour l'instant éval manuelle
+- Étendre vers 50 fixtures (cf. backlog dans `data/judge/README.md`)
+- Breaker `judge_disagreement` (cadre P15 déjà en place — il suffira
+  d'appeler `trip_with_notification` quand > 20 % des verdicts de la
+  journée sont `queued`)
+
 ### P2 — Bootstrap du dossier `argos-ops` ✅
 **Done le 2026-05-07.** Repo privé GitHub créé et premier push effectué.
 Livrables :
@@ -412,8 +551,8 @@ branche/PR/merge comme stipulé dans `CLAUDE.md`.
 |----|-------|--------|------|
 | INFRA-01 | (réservé pour future install lourde si besoin) | — | — |
 | INFRA-02 | Install Umami self-host | ⬜ pending | Avant P10 ou P12 |
-| P11-PREP-A | Recréer Reddit App (compte vieilli) | ⬜ pending | Avant P11 |
-| P11-PREP-B | Créer compte Mastodon infosec.exchange + token | ⬜ pending | Avant P11 |
+| P11-PREP-A | Recréer Reddit App (compte vieilli) | ⏸️ reporté (compte encore bugué — 2026-05-14) | Avant P11 |
+| P11-PREP-B | Créer compte Mastodon infosec.exchange + token | ✅ done (compte `@argos_omnividens@infosec.exchange`, token validé via `scripts/smoke_mastodon.py` 2026-05-14) | TODO bio + bot flag |
 | P17-PREP | Page `/legal/privacy` + `/legal/ai-disclosure` sur omnividens.fr | ⚠️ rédaction faite (data/legal/), intégration frontend SecHunter à faire par user | rédaction 2026-05-08 |
 | P1.E-FOLLOWUP | Vérifier approbation Community Management API LinkedIn | ⬜ pending | 3-7j après 2026-05-07 |
 

@@ -153,6 +153,10 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   structuré (titre, outline H2/H3, sources, meta, internal links) à
   partir d'un keyword + KB Argos. Humain-in-the-loop. Cf.
   [`.claude/commands/generate-seo-brief.md`](.claude/commands/generate-seo-brief.md)
+- **`/draft-content`** (P9-DRAFT) — drafte un post social adapté à un
+  canal (LinkedIn / Mastodon / Reddit r/netsec / X) depuis un topic + KB
+  Argos. Mode local-draft only — posting manuel jusqu'à P11. Humain-in-the-loop.
+  Cf. [`.claude/commands/draft-content.md`](.claude/commands/draft-content.md)
 
 ---
 
@@ -177,15 +181,31 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   depuis un keyword + KB Argos (via `kb-rag`). Pas de SERP scraping
   (option A 2026-05-12). Réutilisé par `/generate-seo-brief` et futur
   ContentBot P9. Cf. [`.claude/skills/seo-brief-writer/`](.claude/skills/seo-brief-writer/)
+- **`content-writer`** (P9-DRAFT, 2026-05-14) — génère un post social
+  adapté au canal (LinkedIn / Mastodon / Reddit r/netsec / X) depuis un
+  topic + KB Argos (via `kb-rag`). Mode local-draft only — drafts rangés
+  dans `data/content/drafts/` en attendant P11 (connecteurs sociaux).
+  Réutilisé par `/draft-content` et futur ContentBot P9 full. Cf.
+  [`.claude/skills/content-writer/`](.claude/skills/content-writer/)
+- **`claude-judge`** (P14, 2026-05-14) — agent-juge Tier 1. Note un
+  draft sur 3 axes (factual / tone / legal, 0-100) et retourne un JSON
+  parseable par [`argos_ops/judge.py`](argos_ops/judge.py). Sous D-017
+  c'est Claude Code lui-même qui joue ce rôle, invoqué dans
+  `/check-emails`, `/draft-content`, `/generate-seo-brief` (et futur
+  `/draft-outbound` P13) AVANT validation humaine. Verdict canonique
+  (auto_send / queued / killed) tranché côté Python via
+  `apply_thresholds()` selon `docs/ESCALATION_RULES.md`. 5 fixtures
+  starter dans `data/judge/fixtures/`. Cf.
+  [`.claude/skills/claude-judge/`](.claude/skills/claude-judge/)
 - **`ui-ux-pro-max`** — design intelligence (50+ styles, 161 palettes, 57 font pairings,
   161 product types, 99 UX guidelines). Source : [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill).
   À invoquer en P16 (Admin Control Panel) AVANT toute écriture de code frontend pour figer
   palette / typo / densité / layout. Nécessite Python 3.x pour le search script.
 
 Inventaire métier prévu (P18) — restant à créer :
-`content-writer` · `content-scheduler` · `serp-analyzer` (reporté en P10.1) ·
+`content-scheduler` · `serp-analyzer` (reporté en P10.1) ·
 `ads-optimizer` · `ads-creative-writer` · `lead-enricher` ·
-`outbound-personalizer` · `claude-judge`
+`outbound-personalizer`
 
 _(`chat-orchestrator` retiré de l'inventaire par [D-019](docs/DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).)_
 
