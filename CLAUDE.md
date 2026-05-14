@@ -225,10 +225,41 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   d'impact). Évalue le breaker `ad_spend_runaway` (P15). Réutilisé par
   `/analyze-ads` et futur AdBot Python P12.B. Cf.
   [`.claude/skills/ads-optimizer/`](.claude/skills/ads-optimizer/)
+- **`content-scheduler`** (P18, 2026-05-14) — choisit l'heure et le jour
+  optimaux pour publier un draft social (LinkedIn / Mastodon /
+  Reddit r/netsec / X). Respecte les fenêtres d'engagement par canal,
+  la règle 9:1 Reddit, un espacement minimal entre 2 posts d'un canal.
+  Patch le frontmatter du draft (`status: validated` + `scheduled_for` +
+  `scheduling_rationale`). Cf.
+  [`.claude/skills/content-scheduler/`](.claude/skills/content-scheduler/)
+- **`lead-enricher`** (P18, 2026-05-14) — enrichit un lead BtoB depuis
+  un input minimal (nom + domaine). Devine l'email pro (5 patterns
+  scorés), titre, signaux ICP (Marc/Sarah/Thomas), BANT 0-100.
+  Heuristiques + sources publiques uniquement, aucune API tierce
+  (Apollo/Hunter en option P13.B si budget). Disqualifiers RGPD
+  stricts (email perso → skip). Output dans
+  `data/outbound/enriched/<lead>.md`. Cf.
+  [`.claude/skills/lead-enricher/`](.claude/skills/lead-enricher/)
+- **`outbound-personalizer`** (P18, 2026-05-14) — génère **1 ligne**
+  hyper-personnalisée (80-180 chars) à insérer en début de cold email
+  Argos, à partir d'une fiche enriched. Règles strictes anti-fake-perso :
+  source publique citée obligatoire, fait spécifique daté < 60 jours,
+  zéro flatterie générique. Audit `claude-judge` (P14) avant insertion.
+  Patch le frontmatter de l'enriched. Cf.
+  [`.claude/skills/outbound-personalizer/`](.claude/skills/outbound-personalizer/)
+- **`compliance`** (P17, 2026-05-14) — pas un skill markdown : helper
+  Python [`argos_ops/compliance.py`](argos_ops/compliance.py) qui
+  encode les checks déterministes RGPD / AI Act qu'on ne veut PAS
+  déléguer à un LLM. Premier check livré :
+  `is_human_response_requested()` — détecte les demandes explicites
+  de réponse humaine (AI Act § 5.2), court-circuite la classification
+  IA dans `/check-emails`. 22 tests.
 
-Inventaire métier prévu (P18) — restant à créer :
-`content-scheduler` · `serp-analyzer` (reporté en P10.1) ·
-`lead-enricher` · `outbound-personalizer`
+**Inventaire P18 complet** — tous les skills planifiés du plan §18 sont
+livrés (sauf `serp-analyzer` reporté en P10.1 — option B 2026-05-12).
+Les agents Python correspondants (`ContentBot` P9 full, `OutboundBot` P13,
+`AdBot` P12.B live mode) restent à câbler avec leurs connecteurs API
+respectifs quand les credentials / budgets associés seront disponibles.
 
 _(`chat-orchestrator` retiré de l'inventaire par [D-019](docs/DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).)_
 

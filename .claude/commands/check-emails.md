@@ -42,6 +42,22 @@ préférence.)
 
 Pour chaque ligne :
 
+**a.0. Court-circuit AI Act § 5.2 (P17, déterministe, AVANT classification)** :
+
+```python
+from argos_ops.compliance import is_human_response_requested
+
+if is_human_response_requested(subject=email.subject, body=email.body):
+    # Skip classifier + skip drafting. Notif Discord + escalade Tier 2.
+    # Logger une interaction direction='out', body='[SKIP IA — réponse humaine demandée]',
+    # judge_verdict='human_requested_aiact' pour audit.
+    continue
+```
+
+Cf. [`data/legal/ai-disclosure.md`](../../data/legal/ai-disclosure.md) § 5.2.
+**Ne jamais bypass** ce check — il fait partie du contrat de conformité
+public.
+
 a. **Classifier** — invoque le skill `email-classifier` avec subject + body
    (le skill retourne `category`, `confidence`, `suggested_priority`,
    `suggested_response_skeleton`)

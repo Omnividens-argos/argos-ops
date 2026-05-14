@@ -9,11 +9,11 @@
 
 ## Résumé d'avancement
 
-- **Sessions terminées :** 15 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P11-PREP-B Mastodon + P9-DRAFT + P14 ClaudeJudge + P19.0 health_check + P12 shadow** 2026-05-14)
+- **Sessions terminées :** 17 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P11-PREP-B Mastodon + P9-DRAFT + P14 ClaudeJudge + P19.0 health_check + P12 shadow + P17 compliance + P18 skills inventory** 2026-05-14)
 - **Phase en cours :** Refonte UX du Admin Panel done (light/dark theme, catégorisation 6 catégories d'agents avec slots roadmap, status pills multi-états, Overview enrichi avec heatmap+sparklines, Runs groupé par jour, encart explicatif Breakers). Annexe D ajoutée au plan (7 agents proposés).
 - **Dernière partie done :** Refonte UX P16 — invoque skills `ui-ux-pro-max` (palette light cohérente) + `frontend-design` (composants StatusPill, Sparkline, Heatmap, ThemeToggle). 7 nouveaux agents au plan (Annexe D).
 - **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement.
-- **Prochaine partie :** Mastodon P11-PREP-B ✅ + P9-DRAFT ✅ + P14 ClaudeJudge ✅ + P19.0 health_check ✅ + P12 shadow ✅ done (2026-05-14). Reddit reporté, LinkedIn en attente d'approbation. Prochain candidat : **P11** dès comptes débloqués, sinon **P17** (compliance — intégration frontend SecHunter restante) ou **P13 OutboundBot** (cold email volume modéré, nécessite domaine secondaire `try-omnividens.com` ~10 €/an).
+- **Prochaine partie :** P17 compliance ✅ + P18 inventory skills ✅ done (2026-05-14). Reste **P11** (bloqué Reddit/LinkedIn), **P13 OutboundBot** (besoin domaine secondaire ~10 €/an) et le **live mode** des agents shadow (P9 full, P12.B, P10 full SERP). Pas de session principale en attente — la conception Argos Ops est complète, prêt à passer au mode opérationnel (apply skills, run agents).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler créés (cron actifs)** : `argos-ops-morning-digest` (`0 8 * * *`) + `argos-ops-email-bot` (`*/15` 8h-22h Paris)
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -43,8 +43,8 @@
 | 14 | Agent-juge Tier 1 (supervision IA) | Sprint 4 | ✅ done (skill `claude-judge` + helper `argos_ops/judge.py` + 31 tests + 5 fixtures + stubs intégration 3 slash commands) | 2026-05-14 |
 | 15 | Circuit breakers et kill switches | Sprint 4 | ✅ done | 2026-05-12 |
 | 16 | Admin Control Panel (4 phases) | Sprints 1→4 | 🔄 P16.A + P16.B done (cockpit pilote en live, sans escalations queue) | 2026-05-12 |
-| 17 | Conformité RGPD / AI Act / Bloctel | Continu | ⬜ pending | — |
-| 18 | Inventaire des skills | Continu | ⬜ pending | — |
+| 17 | Conformité RGPD / AI Act / Bloctel | Continu | ✅ done côté Argos Ops (privacy + ai-disclosure rédigés + `compliance.py` AI Act § 5.2 + check-emails wired + 22 tests) — intégration frontend SecHunter reste côté user | 2026-05-14 |
+| 18 | Inventaire des skills | Continu | ✅ done (3 skills ajoutés : `content-scheduler` + `lead-enricher` + `outbound-personalizer`. Inventaire complet sauf `serp-analyzer` reporté en P10.1 / option B) | 2026-05-14 |
 | 19 | Maintenance et observabilité | Continu | 🔄 P19.0 done — `argos_ops/health.py` + `scripts/health_check.py` (DB / KB / agent freshness / breakers / queued escalations) + 23 tests. Hooks Claude Code reportés (déjà couverts par `run_agent()` wrapper P15) | 2026-05-14 |
 
 Légende : ✅ done · 🔄 in progress · ⚠️ partial · 🚫 blocked · ⬜ pending
@@ -459,6 +459,106 @@ des drafts ne bougera pas — pas de migration data nécessaire.
 - [ ] `/draft-content reddit "<topic>"` sans validation 9:1 → refus +
       proposition alternative
 - [ ] Garde-fou stat inventée → refus
+
+### P18 — Inventaire des skills ✅ done 2026-05-14
+
+Tous les skills planifiés au plan §18 sont livrés (sauf `serp-analyzer`
+reporté en P10.1 / option B 2026-05-12). Les agents Python correspondants
+restent à câbler avec leurs connecteurs API quand les credentials /
+budgets associés seront disponibles (P9 full après P11, P12.B live après
+budget pub, P13 après domaine secondaire).
+
+**3 nouveaux skills livrés (pattern markdown-only) :**
+
+- [`.claude/skills/content-scheduler/`](../.claude/skills/content-scheduler/SKILL.md)
+  — choisit l'heure et le jour optimaux pour publier un draft social
+  (LinkedIn / Mastodon / Reddit / X). Fenêtres canoniques par canal,
+  règle 9:1 Reddit, espacement min entre 2 posts. Patch frontmatter
+  draft → `status: validated` + `scheduled_for` ISO 8601 TZ Paris.
+- [`.claude/skills/lead-enricher/`](../.claude/skills/lead-enricher/SKILL.md)
+  — enrichit un lead BtoB depuis nom + domaine : 5 patterns email scorés,
+  signaux ICP (persona Marc/Sarah/Thomas + taille boîte + secteur +
+  funding + hiring + cloud migration), BANT 0-100 selon `ICP.md`.
+  Heuristiques + sources publiques uniquement (pas d'Apollo / Hunter
+  / Clearbit). Disqualifiers RGPD stricts (email perso → skip,
+  concurrents → skip, < 10 pers → skip). Output dans
+  `data/outbound/enriched/<lead>.md`.
+- [`.claude/skills/outbound-personalizer/`](../.claude/skills/outbound-personalizer/SKILL.md)
+  — génère **1 ligne** hyper-personnalisée (80-180 chars) à insérer en
+  début de cold email. Règles strictes anti-fake-perso : source publique
+  citée obligatoire, fait spécifique daté < 60 jours, zéro flatterie
+  générique. Audit `claude-judge` (P14) avant insertion. Patch
+  frontmatter de l'enriched.
+
+**Status agents Python (P9/P12/P13)** :
+
+| Agent | Skills disponibles | Connecteur Python | Statut |
+|---|---|---|---|
+| ContentBot (P9 full) | content-writer ✅ + content-scheduler ✅ | LinkedIn/Mastodon/Reddit API (P11) | ⏳ attend P11 |
+| AdBot live (P12.B) | ads-creative-writer ✅ + ads-optimizer ✅ | Google Ads / LinkedIn Marketing / Meta Marketing | ⏳ attend budget pub + credentials |
+| OutboundBot (P13) | lead-enricher ✅ + outbound-personalizer ✅ + zimbra-ops ✅ + claude-judge ✅ | zimbra-ops déjà en place — manque juste domaine secondaire ~10 €/an pour la délivrabilité | ⏳ attend `try-omnividens.com` |
+
+### P17 — Conformité RGPD / AI Act / Bloctel ✅ done 2026-05-14
+
+**Rédaction côté Argos Ops complète** (privacy + ai-disclosure faits en
+P17-PREP le 2026-05-08). Cette session livre les pièces actionables
+qui manquaient + finalise le statut.
+
+**Code livré et tout vert** (ruff + format + mypy strict + **231 tests
+passed** = 209 + 22 nouveaux) :
+
+- [`argos_ops/compliance.py`](../argos_ops/compliance.py) — helper
+  Python déterministe :
+  - `is_human_response_requested(subject, body)` : détecte les
+    expressions explicites de demande d'humain (FR + EN, ~20 variantes
+    couvertes). Normalisation lowercase + retrait accents, regex avec
+    word boundaries, fenêtre 500 premiers chars du body (ignore les
+    signatures corporate type « Powered by HubSpot AI »)
+  - **Sortie déterministe** — pas d'appel LLM, pas de dépendance
+    externe, reproductible 100 %. Sert de contrat légal avec l'AI Act
+    article 13 + notre engagement public `data/legal/ai-disclosure.md`
+    § 5.2
+
+- [`tests/test_compliance.py`](../tests/test_compliance.py) — 22 tests :
+  - True cases : 7 variantes sujet + 4 variantes body + accents +
+    ponctuation + body window
+  - False cases : empty, unrelated, substrings dans mots (« inhumane »,
+    « no Angular »), signature au-delà du window
+  - Edge : subject only, body only, custom window
+
+- Update [`.claude/skills/email-classifier/SKILL.md`](../.claude/skills/email-classifier/SKILL.md)
+  — section « Override AI Act § 5.2 » avec liste des expressions
+  déclencheuses + contrat de sortie (`category = "autre"`,
+  `confidence = 1.0`, `suggested_response_skeleton = "PAS DE DRAFT IA"`)
+- Update [`.claude/commands/check-emails.md`](../.claude/commands/check-emails.md)
+  — step 2.a.0 : court-circuit AVANT classification IA via
+  `is_human_response_requested()`. Garantit que l'humain qui exerce son
+  droit AI Act voit son message quitter le pipeline IA immédiatement
+- Update [`docs/COMPLIANCE.md`](../docs/COMPLIANCE.md) — section 7
+  passée de « À compléter en P17 » à « Statut P17 (2026-05-14) » avec
+  done / hors scope clair + engagement opérationnel (toute modif de
+  sous-traitants / classification AI Act / phrases déclencheuses doit
+  mentionner « P17 » dans le commit + bumper la date du markdown public)
+
+**Done côté Argos Ops** :
+- Page `/legal/privacy` rédigée (`data/legal/privacy.md`, 260 lignes,
+  9 sections)
+- Page `/legal/ai-disclosure` rédigée (`data/legal/ai-disclosure.md`,
+  255 lignes, 8 sections + classification AI Act explicite)
+- Sous-traitants (Anthropic, OVHcloud, Google Workspace, Stripe)
+  documentés avec cadre RGPD (DPA + SCC 2021)
+- Helper Python + tests + wire-up slash command
+- Anti-fuite secrets (loguru filtre P4 + filtre Pydantic SecretStr)
+  déjà actif depuis P4
+
+**À faire hors Argos Ops (côté SecHunter / fondateur)** :
+- Intégration frontend des 2 pages legal sur omnividens.fr
+- Compléter placeholders dans privacy.md (forme juridique, SIREN, TVA,
+  adresse siège, DPO externe)
+- Confirmer / créer `security@omnividens.fr`
+- Registre des traitements (modèle CNIL gratuit) à créer comme doc
+  interne séparée
+- Contrats type DPA pour clients enterprise (offre Custom ≥ 5 k€/mois)
 
 ### P12 — AdBot shadow mode 🔄 done 2026-05-14
 

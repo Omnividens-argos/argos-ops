@@ -1,7 +1,11 @@
 # Argos Ops — Compliance
 
-> RGPD / AI Act / Bloctel / spam laws. Détail à compléter en P17.
-> Squelette posé en P2 pour servir de référence dès les premiers agents.
+> RGPD / AI Act / Bloctel / spam laws. **Squelette posé en P2**,
+> **rédaction complète livrée en P17 (2026-05-14)** dans
+> [`data/legal/privacy.md`](../data/legal/privacy.md) et
+> [`data/legal/ai-disclosure.md`](../data/legal/ai-disclosure.md) —
+> sources de vérité pour les pages publiques `/legal/privacy` et
+> `/legal/ai-disclosure` d'omnividens.fr.
 
 ---
 
@@ -27,13 +31,21 @@
 À créer en P17 sur le modèle CNIL gratuit. Mis à jour à chaque ajout d'agent
 qui collecte de la donnée nouvelle.
 
-### 1.4 Page `/legal/privacy`
+### 1.4 Page `/legal/privacy` (P17 ✅ 2026-05-14)
 
-> ⚠️ **TODO P17-PREP** : créer une vraie page React `/legal/privacy` sur
-> `omnividens.fr` (actuellement le serveur retourne 200 mais c'est la homepage
-> déguisée). Cette URL a été déclarée à LinkedIn comme privacy policy de
-> l'app dev — doit avoir un vrai contenu RGPD avant la mise en service de
-> EmailBot (P5).
+**Rédaction côté Argos Ops** : [`data/legal/privacy.md`](../data/legal/privacy.md)
+(260 lignes, 9 sections, source de vérité).
+
+**Intégration frontend SecHunter** : à faire côté repo SecHunter (rend
+le markdown ou page statique régénérée). Quelques placeholders à
+compléter avant publication publique (cf. § « Notes pour l'intégration
+frontend » en fin du markdown) :
+
+- Forme juridique / SIREN / TVA / adresse siège social
+- Nom du DPO si externe engagé
+- Confirmation des noms réels de cookies émis par le backend
+- Confirmation que `analytics.omnividens.fr` (Umami) est actif
+- Confirmation `security@omnividens.fr` existe ou pointe vers contact@
 
 ---
 
@@ -105,12 +117,43 @@ qui collecte de la donnée nouvelle.
 
 ---
 
-## 7. À compléter en P17
+## 7. Statut P17 (2026-05-14)
 
-- Registre des traitements (modèle CNIL)
-- Page `/legal/privacy` complète
-- Page `/legal/ai-disclosure`
-- Contrats type DPA pour clients
-- Sous-traitants : Anthropic (Claude — abonnement Pro Max via Claude Code,
-  D-017), Google (Gmail uniquement — pas Gemini, cf. D-017), Stripe — à
-  documenter avec leurs DPA respectifs
+### Done côté Argos Ops
+
+- ✅ Page `/legal/privacy` rédigée → [`data/legal/privacy.md`](../data/legal/privacy.md)
+- ✅ Page `/legal/ai-disclosure` rédigée → [`data/legal/ai-disclosure.md`](../data/legal/ai-disclosure.md)
+- ✅ Sous-traitants documentés (Anthropic, OVHcloud, Google Workspace,
+  Stripe) avec cadre RGPD (DPA + SCC 2021) dans privacy.md § 4
+- ✅ Helper Python déterministe
+  [`argos_ops/compliance.py`](../argos_ops/compliance.py) — détecte
+  les demandes explicites de réponse humaine (AI Act § 5.2). Wired
+  dans [`.claude/commands/check-emails.md`](../.claude/commands/check-emails.md)
+  en step 2.a.0 (court-circuit AVANT classification). 22 tests.
+
+### À faire hors Argos Ops (côté SecHunter / fondateur)
+
+- ⬜ Intégration frontend des 2 pages legal sur omnividens.fr
+- ⬜ Compléter placeholders dans privacy.md (forme juridique, SIREN,
+  TVA, adresse siège, DPO externe si nécessaire)
+- ⬜ Confirmer que `security@omnividens.fr` existe (ou alias vers
+  `contact@omnividens.fr`)
+- ⬜ Registre des traitements (modèle CNIL, gratuit) — à créer comme
+  document interne séparé, à mettre à jour à chaque nouvel agent qui
+  collecte une donnée nouvelle
+- ⬜ Contrats type DPA pour clients enterprise (offre Custom ≥ 5 k€/mois,
+  cf. privacy.md § 7 — data residency UE stricte)
+
+### Engagement compliance opérationnel
+
+Toute modification de :
+
+- la liste des sous-traitants (privacy.md § 4)
+- la classification AI Act (ai-disclosure.md § 6)
+- les durées de conservation (privacy.md § 2)
+- la liste des phrases déclencheuses « réponse humaine SVP »
+  (`argos_ops/compliance.py` + email-classifier SKILL.md)
+
+→ DOIT inclure **« P17 »** dans le commit message + bumper la date en
+haut du markdown public. Sert de signal pour le rebuild de la page
+publique côté SecHunter et de trace d'audit.
