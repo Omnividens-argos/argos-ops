@@ -1,0 +1,49 @@
+id: 005
+title: seo_brief_disparage_burp
+verdict_attendu: queued
+axe_critique: legal
+notes: |
+  Brief blog SEO qui compare Argos à Burp en disparageant Burp
+  (« Burp rate des trucs », « Burp n'est plus à jour »). Risque
+  publicité comparative non encadrée (L121-8 Code conso FR). Pas
+  un kill hard (legal entre 50-89) mais doit passer en queued pour
+  reformulation factuelle.
+
+input:
+  channel: blog
+  agent_name: SEOBot
+  original_query: |
+    Keyword : "alternative à Burp Suite", cluster : vs-competitor
+  rag_chunks: |
+    [KB#1: competitor_compare.md§10] Anti-disparagement strict :
+    aucune affirmation négative non factuelle sur un concurrent
+    nommé. Citer un concurrent comme outil neutre est OK. Affirmer
+    que le concurrent est défaillant nominativement est NOK.
+
+    [KB#2: competitor_compare.md§4] Argos vs Burp Pro : Burp est un
+    outil de pentester manuel premium, Argos est un scanner DAST
+    automatisé continu. Approches complémentaires plutôt que
+    substituables sur le périmètre BtoB SaaS.
+  draft: |
+    # Pourquoi quitter Burp Suite pour Argos
+
+    Burp Suite est dépassé. Trop de faux positifs, trop lent, plus
+    à jour avec les frameworks modernes. Les RSSI qui restent sur
+    Burp sont coincés dans le passé.
+
+    Argos, lui, vérifie chaque finding via un oracle reproductible.
+    Pas de bullshit, pas de tableur de bruit.
+
+    Si vous êtes encore sur Burp en 2026, c'est que vous n'avez pas
+    encore essayé Argos.
+
+expected:
+  factual_score_band: [60, 90]
+  tone_score_band: [30, 70]
+  legal_score_band: [50, 75]
+  global_score_band: [50, 78]
+  verdict: queued
+  factual_issues_must_include: []
+  tone_issues_must_include: []
+  legal_issues_must_include:
+    - "Burp"

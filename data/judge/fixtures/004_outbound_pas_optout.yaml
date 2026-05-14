@@ -1,0 +1,49 @@
+id: 004
+title: outbound_pas_optout
+verdict_attendu: killed
+axe_critique: legal
+notes: |
+  Cold email outbound BtoB sans mention opt-out, sans base légale
+  affichée (intérêt légitime), sans disclosure IA. Trois conditions
+  cumulées qui font tomber le score legal sous 50 → killed.
+  Important : on KILL ces drafts, on les met pas en queue — un cold
+  email non-conforme peut générer plainte CNIL.
+
+input:
+  channel: email
+  agent_name: OutboundBot
+  original_query: |
+    Outbound vers RSSI SaaS BtoB FR, séquence 1/5 — angle "audit DAST
+    gratuit"
+  rag_chunks: |
+    [KB#1: ICP.md§Marc] Marc, RSSI ou responsable sécu d'un SaaS BtoB
+    50-500 personnes, signaux : récente migration cloud, ouverture
+    récente d'un poste sécu, levée série A/B.
+
+    [KB#2: tone_of_voice.md§3] Toute comm outbound doit mentionner :
+    - la source légale (intérêt légitime BtoB)
+    - un opt-out 1 clic en pied de mail
+    - la disclosure assistant IA
+  draft: |
+    Bonjour Marc,
+
+    J'ai vu sur LinkedIn que vous étiez RSSI chez Société X. On édite
+    Argos, un scanner DAST qui supprime les faux positifs grâce à un
+    oracle reproductible.
+
+    Je vous propose un audit gratuit de votre périmètre exposé (1 h).
+    Cliquez ici pour booker → https://omnividens.fr/audit
+
+    À tout vite,
+    L'équipe Omnividens
+
+expected:
+  factual_score_band: [70, 95]
+  tone_score_band: [60, 90]
+  legal_score_band: [0, 40]
+  global_score_band: [40, 70]
+  verdict: killed
+  factual_issues_must_include: []
+  tone_issues_must_include: []
+  legal_issues_must_include:
+    - "opt-out"

@@ -1,0 +1,47 @@
+id: 003
+title: linkedin_buzzword_innovant
+verdict_attendu: queued
+axe_critique: tone
+notes: |
+  Post LinkedIn factuel (rien d'inventé) mais bourré de buzzwords
+  corporate qu'on a explicitement bannis (`innovant`, `disruptif`,
+  `game changer`, `solution clé en main`). Tone score doit chuter
+  sous 80 → queued. Factual OK, legal OK.
+
+input:
+  channel: social_linkedin
+  agent_name: ContentBot
+  original_query: |
+    Topic : présenter Argos comme scanner DAST différenciant
+  rag_chunks: |
+    [KB#1: tone_of_voice.md§4] Vocabulaire banni : "ravi de vous
+    accompagner", "solution clé en main", "innovant", "disruptif",
+    "game changer", "synergie", "n'hésitez pas à revenir vers nous".
+
+    [KB#2: argos_features.md§Oracle] Argos vérifie chaque finding via
+    un oracle reproductible (OOB, time-based, baseline diff,
+    error-based ancré, status-code whitelist).
+  draft: |
+    Argos est une solution innovante et disruptive qui change la donne
+    sur le marché du DAST.
+
+    Notre approche game changer combine une technologie de pointe et
+    une solution clé en main pour vos équipes sécurité.
+
+    Vérification via oracle reproductible, scans illimités, ROI
+    immédiat. La synergie parfaite entre IA et expertise humaine.
+
+    Contactez-nous → https://omnividens.fr
+
+    #DAST #Innovation #GameChanger #Disruption
+
+expected:
+  factual_score_band: [70, 95]    # claims factuels OK
+  tone_score_band: [0, 45]        # buzzwords en cascade
+  legal_score_band: [80, 100]     # rien d'illégal en soi
+  global_score_band: [50, 78]     # tone tire vers le bas, mais > 50 donc queued
+  verdict: queued
+  factual_issues_must_include: []
+  tone_issues_must_include:
+    - "innovant"
+  legal_issues_must_include: []
