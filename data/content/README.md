@@ -7,8 +7,8 @@ Queue locale des drafts de posts sociaux produits par le skill `content-writer`
 
 1. `/draft-content <channel> <topic>` génère un fichier dans `drafts/`
 2. Le fondateur valide / édite manuellement le draft
-3. Le fondateur copie-colle le body dans le canal (LinkedIn / Mastodon /
-   Reddit / X) et publie
+3. Le fondateur copie-colle le body dans le canal (LinkedIn / Mastodon / X)
+   et publie
 4. Le fondateur édite le frontmatter du draft :
    - `status: posted`
    - `posted_at: YYYY-MM-DDTHH:MM`
@@ -21,7 +21,8 @@ automatique**.
 
 Un agent `ContentBot` lira cette queue, filtrera les drafts `status: validated`,
 les soumettra à `ClaudeJudge` (P14), et postera automatiquement via les
-connecteurs `argos_ops/integrations/{linkedin,mastodon,reddit}.py`.
+connecteurs `argos_ops/integrations/{linkedin,mastodon}.py` (Reddit retiré
+par [D-022](../../docs/DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops)).
 
 L'engagement (likes / comments / reshares) sera récupéré J+1 et loggé dans
 `interactions.judge_score`.
@@ -33,7 +34,7 @@ drafts/YYYY-MM-DD-<channel>-<slug>.md
 ```
 
 - `YYYY-MM-DD` = date de création (TZ Paris)
-- `<channel>` ∈ `{linkedin, mastodon, reddit, x}`
+- `<channel>` ∈ `{linkedin, mastodon, x}`
 - `<slug>` = kebab-case du topic, tronqué à 50 chars
 
 ## Statuts

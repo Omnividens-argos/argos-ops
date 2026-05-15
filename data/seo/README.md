@@ -39,7 +39,8 @@
   les keyword gaps réels vs concurrence. Hors scope P10-MVP (cf. décision
   2026-05-12 : risque IP ban + KB Argos suffit pour démarrer).
 - **P9 — ContentBot** : consommera ces briefs pour publier sur le blog
-  (Ghost/WordPress headless), LinkedIn (P11), Mastodon (P11), Reddit (P11).
+  (Ghost/WordPress headless), LinkedIn (P11), Mastodon (P11). Reddit
+  retiré du périmètre par [D-022](../../docs/DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops).
 - **Google Search Console** : croiser les positions réelles avec les
   keywords du fichier — déclenche révision des priorités.
 

@@ -105,12 +105,12 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 12 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12)
-- **Phase en cours :** Refonte UX du Admin Panel done — light/dark theme, 6 catégories d'agents avec slots roadmap, status pills multi-états, Overview enrichi (heatmap + sparklines + Today briefing), Runs groupé par jour + filtres multi, encart explicatif Breakers, 7 nouveaux agents au plan (Annexe D).
+- **Sessions terminées :** 12 / 20 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P20 Argos Memory** + **P21 Capabilities** spec ajoutées 2026-05-15)
+- **Phase en cours :** Refonte UX du Admin Panel done — light/dark theme, 6 catégories d'agents avec slots roadmap, status pills multi-états, Overview enrichi (heatmap + sparklines + Today briefing), Runs groupé par jour + filtres multi, encart explicatif Breakers, 7 nouveaux agents au plan (Annexe D). **P20 Argos Memory** (D-020) + **P21 Paramétrage inter-agents** (D-021) spec rédigés.
 - **Dernière partie done :** Refonte UX P16 — `ui-ux-pro-max` + `frontend-design` invoqués. Composants : `StatusPill`, `Sparkline`, `Heatmap`, `ThemeToggle`, `useTheme`, `agentCatalog`. CSS dual theme via custom properties.
-- **Prochaine partie :** Sprint 2 — **P11-PREP** (Mastodon + Reddit + LinkedIn) puis **P11** (connecteurs sociaux) puis **P9** (ContentBot)
+- **Prochaine partie :** **P20.A Argos Memory foundation** (recommandé prioritaire — bus de communication entre agents, cf. [D-020](docs/DECISIONS.md#d-020--argos-memory--m%C3%A9moire-vivante-partag%C3%A9e-multi-agents-architecture-5-couches)) puis **P21.A Capabilities** (paramétrage inter-agents pull-based, cf. [D-021](docs/DECISIONS.md#d-021--param%C3%A9trage-inter-agents--capabilities-pull-based-default-allow-pour-read--deny-pour-write-back)). Sinon Sprint 2 — **P11-PREP** (Mastodon + Reddit + LinkedIn) puis **P11** (connecteurs sociaux) puis **P9** (ContentBot).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`)
-- **Décisions P3-P5 + P8 actives :** D-009 à D-019 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
+- **Décisions P3-P5 + P8 + P20 + P21 actives :** D-009 à D-021 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
   via Claude Code Pro Max (agents) + `fastembed` / `paraphrase-multilingual-mpnet-base-v2`
   (embeddings). Aucune API LLM tierce. **D-018 = stack email** : OVH Zimbra
@@ -155,8 +155,9 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   partir d'un keyword + KB Argos. Humain-in-the-loop. Cf.
   [`.claude/commands/generate-seo-brief.md`](.claude/commands/generate-seo-brief.md)
 - **`/draft-content`** (P9-DRAFT) — drafte un post social adapté à un
-  canal (LinkedIn / Mastodon / Reddit r/netsec / X) depuis un topic + KB
-  Argos. Mode local-draft only — posting manuel jusqu'à P11. Humain-in-the-loop.
+  canal (LinkedIn / Mastodon) depuis un topic + KB Argos. Reddit retiré
+  [D-022](docs/DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops).
+  Mode local-draft only — posting manuel jusqu'à P11. Humain-in-the-loop.
   Cf. [`.claude/commands/draft-content.md`](.claude/commands/draft-content.md)
 - **`/draft-ad`** (P12 shadow) — drafte 3 variantes d'annonce Ads
   (Google Search RSA / LinkedIn Sponsored / Meta) avec audit `claude-judge`
@@ -167,6 +168,16 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   3-5 recommandations chiffrées (€/semaine) dans `data/ads/recommendations/`.
   Évalue le breaker `ad_spend_runaway`. Aucune action plateforme. Cf.
   [`.claude/commands/analyze-ads.md`](.claude/commands/analyze-ads.md)
+- **`/run-outbound-bot`** (P13.A shadow) — lance `OutboundBot` qui
+  scaffold les séquences cold email 5-touches (D+0/D+3/D+7/D+14/D+30)
+  depuis `data/outbound/inbox/leads.csv`. Idempotent, aucun envoi
+  tant que `OUTBOUND_LIVE_MODE=false`. Cf.
+  [`.claude/commands/run-outbound-bot.md`](.claude/commands/run-outbound-bot.md)
+- **`/draft-outbound <slug>`** (P13.A shadow) — humain-in-the-loop pour
+  remplir le body de chaque touche via `lead-enricher` +
+  `outbound-personalizer` + `claude-judge`. Garde-fous email perso
+  disqualifié, BANT < 40 refusé, footer opt-out HMAC obligatoire. Cf.
+  [`.claude/commands/draft-outbound.md`](.claude/commands/draft-outbound.md)
 
 ---
 
@@ -192,10 +203,11 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   (option A 2026-05-12). Réutilisé par `/generate-seo-brief` et futur
   ContentBot P9. Cf. [`.claude/skills/seo-brief-writer/`](.claude/skills/seo-brief-writer/)
 - **`content-writer`** (P9-DRAFT, 2026-05-14) — génère un post social
-  adapté au canal (LinkedIn / Mastodon / Reddit r/netsec / X) depuis un
-  topic + KB Argos (via `kb-rag`). Mode local-draft only — drafts rangés
-  dans `data/content/drafts/` en attendant P11 (connecteurs sociaux).
-  Réutilisé par `/draft-content` et futur ContentBot P9 full. Cf.
+  adapté au canal (LinkedIn / Mastodon) depuis un topic + KB Argos (via
+  `kb-rag`). Reddit retiré du périmètre [D-022](docs/DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops).
+  Mode local-draft only — drafts rangés dans `data/content/drafts/` en
+  attendant P11 (connecteurs sociaux). Réutilisé par `/draft-content` et
+  futur ContentBot P9 full. Cf.
   [`.claude/skills/content-writer/`](.claude/skills/content-writer/)
 - **`claude-judge`** (P14, 2026-05-14) — agent-juge Tier 1. Note un
   draft sur 3 axes (factual / tone / legal, 0-100) et retourne un JSON
@@ -226,11 +238,11 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   `/analyze-ads` et futur AdBot Python P12.B. Cf.
   [`.claude/skills/ads-optimizer/`](.claude/skills/ads-optimizer/)
 - **`content-scheduler`** (P18, 2026-05-14) — choisit l'heure et le jour
-  optimaux pour publier un draft social (LinkedIn / Mastodon /
-  Reddit r/netsec / X). Respecte les fenêtres d'engagement par canal,
-  la règle 9:1 Reddit, un espacement minimal entre 2 posts d'un canal.
-  Patch le frontmatter du draft (`status: validated` + `scheduled_for` +
-  `scheduling_rationale`). Cf.
+  optimaux pour publier un draft social (LinkedIn / Mastodon). Reddit
+  retiré [D-022](docs/DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops).
+  Respecte les fenêtres d'engagement par canal et un espacement minimal
+  entre 2 posts d'un canal. Patch le frontmatter du draft (`status:
+  validated` + `scheduled_for` + `scheduling_rationale`). Cf.
   [`.claude/skills/content-scheduler/`](.claude/skills/content-scheduler/)
 - **`lead-enricher`** (P18, 2026-05-14) — enrichit un lead BtoB depuis
   un input minimal (nom + domaine). Devine l'email pro (5 patterns

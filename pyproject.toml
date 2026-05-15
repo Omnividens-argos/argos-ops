@@ -47,11 +47,8 @@ dependencies = [
   "imap-tools>=1.6",
   "aiosmtplib>=3.0",
 
-  # Reddit
-  "praw>=7.7",
-
   # LinkedIn — pas de SDK officiel stable, on appelle l'API directement via httpx
-  # Mastodon (remplace X)
+  # Mastodon (remplace X, D-004 ; Reddit retiré D-022 2026-05-15)
   "Mastodon.py>=1.8",
 
   # Stripe
@@ -65,6 +62,9 @@ dependencies = [
 
   # Markdown parsing (KB chunking)
   "markdown-it-py>=3.0",
+
+  # YAML — frontmatter skills + OutboundBot meta.yaml (P13)
+  "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -75,6 +75,7 @@ dev = [
   "ruff>=0.4",
   "mypy>=1.10",
   "types-requests",
+  "types-PyYAML",
 ]
 
 [build-system]

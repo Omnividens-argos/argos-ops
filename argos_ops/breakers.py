@@ -23,10 +23,12 @@ Inventaire des breakers métier actuellement câblés (Sprint 1) :
 - ``mrr_drop_critical`` — MRR -10 % ou plus sur 7 j (FinanceBot)
 - ``stripe_api_error_burst`` — ≥ 3 runs FinanceBot ``failed`` sur 24 h
 - ``email_smtp_failures_burst`` — ≥ 3 runs EmailBot ``failed`` sur 24 h
+- ``outbound_volume_exceeded`` — CSV inbox > OUTBOUND_DAILY_MAX nouveaux
+  leads (OutboundBot P13.A) — protège contre un export massif accidentel
 
 Les breakers du plan original (``ad_spend_runaway``, ``email_spam_complaints``,
 ``judge_disagreement``, etc.) seront ajoutés au fur et à mesure que leurs
-agents respectifs entreront en production (P12, P13, P14).
+agents respectifs entreront en production (P12, P14).
 """
 
 from __future__ import annotations

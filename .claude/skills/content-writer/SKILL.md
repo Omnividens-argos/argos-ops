@@ -1,6 +1,6 @@
 ---
 name: content-writer
-description: Génère un post pour un canal social donné (LinkedIn / Mastodon / Reddit r/netsec / X) à partir d'un topic + la KB Argos. Mode local-draft only (P9-DRAFT, 2026-05-14) — pas de posting tant que P11 (connecteurs sociaux) n'est pas livré. Utilise ce skill quand le user demande de drafter un post, de préparer du contenu social, ou pendant /draft-content. Anti-générique IA via charge systématique du contexte KB (kb-rag P6).
+description: Génère un post pour un canal social donné (LinkedIn / Mastodon) à partir d'un topic + la KB Argos. Reddit retiré du périmètre par D-022 (2026-05-15). Mode local-draft only (P9-DRAFT, 2026-05-14) — pas de posting tant que P11 (connecteurs sociaux) n'est pas livré. Utilise ce skill quand le user demande de drafter un post, de préparer du contenu social, ou pendant /draft-content. Anti-générique IA via charge systématique du contexte KB (kb-rag P6).
 ---
 
 # content-writer
@@ -13,7 +13,7 @@ Skill éditorial pour produire des posts social Argos qui :
 - S'appuient sur la **KB curée** (`tone_of_voice`, `argos_features`,
   `competitor_compare`, `pricing`, `ICP`, `faq`)
 - Sont **rangés dans une queue locale** (`data/content/drafts/`) en
-  attendant que P11 (connecteurs LinkedIn/Mastodon/Reddit) soit livré.
+  attendant que P11 (connecteurs LinkedIn/Mastodon) soit livré.
   D'ici là, posting **manuel** par le fondateur après validation.
 
 > **Note P9-DRAFT vs P9 full** : ce skill couvre la phase MVP draft-only.
@@ -26,14 +26,17 @@ Skill éditorial pour produire des posts social Argos qui :
 |-------|----------|--------|------------------------|
 | **LinkedIn** | 1300-2000 chars | Hook 1 ligne → 3-4 paragraphes courts → CTA soft → 3-5 hashtags | Pas de buzzwords corporate (« synergie », « game changer »). Pas d'emoji marketing. |
 | **Mastodon** (infosec.exchange) | 300-500 chars | 1-2 paragraphes, ton tech crowd, 2-3 hashtags, lien à la fin | **Bot flag activé** sur le compte (requis par règles instance). Pas de promo directe — partage technique d'abord. |
-| **Reddit r/netsec** | 800-2000 mots | Longform technique, jamais de pitch produit direct | **Règle 9:1** : 9 contributions utiles non promo pour 1 mention produit. Ban = perte du canal. Pas de lien sortant en première mention. |
 | **X / Twitter** | ≤ 280 chars | 1 idée forte, 1 hashtag max, lien optionnel | Free tier supprimé (D-004) — canal **bas priorité**, ne pas y consacrer d'effort. |
+
+> **Reddit retiré du périmètre par D-022 (2026-05-15)** — l'app API Reddit
+> ne peut pas être créée sur le compte du fondateur ("Responsible Builder
+> Policy"). Voir [`docs/DECISIONS.md`](../../docs/DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops).
 
 ## Inputs
 
 - `topic` — sujet du post (ex : `"faux positifs DAST"`, `"correction
   hebdo SecHunter v2.4"`, `"OWASP API Top 10 review"`)
-- `channel` — `linkedin | mastodon | reddit | x`
+- `channel` — `linkedin | mastodon | x`
 - `(optionnel) angle` — angle éditorial précis (sinon, l'agent propose 2-3 options)
 - `(optionnel) cta` — call-to-action voulu (lien démo, blog post, etc.)
 
@@ -44,14 +47,13 @@ avec **exactement** cette structure :
 
 ```markdown
 ---
-channel: linkedin | mastodon | reddit | x
+channel: linkedin | mastodon | x
 status: draft | validated | posted | rejected
 date_created: YYYY-MM-DD
 posted_at: null
 topic: "<topic court>"
 angle: "<angle retenu>"
 character_count: <int — bytes du body uniquement, hors frontmatter>
-word_count: <int — pour Reddit longform>
 kb_sources: ["pricing.md§Pro Max", "competitor_compare.md§Acunetix", ...]
 cta: "<lien ou null>"
 url_posted: null  # rempli manuellement par le fondateur après posting
@@ -68,13 +70,9 @@ url_posted: null  # rempli manuellement par le fondateur après posting
 
 ### 1. Validation des inputs
 
-- Si `channel` n'est pas dans `{linkedin, mastodon, reddit, x}` → demander
-  lequel.
+- Si `channel` n'est pas dans `{linkedin, mastodon, x}` → demander
+  lequel. Si `reddit` est demandé → refuser (retiré du périmètre, D-022).
 - Si `topic` est vague (« cybersecurity », « tech ») → demander précision.
-- Si `channel=reddit` et c'est le premier post de la session → rappeler
-  la règle 9:1 et demander : « Combien de contributions non-promo as-tu
-  postées sur r/netsec récemment ? » Si < 9 → refuser et proposer d'écrire
-  une réponse technique à une question existante d'abord.
 
 ### 2. Chargement contexte KB
 
@@ -98,22 +96,17 @@ Pour chaque post, **proposer** puis **demander validation** :
 1. **Angle** — 2-3 propositions d'angle éditorial avec rationale court
    (« angle A traite l'objection X de Marc »).
 2. **Hook / 1re ligne** — la phrase qui doit accrocher dans le feed.
-   LinkedIn/X : 1 ligne forte ; Mastodon : 1 phrase tech ; Reddit : titre
-   du post (≤ 300 chars).
+   LinkedIn/X : 1 ligne forte ; Mastodon : 1 phrase tech.
 3. **Corps** — adapter à la longueur canal :
    - **LinkedIn** : 3-4 paragraphes max 4 lignes chacun, séparés par
      ligne vide. Une idée par paragraphe. Pas de listes à puces sauf
      si vraiment utile (LinkedIn casse souvent le formatting).
    - **Mastodon** : 1-2 paragraphes denses, tech vocabulary OK (audience
      l'attend).
-   - **Reddit** : intro problème → analyse technique → conclusion
-     actionnable. Citations de sources. Markdown standard supporté.
    - **X** : 1 phrase + 1 lien.
 4. **CTA** — soft, matché à l'intent du canal :
    - LinkedIn : « Démo ? » ou lien vers `omnividens.fr/blog/<post>`
    - Mastodon : lien vers feature page ou blog, pas vers démo
-   - Reddit : **aucun CTA produit** dans 9 posts sur 10 ; 10e post = lien
-     dans une réponse en commentaire, jamais dans le post initial
    - X : lien permalink
 5. **Hashtags** — appliquer le quota par canal (cf. tableau).
 
@@ -143,13 +136,12 @@ Pas bloquant.
   « synergie » → refuser et reformuler.
 - **Emoji marketing en cascade** — 🚀🔥💯 = pas notre tone. 1 emoji
   technique acceptable côté LinkedIn si pertinent (📊 sur un benchmark).
-  Pas d'emoji sur Mastodon/Reddit.
+  Pas d'emoji sur Mastodon.
 - **CTA agressif** — « Cliquez ici maintenant ! », « Ne ratez pas ! » →
   refuser.
-- **Promotion directe Reddit** sans contexte 9:1 validé.
 - **Plus de 5 hashtags LinkedIn** — l'algo punit (cf. tone_of_voice).
 - **Cross-posting identique** — chaque canal doit avoir une formulation
-  adaptée. Refuser « génère le même post pour les 4 canaux ».
+  adaptée. Refuser « génère le même post pour les 3 canaux ».
 
 ## Tests / validation
 
@@ -157,8 +149,7 @@ Pas de tests Python (skill éditorial pur, même pattern que
 `seo-brief-writer`). Critères qualité par post :
 
 - ✅ Frontmatter YAML valide et complet
-- ✅ `character_count` (LinkedIn/Mastodon/X) ou `word_count` (Reddit)
-      dans les bornes du canal
+- ✅ `character_count` dans les bornes du canal (LinkedIn/Mastodon/X)
 - ✅ Au moins 1 `kb_sources` listée (preuve que la KB a été consultée)
 - ✅ Hook accroche sur la 1re ligne (test : couper après la 1re ligne,
       ça donne envie de lire ?)

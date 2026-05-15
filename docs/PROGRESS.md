@@ -1,6 +1,6 @@
 # Argos Ops — Progress
 
-> Suivi de l'avancement des 19 parties du plan.
+> Suivi de l'avancement des 21 parties du plan.
 > Source : [`ARGOS_OPS_PLAN.md`](ARGOS_OPS_PLAN.md).
 > À mettre à jour à chaque clôture de partie (règle « Clôture de partie » du
 > [master prompt](MASTER_PROMPT.md)).
@@ -12,8 +12,8 @@
 - **Sessions terminées :** 17 / 18 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P11-PREP-B Mastodon + P9-DRAFT + P14 ClaudeJudge + P19.0 health_check + P12 shadow + P17 compliance + P18 skills inventory** 2026-05-14)
 - **Phase en cours :** Refonte UX du Admin Panel done (light/dark theme, catégorisation 6 catégories d'agents avec slots roadmap, status pills multi-états, Overview enrichi avec heatmap+sparklines, Runs groupé par jour, encart explicatif Breakers). Annexe D ajoutée au plan (7 agents proposés).
 - **Dernière partie done :** Refonte UX P16 — invoque skills `ui-ux-pro-max` (palette light cohérente) + `frontend-design` (composants StatusPill, Sparkline, Heatmap, ThemeToggle). 7 nouveaux agents au plan (Annexe D).
-- **Dernière décision structurante :** [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled) — P8 ChatBot widget abandonnée définitivement.
-- **Prochaine partie :** P17 compliance ✅ + P18 inventory skills ✅ done (2026-05-14). Reste **P11** (bloqué Reddit/LinkedIn), **P13 OutboundBot** (besoin domaine secondaire ~10 €/an) et le **live mode** des agents shadow (P9 full, P12.B, P10 full SERP). Pas de session principale en attente — la conception Argos Ops est complète, prêt à passer au mode opérationnel (apply skills, run agents).
+- **Dernière décision structurante :** [D-021](DECISIONS.md#d-021--param%C3%A9trage-inter-agents--capabilities-pull-based-default-allow-pour-read--deny-pour-write-back) — Paramétrage inter-agents pull-based (P21) ajouté au plan (2026-05-15), complémentaire de [D-020](DECISIONS.md#d-020--argos-memory--m%C3%A9moire-vivante-partag%C3%A9e-multi-agents-architecture-5-couches) (Argos Memory P20).
+- **Prochaine partie :** **P20 Argos Memory** puis **P21 Capabilities** (les deux nouvelles, prioritaires sur P11. P20 = bus de communication ; P21 = règles de combinaison. Cf. D-020 + D-021). Reste aussi **P11** (LinkedIn seulement maintenant — Reddit retiré [D-022](DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops), Mastodon déjà OK), **P13 OutboundBot** (besoin domaine secondaire ~10 €/an) et le **live mode** des agents shadow (P9 full, P12.B, P10 full SERP).
 - **3 Task Scheduler actifs** : `argos-ops-morning-digest` (0 8) + `argos-ops-email-bot` (*/15 8h-22h) + `argos-ops-finance-bot` (0 6) — Sprint 1 fermé côté infra cron
 - **Task Scheduler à enregistrer** : `argos-ops-health-check` (5h45 daily) — script PowerShell idempotent livré dans [`scripts/setup_health_check_task.ps1`](../scripts/setup_health_check_task.ps1). À lancer en PS admin une fois côté fondateur (`.\scripts\setup_health_check_task.ps1`).
 - **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé)
@@ -37,15 +37,17 @@
 | ~~8~~ | ~~Chatbot widget site~~ — **🚫 cancelled** ([D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)) | — | 2026-05-12 |
 | 9 | ContentBot multi-canal | Sprint 2 | 🔄 P9-DRAFT done (skill `content-writer` + slash `/draft-content`, mode local-draft only — posting manuel jusqu'à P11) | 2026-05-14 |
 | 10 | SEOBot stratégie + briefs | Sprint 2 | 🔄 P10-MVP done (brief writer, sans SERP — option A 2026-05-12) | 2026-05-12 |
-| 11 | Connecteurs sociaux (LinkedIn / Mastodon / Reddit) | Sprint 2 | ⬜ pending | — |
+| 11 | Connecteurs sociaux (LinkedIn / Mastodon) | Sprint 2 | ⬜ pending — Reddit retiré [D-022](DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops) 2026-05-15 | — |
 | 12 | AdBot (pilotage Google/Meta/LinkedIn Ads) | Sprint 3 | 🔄 P12 shadow done (skills `ads-creative-writer` + `ads-optimizer` + slashs `/draft-ad` + `/analyze-ads` + data/ads/ tree, mode shadow only — pas d'API tant que budget pub pas branché) | 2026-05-14 |
-| 13 | OutboundBot (cold email volume modéré) | Sprint 3 | ⬜ pending | — |
+| 13 | OutboundBot (cold email volume modéré) | Sprint 3 | 🔄 P13.A shadow done (module `argos_ops/outbound/` + agent `OutboundBot` + slashs `/run-outbound-bot` + `/draft-outbound` + breaker `outbound_volume_exceeded` + 29 tests. Mode shadow strict — aucun envoi tant que domaine secondaire + `OUTBOUND_LIVE_MODE=true`) | 2026-05-15 |
 | 14 | Agent-juge Tier 1 (supervision IA) | Sprint 4 | ✅ done (skill `claude-judge` + helper `argos_ops/judge.py` + 31 tests + 5 fixtures + stubs intégration 3 slash commands) | 2026-05-14 |
 | 15 | Circuit breakers et kill switches | Sprint 4 | ✅ done | 2026-05-12 |
 | 16 | Admin Control Panel (4 phases) | Sprints 1→4 | 🔄 P16.A + P16.B done (cockpit pilote en live, sans escalations queue) | 2026-05-12 |
 | 17 | Conformité RGPD / AI Act / Bloctel | Continu | ✅ done côté Argos Ops (privacy + ai-disclosure rédigés + `compliance.py` AI Act § 5.2 + check-emails wired + 22 tests) — intégration frontend SecHunter reste côté user | 2026-05-14 |
 | 18 | Inventaire des skills | Continu | ✅ done (3 skills ajoutés : `content-scheduler` + `lead-enricher` + `outbound-personalizer`. Inventaire complet sauf `serp-analyzer` reporté en P10.1 / option B) | 2026-05-14 |
 | 19 | Maintenance et observabilité | Continu | 🔄 P19.0 done — `argos_ops/health.py` + `scripts/health_check.py` (DB / KB / agent freshness / breakers / queued escalations) + 23 tests. Hooks Claude Code reportés (déjà couverts par `run_agent()` wrapper P15) | 2026-05-14 |
+| 20 | Argos Memory (5 couches : raw / SQL / semantic / curator / auditor) | Sprint 2+ | ⬜ pending — spec ajoutée 2026-05-15, [D-020](DECISIONS.md#d-020--argos-memory--m%C3%A9moire-vivante-partag%C3%A9e-multi-agents-architecture-5-couches). 4 sous-parties P20.A → P20.D | — |
+| 21 | Paramétrage inter-agents (capabilities pull-based, table + Admin Panel matrice + write-back) | Sprint 2+ (après P20.A) | ⬜ pending — spec ajoutée 2026-05-15, [D-021](DECISIONS.md#d-021--param%C3%A9trage-inter-agents--capabilities-pull-based-default-allow-pour-read--deny-pour-write-back). 3 sous-parties P21.A → P21.C | — |
 
 Légende : ✅ done · 🔄 in progress · ⚠️ partial · 🚫 blocked · ⬜ pending
 
@@ -62,7 +64,7 @@ Légende : ✅ done · 🔄 in progress · ⚠️ partial · 🚫 blocked · ⬜
 **Done le 2026-05-07.** 7 sous-tâches :
 - ✅ P1.A Google AI Studio : clé Gemini validée (49 modèles)
 - ✅ P1.B Discord : serveur + 4 webhooks + user ID
-- ⏸️ P1.C Reddit : skippé (compte trop neuf, todo `P11-PREP`)
+- 🚫 ~~P1.C Reddit~~ : skippé en P1 (compte trop neuf, D-005). Reddit **définitivement retiré** du périmètre Argos Ops par [D-022](DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops) 2026-05-15
 - ⏸️ P1.D X : skippé (free tier supprimé, remplacé par Mastodon — D-004)
 - ✅ P1.E LinkedIn : 2 apps + Community Management API soumis (en attente 3-7j)
 - ⏸️ P1.F Plausible : skippé (Umami à installer en INFRA-02)
@@ -390,19 +392,21 @@ outbound — il logge juste « [DUNNING_DISABLED] J+N aurait été envoyé pour
 
 ### P9-DRAFT — ContentBot mode local-draft only 🔄 done 2026-05-14
 
-**Pivot Sprint 2** : P11 (connecteurs sociaux) bloqué (compte Reddit
-encore bugué + LinkedIn en attente d'approbation Community Management API).
+**Pivot Sprint 2** : P11 (connecteurs sociaux) bloqué (LinkedIn en
+attente d'approbation Community Management API ; Mastodon OK ; Reddit
+retiré du périmètre par [D-022](DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops) 2026-05-15).
 Pour produire de la valeur côté comms en parallèle, on livre la couche
 draft du ContentBot sans toucher au posting automatique. Pattern aligné
 sur P10-MVP (skill markdown + slash command, pas d'agent Python à ce stade).
 
 **Livrables (aucun code Python — skill éditorial pur)** :
 
-- `.claude/skills/content-writer/SKILL.md` — skill éditorial. 4 canaux
-  supportés (LinkedIn 1300-2000 chars / Mastodon 450-500 / Reddit r/netsec
-  800-2000 mots / X ≤ 280), contraintes par canal, garde-fous (zéro stat
-  inventée, zéro FUD, zéro buzzword corporate, zéro cross-posting
-  identique, règle 9:1 Reddit stricte). Consomme `kb-rag` (P6) +
+- `.claude/skills/content-writer/SKILL.md` — skill éditorial. 2 canaux
+  supportés (LinkedIn 1300-2000 chars / Mastodon 450-500 chars) après
+  [D-022](DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops)
+  qui retire Reddit. X reste mentionné « bas priorité » (D-004 free tier
+  supprimé). Garde-fous (zéro stat inventée, zéro FUD, zéro buzzword
+  corporate, zéro cross-posting identique). Consomme `kb-rag` (P6) +
   `tone_of_voice.md` + `ICP.md` systématiquement.
 - `.claude/commands/draft-content.md` — slash command humain-in-the-loop.
   Drafting mode interview court (angle → hook → corps → CTA → hashtags).
@@ -416,14 +420,13 @@ quand P11 sera live) :
 
 ```yaml
 ---
-channel: linkedin | mastodon | reddit | x
+channel: linkedin | mastodon | x
 status: draft | validated | posted | rejected
 date_created: YYYY-MM-DD
 posted_at: null | YYYY-MM-DDTHH:MM
 topic: "<topic court>"
 angle: "<angle retenu>"
 character_count: <int>
-word_count: <int>     # Reddit longform
 kb_sources: ["pricing.md§Pro Max", ...]
 cta: "<lien ou null>"
 url_posted: null      # rempli manuellement après posting
@@ -439,7 +442,7 @@ url_posted: null      # rempli manuellement après posting
 
 **Transition P9 full (post-P11)** : ContentBot agent Python lira cette
 queue, filtrera `status: validated`, soumettra à `ClaudeJudge` (P14),
-postera via `argos_ops/integrations/{linkedin,mastodon,reddit}.py` puis
+postera via `argos_ops/integrations/{linkedin,mastodon}.py` puis
 récupérera engagement J+1 dans `interactions.judge_score`. Le format
 des drafts ne bougera pas — pas de migration data nécessaire.
 
@@ -456,8 +459,6 @@ des drafts ne bougera pas — pas de migration data nécessaire.
       character_count 1300-2000, kb_sources non vide
 - [ ] `/draft-content mastodon "<topic>"` → 450-500 chars, pas d'emoji
       marketing, lien à la fin
-- [ ] `/draft-content reddit "<topic>"` sans validation 9:1 → refus +
-      proposition alternative
 - [ ] Garde-fou stat inventée → refus
 
 ### P18 — Inventaire des skills ✅ done 2026-05-14
@@ -472,9 +473,9 @@ budget pub, P13 après domaine secondaire).
 
 - [`.claude/skills/content-scheduler/`](../.claude/skills/content-scheduler/SKILL.md)
   — choisit l'heure et le jour optimaux pour publier un draft social
-  (LinkedIn / Mastodon / Reddit / X). Fenêtres canoniques par canal,
-  règle 9:1 Reddit, espacement min entre 2 posts. Patch frontmatter
-  draft → `status: validated` + `scheduled_for` ISO 8601 TZ Paris.
+  (LinkedIn / Mastodon). Fenêtres canoniques par canal, espacement min
+  entre 2 posts. Patch frontmatter draft → `status: validated` +
+  `scheduled_for` ISO 8601 TZ Paris. Reddit retiré [D-022](DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops).
 - [`.claude/skills/lead-enricher/`](../.claude/skills/lead-enricher/SKILL.md)
   — enrichit un lead BtoB depuis nom + domaine : 5 patterns email scorés,
   signaux ICP (persona Marc/Sarah/Thomas + taille boîte + secteur +
@@ -494,9 +495,9 @@ budget pub, P13 après domaine secondaire).
 
 | Agent | Skills disponibles | Connecteur Python | Statut |
 |---|---|---|---|
-| ContentBot (P9 full) | content-writer ✅ + content-scheduler ✅ | LinkedIn/Mastodon/Reddit API (P11) | ⏳ attend P11 |
+| ContentBot (P9 full) | content-writer ✅ + content-scheduler ✅ | LinkedIn/Mastodon API (P11) | ⏳ attend P11 (Reddit retiré [D-022](DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops)) |
 | AdBot live (P12.B) | ads-creative-writer ✅ + ads-optimizer ✅ | Google Ads / LinkedIn Marketing / Meta Marketing | ⏳ attend budget pub + credentials |
-| OutboundBot (P13) | lead-enricher ✅ + outbound-personalizer ✅ + zimbra-ops ✅ + claude-judge ✅ | zimbra-ops déjà en place — manque juste domaine secondaire ~10 €/an pour la délivrabilité | ⏳ attend `try-omnividens.com` |
+| OutboundBot (P13.A shadow) | lead-enricher ✅ + outbound-personalizer ✅ + zimbra-ops ✅ + claude-judge ✅ + **agent Python `OutboundBot` ✅** | zimbra-ops déjà en place — manque domaine secondaire ~10 €/an + `OUTBOUND_LIVE_MODE=true` pour P13.B (envoi réel) | 🔄 P13.A shadow done 2026-05-15 — drafts only |
 
 ### P17 — Conformité RGPD / AI Act / Bloctel ✅ done 2026-05-14
 
@@ -632,6 +633,102 @@ cible, +10 %/jour max sur budget, alerte si spend > 1.5× cible).
 avec rationale chiffré ») : reportée à la première campagne live du
 fondateur. Pour l'instant les skills sont prêts, le pipeline est testé
 côté workflow, il manque les vraies données pour calibrer.
+
+### P13.A — OutboundBot shadow mode 🔄 done 2026-05-15
+
+**Pivot stratégique** : décision fondateur du 2026-05-15 de ne pas
+acheter tout de suite le domaine secondaire (~10 €/an). Plutôt que de
+laisser P13 entièrement bloqué, on livre la **couche scaffold** de
+l'agent (similaire aux pivots P9-DRAFT et P12 shadow) — drafts only,
+zéro envoi tant que `OUTBOUND_LIVE_MODE=false` ET domaine secondaire
+absent.
+
+**Livrables (~600 lignes code + 250 lignes tests + docs)** :
+
+- `argos_ops/outbound/` (Python pur, aucun LLM) :
+  - `models.py` — `LeadInput`, `TouchStep` (DISCOVERY/VALUE/CASE/PROOF/BREAKUP),
+    `Touch`, `SequenceState`
+  - `templates.py` — `slugify()`, `compute_touch_dates()` (cadence
+    D+0/D+3/D+7/D+14/D+30), `generate_opt_out_token()` HMAC-SHA256 16 chars,
+    `verify_opt_out_token()` temps constant, `build_opt_out_url()`,
+    `build_footer()` (RGPD + AI Act + opt-out)
+  - `sequence.py` — `read_inbox_csv()` (parsing strict, refus colonnes
+    inconnues + domain malformé), `scaffold_sequence_dir()` (idempotent,
+    crée meta.yaml + 5 touch_N.md placeholders), `load_sequence_state()`,
+    `is_sequence_scaffolded()`
+- `argos_ops/agents/outbound_bot.py` — `OutboundBot(BaseAgent)` :
+  - `command = "/run-outbound-bot"`, `breaker_name = "OutboundBot"`
+  - Lit `data/outbound/inbox/leads.csv` si présent
+  - Refuse si `OUTBOUND_UNSUBSCRIBE_SECRET` manquant (requis même en
+    shadow pour pré-calculer les tokens HMAC)
+  - Garde-fou volume : si > `OUTBOUND_DAILY_MAX` (défaut 30) nouveaux
+    leads, trip breaker `outbound_volume_exceeded` AVANT scaffold
+  - Notif Discord avec stats (`read`, `newly_scaffolded`, `already_scaffolded`,
+    `failures`, liste des slugs créés)
+- Slash commands :
+  - `.claude/commands/run-outbound-bot.md` — wrapper cron-friendly
+  - `.claude/commands/draft-outbound.md` — humain-in-the-loop pour
+    drafter les bodies via `lead-enricher` + `outbound-personalizer` +
+    `claude-judge` avant écriture
+- Config :
+  - `OUTBOUND_LIVE_MODE` (bool, défaut false)
+  - `OUTBOUND_FROM_DOMAIN` (str, vide tant que pas acheté)
+  - `OUTBOUND_UNSUBSCRIBE_SECRET` (SecretStr, obligatoire)
+  - `OUTBOUND_DAILY_MAX` (int, défaut 30, warmup 5→10→20→30 sur 4 semaines)
+- Breaker `outbound_volume_exceeded` ajouté à l'inventaire P15
+- `data/outbound/` :
+  - `README.md` workflow complet + format CSV + conformité RGPD/AI Act/Bloctel
+  - `inbox/` (drop zone CSV) + `leads.example.csv`
+  - `enriched/` (output skill lead-enricher)
+  - `sequences/` (output OutboundBot + draft-outbound)
+- Deps `pyyaml` ajouté en runtime (sérialisation `meta.yaml`) +
+  `types-PyYAML` en dev
+
+**Tests — 29 nouveaux, 260 au total** :
+- slugify (4 cases : basique, accents, idempotent, troncature 50)
+- cadence touch dates (2 : 5 dates calculées, constante 0/3/7/14/30)
+- opt-out HMAC (9 : longueur 16 hex, déterministe, varie email/secret,
+  email lowercase-normalized, verify accepts/rejects/wrong-secret, URL
+  format)
+- footer (1 cas couvrant les 5 éléments obligatoires)
+- CSV parsing (7 : minimal, optional cols, commentés, domain invalide,
+  colonne manquante, colonne inconnue, fichier inexistant)
+- scaffold (6 : crée meta + 5 touches, idempotent, meta.yaml valide
+  complet, is_sequence_scaffolded, load_sequence_state roundtrip,
+  load raises if missing)
+
+**Conformité dès la spec** :
+- RGPD intérêt légitime BtoB (RGPD art. 6.1.f) — emails pro uniquement,
+  perso à disqualifier côté `/draft-outbound`
+- AI Act art. 50 — disclosure IA dans le footer via
+  `EMAIL_SIGNATURE_AI_DISCLOSURE`
+- Opt-out 1-clic HMAC-signé stateless — endpoint `/unsubscribe` à
+  livrer en P13.B (FastAPI + table `unsubscribes`)
+- Rétention 12 mois max — purge `data/outbound/sequences/` à câbler
+  quand on aura du volume réel (P13.B+)
+- Cap journalier hard via breaker — protection délivrabilité
+
+**Hors scope P13.A** (volontaire — couvert par P13.B live mode) :
+- Endpoint FastAPI `/unsubscribe` + table `unsubscribes` (migration)
+- Connecteur SMTP envoi via Zimbra (zimbra-ops `send_email` déjà câblé,
+  reste à brancher dans le pipeline outbound)
+- Skill `outbound-drafter` (compose le body de chaque touche via KB
+  + templates par step) — pour l'instant le slash `/draft-outbound`
+  fait du humain-piloté
+- Warmup automatique (rampe 5→10→20→30 sur 4 semaines) — manuel pour
+  l'instant, le fondateur ajuste `OUTBOUND_DAILY_MAX` à la main
+- Pull engagement (opens, clicks, replies via webhook ou IMAP scraping
+  des bounces)
+- Task Scheduler PowerShell `argos-ops-outbound-bot` — à créer quand
+  P13.B live (sinon le run quotidien shadow n'apporte rien)
+
+**Activation P13.B (futur)** quand domaine secondaire acheté :
+1. Acheter `try-omnividens.com` ou équivalent (~10 €/an)
+2. Configurer SPF / DKIM / DMARC stricts
+3. Warm-up 4 semaines manuel (5 → 30 emails/jour)
+4. Brancher skill `outbound-drafter` + connecteur SMTP outbound
+5. Livrer endpoint `/unsubscribe` + table `unsubscribes`
+6. Flip `OUTBOUND_LIVE_MODE=true` dans `.env`
 
 ### P19 — Maintenance et observabilité 🔄 P19.0 done 2026-05-14
 
@@ -792,7 +889,7 @@ branche/PR/merge comme stipulé dans `CLAUDE.md`.
 |----|-------|--------|------|
 | INFRA-01 | (réservé pour future install lourde si besoin) | — | — |
 | INFRA-02 | Install Umami self-host | ⬜ pending | Avant P10 ou P12 |
-| P11-PREP-A | Recréer Reddit App (compte vieilli) | ⏸️ reporté (compte encore bugué — 2026-05-14) | Avant P11 |
+| ~~P11-PREP-A~~ | ~~Recréer Reddit App~~ | 🚫 **cancelled** ([D-022](DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops)) 2026-05-15 — Reddit retiré du périmètre Argos Ops | — |
 | P11-PREP-B | Créer compte Mastodon infosec.exchange + token | ✅ done (compte `@argos_omnividens@infosec.exchange`, token validé via `scripts/smoke_mastodon.py` 2026-05-14) | TODO bio + bot flag |
 | P17-PREP | Page `/legal/privacy` + `/legal/ai-disclosure` sur omnividens.fr | ⚠️ rédaction faite (data/legal/), intégration frontend SecHunter à faire par user | rédaction 2026-05-08 |
 | P1.E-FOLLOWUP | Vérifier approbation Community Management API LinkedIn | ⬜ pending | 3-7j après 2026-05-07 |

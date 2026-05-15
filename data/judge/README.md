@@ -15,7 +15,7 @@ axe_critique: factual | tone | legal | global
 notes: <pourquoi ce cas est golden — la régression qu'on prévient>
 
 input:
-  channel: email | social_linkedin | social_mastodon | social_reddit | social_x | blog | stripe_dunning
+  channel: email | social_linkedin | social_mastodon | social_x | blog | stripe_dunning
   agent_name: EmailBot | SupportBot | ContentBot | OutboundBot | FinanceBot | SEOBot
   original_query: <ce qui a déclenché le draft>
   draft: |
@@ -63,7 +63,6 @@ en commit message).
 
 Couverture manquante :
 
-- Reddit pitch promo sans 9:1 → queued (channel-specific rule)
 - Mastodon emoji cascade → queued (tone)
 - Email mention PII tiers nominative → killed (legal hard)
 - Dunning J+15 ton agressif → queued (tone)

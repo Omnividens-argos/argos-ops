@@ -801,6 +801,322 @@ déjà en prod). Le sous-domaine `chat.omnividens.fr` n'est pas provisionné.
 
 ---
 
+## D-020 — Argos Memory : mémoire vivante partagée multi-agents, architecture 5 couches
+
+**Date :** 2026-05-15
+**Partie :** P20 (Argos Memory — nouvelle partie ajoutée au plan)
+**Décision :** Argos Ops gagne une **base mémoire grandissante**,
+persistée 100 % localement sur le poste du fondateur, organisée en
+**5 couches** (raw → SQL → semantic → curator → auditor), accessible en
+lecture par tous les agents et alimentée automatiquement par chaque
+`RunResult` via un hook dans `BaseAgent.run_agent()`. Le **filing brut**
+(couche 1) est **déterministe en Python pur** (jamais un LLM ne nomme
+ou range un fichier). Le **curation intelligente** (couche 4) est un
+**skill Claude Code batch hebdomadaire**, séparé du filing. La purge
+(garbage collection) est **toujours user-initiated** via `/memory-gc
+<agent> <duration>`, jamais automatique. Nom canonique : **Argos
+Memory**.
+
+**Pourquoi :**
+- **Gap réel identifié** : chaque agent travaille en silo aujourd'hui.
+  EmailBot classifie un lead → ContentBot ne sait pas. claude-judge
+  note un draft → pas d'historique pour détecter une dérive. Pas
+  hypothétique : les vrais gains sont sur OutboundBot (P13) où la
+  mémoire **est** la valeur (anti-doublon contact = anti-violation
+  RGPD), sur ContentBot (P9 full) pour varier les angles, et sur
+  claude-judge (P14) pour détecter la dérive de ton sur N jours.
+- **Distinction filing vs apprentissage** : ce sont 2 problèmes
+  différents. Le filing doit être déterministe (Python), l'apprentissage
+  doit être créatif (LLM batch). Confondre les deux = soit du filing
+  bancal (LLM qui renomme/perd des fichiers), soit pas de valeur
+  apprentissage (algo dumb qui rate les patterns). Architecture 5 couches
+  sépare proprement les deux.
+- **Alternative écartée 1** — *N agents-rangeurs IA concurrents* (idée
+  initiale du fondateur). Over-engineered : plusieurs LLMs qui se
+  courent après pour ranger = race conditions, coût tokens à chaque
+  run, non-déterminisme. Réduit à **1 hook Python** (filing) + **1 skill
+  curator** (insights) + **1 skill auditor** (GC).
+- **Alternative écartée 2** — *Étendre `kb-rag` à la mémoire*. La KB
+  produit est statique (~50 chunks rédigés à la main, hyper-stables),
+  la mémoire est dynamique (100k+ chunks après 1 an). Mixer les deux
+  pollue `/run-support-tier1` (SupportBot chercherait dans les drafts
+  d'emails passés au lieu du pricing). **Tables séparées** :
+  `kb_chunks` reste la KB produit, `memory_chunks` est la mémoire
+  vivante. Mêmes embeddings mpnet-768, mêmes mécaniques pgvector.
+- **Alternative écartée 3** — *Une seule table `memory_items` avec
+  contenu plein*. Viole RGPD : un agent qui requête la mémoire récupère
+  des PII non-redactées. Couches séparées : raw (PII, accès humain
+  uniquement) vs SQL/semantic/insights (redacted, accès agents).
+- **Q1 (périmètre v1) — choix Claude** : phasage P20.A → P20.B → P20.C →
+  P20.D livrables séparément. P20.A + P20.B = MVP utile (foundation +
+  recherche). P20.C + P20.D = enrichissement (insights + GC).
+- **Q2 (timing)** : nouveau sprint dédié (Sprint Memory), branché
+  **rétroactivement** sur les 8 agents existants (modification localisée :
+  chaque agent ajoute 1 dict `extras["memory"]` dans son `RunResult`).
+  Recommandation : faire P20.A + P20.B **avant** P9-full / P12.B / P13
+  pour que ces agents naissent mémoire-aware.
+- **Q3 (rétention)** : on garde tout par défaut. La purge est un agent
+  contrôlable (`/memory-gc EmailBot 90d` user-initiated, avec dry-run
+  + confirmation explicite). Pas de cron auto. Limite système = espace
+  disque local + breaker `memory_storage_full` (P15) à 80 % partition.
+- **Q4 (privacy)** : anonymisation **par couche**. Raw archive plein
+  (accès humain). SQL + semantic + insights redacted (`redact.py`
+  retire emails, phones, IBAN, CB, IPs, noms propres). Sociétés et
+  domaines publics conservés (hors RGPD). FK `lead_id`/`company_id`
+  avec `ON DELETE CASCADE` → droit à l'effacement RGPD respecté.
+- **Q5 (nom)** : « Argos Memory » (choix fondateur).
+
+**Implication technique :**
+- **Nouvelle migration** `0007_memory.sql` : 2 tables (`memory_items`
+  + `memory_chunks`), index ivfflat sur embeddings 768 dims (même
+  modèle que `kb_chunks`, D-017)
+- **Nouveau module** `argos_ops/memory/` : `archive.py`, `search.py`,
+  `redact.py`, `gc.py`
+- **Modification rétroactive** de `argos_ops/agents/base.py:run_agent()` :
+  hook auto `archive.write()` après `complete_agent_run` si l'agent a
+  émis `RunResult.extras["memory"]`. Non breaking si l'agent oublie.
+- **8 agents existants** (DigestBuilder, EmailBot, SupportBot,
+  FinanceBot, ContentBot draft, AdBot shadow, claude-judge wrapper,
+  health_check) : chacun ajoute 1 dict `extras["memory"]` dans la
+  branche success de son `run()`. Modification localisée.
+- **3 nouveaux skills** : `.claude/skills/argos-memory/` (recherche,
+  l'équivalent `kb-rag` côté mémoire), `.claude/skills/memory-curator/`
+  (insights hebdo), `.claude/skills/memory-auditor/` (audit + GC
+  suggestions)
+- **3 nouveaux slash commands** : `/curate-memory` (hebdo),
+  `/audit-memory` (à la demande), `/memory-gc <agent> <duration>`
+  (user-controlled, dry-run par défaut)
+- **Nouvelle arborescence data** : `data/memory/raw/<YYYY-MM-DD>/<agent>/<run_id>.json`
+  + `data/memory/insights/<YYYY-WW>/<theme>.md`
+- **Nouveau breaker P15** : `memory_storage_full` (déclenche à 80 % de
+  la partition réservée, bloque les nouvelles écritures sauf
+  `retention_class='permanent'`)
+- **Extension `health_check.py`** : taille mémoire, fraîcheur écritures,
+  taux d'items orphelins
+- **Extension `data/legal/privacy.md`** : ajout traitement « Mémoire
+  agents — base d'apprentissage opérationnel »
+- **Extension `data/legal/ai-disclosure.md`** : mention AI Act des
+  outputs conservés pour audit/apprentissage interne
+- **Nouvelle doc** `docs/ARGOS_MEMORY.md` : référence opérateur (API
+  Python, slash commands, troubleshooting)
+
+**Annule :** rien — c'est une nouvelle partie.
+
+**Action de suivi :**
+- Cette PR (`docs/p20-argos-memory`) ajoute la spec dans
+  `ARGOS_OPS_PLAN.md` Partie 20 + table sommaire + Annexe A + Annexe B
+  + D-020 (ce document) + entrée `PROGRESS.md` + mention `CLAUDE.md`
+- Implémentation à dérouler en 4 sous-parties (P20.A → P20.D) sur
+  Sprint 2 dès que le fondateur priorise vs P11 (connecteurs sociaux)
+- Recommandation forte : faire **P20.A + P20.B avant P9-full / P12.B
+  / P13** pour éviter du rétrofitting
+
+---
+
+## D-021 — Paramétrage inter-agents : capabilities pull-based, default ALLOW pour read / DENY pour write-back
+
+**Date :** 2026-05-15
+**Partie :** P21 (Paramétrage inter-agents — nouvelle partie ajoutée au plan)
+**Décision :** Argos Ops gagne une couche de **paramétrage relationnel
+entre agents** (table `agent_capabilities`) qui permet au fondateur de
+configurer ce que chaque agent peut **lire** ou **influencer** chez les
+autres. Modèle **pull confirmé** (vs push/trigger) : aucun agent ne
+déclenche un autre ; chaque agent regarde la mémoire P20 à son propre
+run et exploite ce qui le concerne. **Default policy** double : `read`
+= ALLOW (ouvert par défaut, l'opérateur ajoute des deny rules pour
+restreindre) ; `write_back` = DENY (fermé par défaut, grant explicite
+requis). Le mode `react` (push trigger) est **réservé pour futur**
+(NotImplementedError en v1). Édition visuelle via nouvelle page
+**Câblage** dans le Admin Panel (matrice subject × object), export
+YAML auto pour audit git.
+
+**Pourquoi :**
+- **Gap réel** : aujourd'hui chaque agent vit dans son cron, aveugle
+  aux autres. Avec P20 Memory ils peuvent VOIR les outputs des
+  voisins, mais sans P21 ils ne savent pas **lesquels** sont
+  pertinents pour eux, ni si l'opérateur veut qu'ils s'en servent.
+  P21 = règles de combinaison configurable, sans recoder le pipeline
+  chaque fois qu'on veut un nouveau lien.
+- **Cas d'usage validés par le fondateur** :
+  - TargetSpotter lit `email_inbound + lead-chaud` d'EmailBot →
+    enrichit son backlog
+  - Agent compta lit FinanceBot/Stripe → vision comptable cohérente
+  - BudgetWatcher lit AdBot perf + TargetSpotter lead volume →
+    écrit un `advice.budget_adjust` que AdBot consomme au prochain run
+- **Alternative écartée 1** — *modèle push/trigger* (« A produit X →
+  déclenche B »). Rejet : risques cascade (1 mail → spotter → lead →
+  outbound → 50 mails), ping-pong A→B→A→B instantané, blow-up
+  daily_limit. La réponse Q5 du fondateur (2026-05-15) — « A travaille,
+  B regarde, B prend dans son champ de compétence, B utilise pour
+  lui-même » — décrit littéralement un modèle pull. Plus simple, plus
+  sûr, suffisant pour la cadence BtoB.
+- **Alternative écartée 2** — *capability tokens fine-grained* (chaque
+  agent porte un set de jetons « peux lire X.Y.Z »). Plus puissant
+  mais 10× plus de boilerplate. v1 préfère la matrice déclarative
+  agent × agent avec filtres `item_type` + `tags`.
+- **Alternative écartée 3** — *config uniquement en YAML git-trackée*.
+  Pas d'édition à chaud, pas de UI Admin Panel possible sans CI.
+  Choix retenu : **DB éditable + export YAML auto** pour avoir le
+  meilleur des deux (réactivité runtime + audit git via diff YAML).
+- **Default policy split** : `read` = ALLOW car non-modifiant (B
+  regarde, A ne change pas) — maximise la valeur sans risque.
+  `write_back` = DENY car modifiant (B influence le comportement de
+  A) — exige une décision explicite. Cohérent avec la réponse Q2 du
+  fondateur (« open mais bien choisir qui peut lire » → ouvert par
+  défaut + restrictions explicites possibles).
+- **`react` réservé** : on garde la valeur d'enum en DB pour ne pas
+  devoir migrer plus tard si on ouvre le push model, mais v1 lève
+  `NotImplementedError`. Décision documentée plutôt que cachée.
+
+**Implication technique :**
+- **Nouvelle migration** `0008_capabilities.sql` : table
+  `agent_capabilities` (subject + object + permission + filtres +
+  enabled + notes + timestamps) avec UNIQUE constraint sur
+  (subject, object, permission, item_type_filter) et CHECK
+  `subject_agent <> object_agent` (anti auto-influence)
+- **ALTER `agent_runs`** : ajout colonne `capabilities_consumed
+  JSONB DEFAULT '[]'::jsonb` pour audit
+- **Nouveau module** `argos_ops/capabilities/` (`loader.py`,
+  `enforcer.py`, `writeback.py`, `cycles.py`)
+- **Helper `consume_capabilities(agent_name)`** appelé au début de
+  chaque `BaseAgent.run()` — retourne `dict[object_agent,
+  list[MemoryItem]]` pré-mâché
+- **Helper `write_back(from, to, advice_type, payload)`** —
+  vérifie grant, crée un `memory_item` avec `item_type='advice.*'`
+- **Nouveau breaker** `capability_loop_detected` (P15) — déclenché à
+  runtime si une cascade write-back boucle en < 24 h
+- **Cycle detection** au moment du save (UI ou seed YAML) : refuse
+  l'insertion qui créerait un cycle dans le graphe orienté
+  `write_back`
+- **Nouvelle page Admin Panel** `ops_dashboard/templates/wiring.html`
+  (P21.B) — matrice subject × object, drawer édition, onglet
+  Activité (timeline consume + write_back 7j), bouton export YAML
+- **Scripts** `scripts/export_capabilities.py` (dump YAML) +
+  `scripts/seed_capabilities.py` (apply YAML → DB, idempotent)
+- **Doc** `docs/AGENT_CAPABILITIES.md` — référence opérateur
+
+**Annule :** rien — c'est une nouvelle partie.
+
+**Action de suivi :**
+- Cette PR (`docs/p21-capabilities`) ajoute la spec dans
+  `ARGOS_OPS_PLAN.md` Partie 21 + table sommaire + Annexe A + Annexe B
+  + D-021 (ce document) + entrée `PROGRESS.md` + mention `CLAUDE.md`
+- Implémentation en 3 sous-parties P21.A → P21.C, après P20.A minimum
+- P21.B (frontend) attend P16.B (Admin Panel control mode) — déjà done
+  au 2026-05-12, donc débloqué
+
+---
+
+## D-022 — Retrait définitif de Reddit du périmètre Argos Ops
+
+**Date :** 2026-05-15
+**Partie :** P11 (Connecteurs sociaux) + Annexe D (TrendSpotter, PressMonitor) +
+P9 (ContentBot) + skills `content-writer` / `content-scheduler` /
+`claude-judge` + slash `/draft-content`
+**Décision :** **Reddit est retiré définitivement du périmètre Argos Ops**.
+P11 devient « Connecteurs sociaux (LinkedIn / Mastodon) » — 2 canaux au
+lieu de 3. Tous les skills, slash commands, agents (ReplyBot, TrendSpotter,
+PressMonitor), data READMEs et stubs code qui mentionnaient Reddit sont
+nettoyés. La todo `P11-PREP-A` (recréer Reddit App) est **cancelled**,
+les vars d'env Reddit sont retirées de `.env.example`, la dépendance `praw`
+est retirée de `pyproject.toml`. Décision **annule-et-remplace** [D-005](#d-005--skip-reddit-en-p1-compte-trop-neuf)
+qui avait reporté la création de l'app à `P11-PREP`.
+
+**Pourquoi :**
+- **L'app Reddit API ne peut littéralement pas être créée** sur le compte
+  du fondateur. Reddit applique sa « Responsible Builder Policy » (2023+)
+  qui refuse les nouvelles apps sur les comptes neufs (seuil non
+  documenté : ~30 jours d'âge + karma minimum). Le compte du fondateur
+  n'atteint pas ce seuil 8 mois après création (constat 2026-05-14).
+  Tentatives de support Reddit → pas de réponse exploitable.
+- **Pas de workaround acceptable** :
+  - Acheter un compte vieilli = violation ToS Reddit, ban garanti
+  - Créer un compte avec une autre identité = même problème dans 30+ jours
+  - Utiliser un compte tiers (ami) = dépendance externe + ToS borderline
+  - Attendre que le compte mûrisse = bloque P11 indéfiniment, pas de
+    visibilité sur le seuil exact
+- **Coût d'opportunité du blocage** : P11 (connecteurs sociaux) bloque
+  P9 full (ContentBot posting auto). Bloquer P11 sur Reddit bloque toute
+  la chaîne contenu social automatisée. Mastodon + LinkedIn couvrent les
+  2 audiences clés (FR BtoB tech via LinkedIn, audience tech infosec
+  mondiale via Mastodon `infosec.exchange`). Reddit était un **3e canal
+  marginal** (audience US-skewed, règle 9:1 contraignante = peu de posts
+  promo possibles). Le ROI était déjà discutable, le bloqueur le rend
+  négatif.
+- **Frustration opérateur** (fondateur, 2026-05-15) — « ça me soule
+  Reddit » — confirme que poursuivre cette piste coûte du temps mental
+  qu'on peut investir ailleurs (P20 Memory, P21 Capabilities, P11
+  LinkedIn-only).
+
+**Implication technique (cleanup mécanique) :**
+- **`ARGOS_OPS_PLAN.md`** — table Sommaire ligne P11 + § 1.1 stack social
+  + § 1.3 « comptes à créer » → ligne Reddit Apps retirée + arborescence
+  § 2.1 `reddit.py` retiré + § 2.2 `praw` retiré du pyproject + § 9.1
+  choix canal + § 9.2 section « Anti-spam Reddit » retirée + § 10.1
+  source Reddit r/cybersecurity retirée + Partie 11 retitrée et
+  réécrite + § 16.2 ligne test intégration Reddit retirée + Annexe D
+  ReplyBot/TrendSpotter/PressMonitor descriptions mises à jour
+- **`PROGRESS.md`** — ligne P11 retitrée, ligne `P11-PREP-A` marquée
+  `🚫 cancelled`, ligne D-019 → D-022 dans dernière décision, P9-DRAFT
+  history canaux 4 → 2 (+ X bas priorité), frontmatter canonique
+  `linkedin | mastodon | x` (Reddit retiré), section content-scheduler
+  description, ligne ContentBot requirements
+- **`CLAUDE.md`** — 3 sections skills (content-writer, content-scheduler,
+  /draft-content) — mention Reddit retirée, lien vers D-022
+- **`ARCHITECTURE.md`** — 2 tables stack (sociaux) + 1 ligne secrets
+  `.env.local`
+- **`AGENTS_PLAYBOOK.md`** — ContentBot objectif
+- **`.claude/skills/content-writer/SKILL.md`** — description frontmatter,
+  table canaux (row Reddit r/netsec supprimée), enum `channel`,
+  procédure step 1 (Reddit refusé), step 3 (corps + CTA), step 5 (audit
+  9:1 retiré), anti-patterns (3 lignes), workflow boucle hebdo (3 canaux
+  → 2)
+- **`.claude/skills/content-scheduler/SKILL.md`** — description, table
+  fenêtres canoniques (row Reddit retirée), § 2 logique Reddit retirée,
+  anti-patterns (Reddit promo / Reddit dimanche retirés)
+- **`.claude/skills/claude-judge/SKILL.md`** — enum `channel` (retire
+  `social_reddit`), checklist tone emojis (retire « Mastodon / Reddit »
+  → « Mastodon »)
+- **`.claude/commands/draft-content.md`** — description, canaux acceptés,
+  procédure step 1 (refus explicite si `channel=reddit`), step 3 corps,
+  step 4 CTA, garde-fous (Reddit promo retiré, Mastodon/Reddit emoji →
+  Mastodon), test plan ligne Reddit
+- **`data/content/README.md`** — workflow step 3 (canal copie-colle),
+  workflow futur (connecteurs), convention nommage enum
+- **`data/judge/README.md`** — enum `channel`, backlog cas Reddit retiré
+- **`data/seo/README.md`** — section P9 ContentBot canaux
+- **`data/knowledge_base/ICP.md`** — Persona 3 valeur (Reddit
+  évangélisation → Mastodon/HN), § 2.3 présence organique (Reddit retiré),
+  roadmap géographique 18+ mois, langue blog Persona 3, § 4 déclencheur
+  #7 signal organique
+- **`.env.example`** — bloc REDDIT_* retiré (3 vars)
+- **`pyproject.toml`** — `praw>=7.7` retiré
+- **`argos_ops/integrations/__init__.py`** — docstring Reddit retiré
+- **`argos_ops/ops_dashboard/frontend/src/lib/agentCatalog.ts`** — ReplyBot
+  description + ContentBot description
+
+**Annule / remplace :**
+- [D-005](#d-005--skip-reddit-en-p1-compte-trop-neuf) — « Skip Reddit en
+  P1 (compte trop neuf) » → la todo `P11-PREP` qu'elle a créée est
+  cancelled. D-005 reste **historique** (trace du raisonnement initial)
+  mais son action de suivi est désormais sans objet. Ne pas réécrire
+  D-005 — l'historique se lit dans l'ordre des décisions.
+
+**Action de suivi :**
+- Cette PR (`chore/drop-reddit-d022`) effectue tout le cleanup mécanique
+  ci-dessus (18 fichiers touchés)
+- Sprint 2 P11 simplifié : LinkedIn (en attente d'approbation API) +
+  Mastodon (déjà OK, token validé P11-PREP-B). Quand l'approbation
+  LinkedIn arrive, P11 peut démarrer immédiatement.
+
+**Réversibilité :**
+Si dans 12+ mois le compte Reddit du fondateur a maturé et que l'API
+devient accessible, ré-ouvrir la décision via D-N+1 « Réintégration
+Reddit » (pas réécrire D-022 historique). Aucun code Python n'avait été
+écrit pour Reddit — le cleanup est purement docs/skills/config.
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown

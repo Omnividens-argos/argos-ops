@@ -1,13 +1,12 @@
 ---
-description: Drafte un post social adapté à un canal (LinkedIn / Mastodon / Reddit / X) depuis un topic + la KB Argos. Humain-in-the-loop. Mode local-draft only — posting manuel jusqu'à P11.
+description: Drafte un post social adapté à un canal (LinkedIn / Mastodon) depuis un topic + la KB Argos. Reddit retiré par D-022 (2026-05-15). Humain-in-the-loop. Mode local-draft only — posting manuel jusqu'à P11.
 ---
 
 # /draft-content
 
 Slash command interactif pour drafter un post réseau social Argos (P9-DRAFT,
 D-017). Pas de cron — l'humain pilote chaque post pour garantir la qualité
-éditoriale et le respect des règles communautaires par canal (notamment
-règle 9:1 r/netsec).
+éditoriale et le respect des règles communautaires par canal.
 
 ## Usage
 
@@ -17,7 +16,11 @@ règle 9:1 r/netsec).
   aujourd'hui (regarde `data/content/drafts/` pour éviter de poster 2× le même
   canal trop rapproché)
 
-Canaux acceptés : `linkedin`, `mastodon`, `reddit`, `x`.
+Canaux acceptés : `linkedin`, `mastodon`, `x`.
+
+> Reddit retiré du périmètre par
+> [D-022](../../docs/DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops)
+> (2026-05-15) — si le user demande `reddit`, refuser et expliquer.
 
 ## Workflow
 
@@ -26,10 +29,8 @@ Canaux acceptés : `linkedin`, `mastodon`, `reddit`, `x`.
 - Si `channel` manquant ou hors liste → demander lequel.
 - Si `topic` manquant → proposer 3 sujets pertinents (mix produit /
   cybersec actu / objection client courante) avec rationale court.
-- Si `channel=reddit` → demander **explicitement** : « Quelles sont tes
-  dernières contributions non-promo sur r/netsec ? Règle 9:1 stricte. »
-  Si réponse < 9 contributions récentes → refuser le draft promo et
-  proposer plutôt une réponse technique à une question existante.
+- Si `channel=reddit` → **refuser** : Reddit a été retiré du périmètre
+  par D-022 (2026-05-15). Proposer LinkedIn ou Mastodon à la place.
 
 ### 2. Chargement contexte KB
 
@@ -51,10 +52,8 @@ Pour chaque post, **proposer** + **demander validation** :
 3. **Corps** — adapter à la longueur du canal :
    - LinkedIn : 1300-2000 chars, 3-4 paragraphes courts
    - Mastodon : 300-500 chars, 1-2 paragraphes tech
-   - Reddit : 800-2000 mots, longform technique sans pitch produit
    - X : ≤ 280 chars
-4. **CTA** — soft, matché au canal. Reddit = **aucun CTA produit** dans
-   le post initial (jamais de lien `omnividens.fr` direct).
+4. **CTA** — soft, matché au canal.
 5. **Hashtags** — appliquer le quota par canal.
 
 ### 4. Audit agent-juge (P14)
@@ -124,8 +123,7 @@ Pousser sur `DISCORD_WEBHOOK_OPS_LOGS` si configuré :
   § anti-disparagement.
 - **Buzzwords corporate** — « game changer », « disruptif », « innovant »,
   « synergie » → refuser et reformuler.
-- **Promotion directe Reddit** sans contexte 9:1 validé.
-- **Emoji marketing en cascade** sur Mastodon/Reddit (zéro toléré).
+- **Emoji marketing en cascade** sur Mastodon (zéro toléré).
 - **CTA agressif** — « Cliquez ici maintenant ! » → refuser.
 
 ## Sortie attendue
@@ -142,8 +140,7 @@ fondateur valide pour posting, puis `posted` après publication réelle.
       character_count 1300-2000, kb_sources non vide, fichier écrit.
 - [ ] `/draft-content mastodon "OWASP API Top 10 2023"` → draft 300-500 chars,
       pas d'emoji marketing, lien à la fin.
-- [ ] `/draft-content reddit "..."` sans validation 9:1 → refus + proposition
-      de réponse technique à une question existante.
+- [ ] `/draft-content reddit "..."` → refus + explication D-022 (Reddit retiré).
 - [ ] `/draft-content` sans argument → propose (canal, topic) cohérent
       basé sur historique drafts.
 - [ ] Vérifier garde-fou : demander « invente une stat » → refus +

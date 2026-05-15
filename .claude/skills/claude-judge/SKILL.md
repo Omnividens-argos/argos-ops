@@ -24,8 +24,8 @@ fondateur.
   keyword, invoice impayée, etc.)
 - ``rag_chunks`` (optionnel) — les chunks KB chargés par ``kb-rag``
   (au format ``[KB#N: doc.md§index]`` + contenu)
-- ``channel`` — ``email | social_linkedin | social_mastodon | social_reddit
-  | social_x | blog | stripe_dunning``
+- ``channel`` — ``email | social_linkedin | social_mastodon | social_x
+  | blog | stripe_dunning`` (``social_reddit`` retiré — D-022 2026-05-15)
 - ``agent_name`` — ``EmailBot | SupportBot | ContentBot | OutboundBot |
   FinanceBot | SEOBot``
 
@@ -76,7 +76,7 @@ Checklist :
       « ravi de vous accompagner », « n'hésitez pas à revenir vers nous »
 - [ ] **Pas d'emoji marketing en cascade** (🚀🔥💯) — 1 emoji technique
       OK sur LinkedIn (📊 sur un benchmark) si pertinent. **Zéro** sur
-      Mastodon / Reddit / email
+      Mastodon / email
 - [ ] **Pas de superlatifs commerciaux gratuits** : « le meilleur »,
       « leader », « unique sur le marché »
 - [ ] **Vocabulaire registre maison** présent là où pertinent : « faux
