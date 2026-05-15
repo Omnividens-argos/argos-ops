@@ -73,7 +73,7 @@ Le canal entrant prospects/visiteurs reste l'email
 (`contact@omnividens.fr` via EmailBot P5 + SupportBot P6).
 
 ### ContentBot (P9)
-**Objectif :** 2-5 posts/jour LinkedIn / Mastodon / Reddit (D-004 : remplacement X).
+**Objectif :** 2-5 posts/jour LinkedIn / Mastodon (D-004 retire X, D-022 retire Reddit).
 **Implémentation :** voir P9.
 
 ### SEOBot (P10)

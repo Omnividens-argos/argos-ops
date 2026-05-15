@@ -52,7 +52,7 @@ sortant** : tout passe par l'abonnement Claude Code Pro Max du fondateur.
 | **Embeddings KB** | Génère les vecteurs 768d des chunks markdown pour pgvector | `fastembed` + `paraphrase-multilingual-mpnet-base-v2` (CPU, ONNX, ~280 MB poids) | **ordi fondateur** (D-017) |
 | **Email inbound** | Lecture / draft / réponse `contact@omnividens.fr` | IMAP/SMTP OVH Zimbra (D-018) | runtime ordi fondateur |
 | **Email outbound** | Cold email volume modéré (≤ 50/jour) | Gmail API depuis domaine secondaire | runtime ordi fondateur |
-| **Sociaux** | Posting LinkedIn / Mastodon / Reddit | API natives via `argos_ops.integrations.*` | runtime ordi fondateur |
+| **Sociaux** | Posting LinkedIn / Mastodon (D-022 retire Reddit) | API natives via `argos_ops.integrations.*` | runtime ordi fondateur |
 | **Ads** | Pilotage Google / Meta / LinkedIn Ads | API natives, shadow mode tant que budget = 0 | runtime ordi fondateur |
 | **Analytics** | Pageviews + sources de trafic | Umami self-host (INFRA-02, à venir) | serveur SecHunter |
 | **Téléphonie** | (phase 2) | reporté | — |
@@ -130,7 +130,7 @@ Voir [`ESCALATION_RULES.md`](ESCALATION_RULES.md) pour les règles précises.
 | **LLM agents (tous)** | **Claude Code Pro Max via slash commands** | **0 € (forfait Pro Max)** | runtime ordi |
 | **Embeddings KB** | **`fastembed` + `multilingual-e5-base` (CPU local)** | **0 € forever** | ordi fondateur |
 | Email | Gmail API | 0 € (≤ 500/jour) | runtime ordi |
-| Sociaux | LinkedIn / Mastodon / Reddit APIs | 0 € | runtime ordi |
+| Sociaux | LinkedIn / Mastodon APIs (D-022 retire Reddit) | 0 € | runtime ordi |
 | Analytics | Umami self-host (INFRA-02) | 0 € | serveur SecHunter |
 | Webhook receivers | FastAPI + Caddy reverse proxy | 0 € | serveur SecHunter |
 | Total | | **~1 €/mois** (domaine secondaire outbound) | — |
@@ -165,7 +165,7 @@ Ubuntu 24.04, mutualisé) :
 - Connexion Postgres / Redis distants vers le serveur SecHunter via
   `psycopg` async / `redis-py` async (TLS)
 - `.env.local` (gitignored) contient les secrets API tiers (Gmail OAuth,
-  LinkedIn, Reddit, Mastodon, Stripe, Discord webhook)
+  LinkedIn, Mastodon, Stripe, Discord webhook)
 
 **Trade-off accepté** (D-017) : agents en pause quand l'ordi est éteint.
 Webhooks 24/7 absorbés par la queue Redis, traités au prochain cycle de

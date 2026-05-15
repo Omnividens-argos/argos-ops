@@ -1,0 +1,6 @@
+full_name,domain,title_hint,linkedin_url
+# Exemple - renomme en leads.csv (ou crée ton propre fichier) pour que OutboundBot le lise.
+# Les lignes commencant par # ou avec full_name vide sont ignorees.
+Marc Dupont,acme.fr,RSSI,https://linkedin.com/in/marc-dupont-rssi
+Sarah Martin,techstart.io,Head of Security,
+Thomas Bernard,fintech-eu.com,,

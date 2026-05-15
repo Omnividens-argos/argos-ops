@@ -26,7 +26,7 @@
 | ~~8~~ | ~~Chatbot widget site~~ — **cancelled par [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled)** (2026-05-12) | — | — |
 | 9 | ContentBot multi-canal | Sprint 2 | `skill-creator` |
 | 10 | SEOBot stratégie + briefs | Sprint 2 | `skill-creator` |
-| 11 | Connecteurs sociaux (LinkedIn / X / Reddit) | Sprint 2 | — |
+| 11 | Connecteurs sociaux (LinkedIn / Mastodon) | Sprint 2 | — |
 | 12 | AdBot — pilotage Google/Meta/LinkedIn Ads | Sprint 3 | `skill-creator` |
 | 13 | OutboundBot — cold email volume modéré | Sprint 3 | `skill-creator` |
 | 14 | Agent-juge Tier 1 (supervision IA) | Sprint 4 | `skill-creator` |
@@ -35,6 +35,8 @@
 | 17 | Conformité RGPD / AI Act / Bloctel | Continu | — |
 | 18 | Inventaire des skills à créer | Continu | `skill-creator` |
 | 19 | Maintenance et observabilité | Continu | — |
+| 20 | Argos Memory (mémoire vivante partagée multi-agents) | Sprint 2+ (prérequis ContentBot/OutboundBot/AdBot live) | — |
+| 21 | Paramétrage inter-agents (capabilities pull-based) | Sprint 2+ (après P20) | — |
 
 ---
 
@@ -144,7 +146,7 @@ fait (Partie 2).
 | **Embeddings KB** | **`fastembed` + `multilingual-e5-base`** (CPU local) (D-017) | **0 € forever** | ordi fondateur |
 | Email inbound | Gmail API + IMAP | 0 € | runtime ordi |
 | Email outbound (volume modéré) | Gmail API (≤ 500/jour) | 0 € | runtime ordi |
-| Social posting | API natives LinkedIn / Mastodon / Reddit (D-004 remplace X) | 0 € | runtime ordi |
+| Social posting | API natives LinkedIn / Mastodon (D-004 remplace X, D-022 retire Reddit) | 0 € | runtime ordi |
 | Ads pilotage | Google Ads / Meta / LinkedIn Marketing APIs | 0 € (budget pub à part) | runtime ordi |
 | Webhook receivers | FastAPI + Caddy reverse proxy (Stripe webhook, futur) | 0 € | serveur SecHunter |
 | Analytics | Umami self-host (D-007 reporte à INFRA-02) | 0 € | serveur SecHunter |
@@ -186,7 +188,6 @@ ARGOS_OPS_LOG_LEVEL=INFO
 ## 1.3 Comptes à créer (gratuit)
 
 - **Discord** : serveur perso + 1 webhook par canal d'escalade — 10 min
-- **Reddit Apps** : `r/script` app pour OAuth — 5 min (D-005 différé `P11-PREP`)
 - **Mastodon** : compte `infosec.exchange` + token API — 10 min (D-004 remplace X)
 - **LinkedIn Developer** : 2 apps (D-006) — 1 h (le plus long)
 - ~~**Google AI Studio** (Gemini key)~~ — **non nécessaire pour Argos Ops** (D-017).
@@ -226,7 +227,6 @@ argos-ops/
 │   │   ├── __init__.py
 │   │   ├── linkedin.py
 │   │   ├── mastodon.py                # D-004 remplace twitter
-│   │   ├── reddit.py
 │   │   ├── gmail.py
 │   │   ├── stripe.py
 │   │   ├── embeddings.py              # D-017 — fastembed multilingual-e5-base local
@@ -286,7 +286,6 @@ dependencies = [
   "google-auth-oauthlib>=1.2",
   "google-api-python-client>=2.125",   # Gmail
   "Mastodon.py>=1.8",                   # D-004 remplace tweepy/X
-  "praw>=7.7",                          # Reddit
   "linkedin-api-client>=0.3",
   "stripe>=9.5",
   "python-dotenv>=1.0",
@@ -734,8 +733,8 @@ de réversibilité future).
 
 # Partie 9 — ContentBot multi-canal
 
-🎯 **Objectif** : 2-5 posts/jour sur LinkedIn / X / Reddit / Mastodon, ton adapté à chaque
-plateforme, sujets pilotés par SEOBot (Partie 10).
+🎯 **Objectif** : 2-5 posts/jour sur LinkedIn / Mastodon (D-022 retire Reddit), ton
+adapté à chaque plateforme, sujets pilotés par SEOBot (Partie 10).
 
 🧱 **Prérequis** : Parties 3, 11 (connecteurs sociaux).
 
@@ -753,20 +752,22 @@ plateforme, sujets pilotés par SEOBot (Partie 10).
 1. Lire le calendrier éditorial dans une nouvelle table `editorial_calendar`
    (rempli par SEOBot la veille)
 2. Pour chaque slot du jour :
-   - Choisir le canal (LinkedIn / X / Reddit r/netsec / Mastodon infosec)
+   - Choisir le canal (LinkedIn / Mastodon infosec)
    - Générer le post via skill `content-writer` avec contraintes du canal
-     (LinkedIn 1300-2000 chars, X 280, Reddit longform, Mastodon 500)
+     (LinkedIn 1300-2000 chars, Mastodon 300-500)
    - Soumettre à l'agent-juge Tier 1
    - Publier via skill `content-scheduler` à l'heure optimale par canal
 3. Logger dans `interactions` avec `agent_name='ContentBot'`
 
-## 9.2 Anti-spam Reddit
+## 9.2 Particularités par canal
 
-Reddit ban hard les comptes promo. Règle 9:1 : publier 9 contributions utiles non
-promo pour chaque post promo. ContentBot doit comprendre cette règle (codée dur dans
-le prompt système) — sinon ban du compte = perte du canal.
+- **LinkedIn** : algo punit > 5 hashtags. Pas de markdown bold/italic.
+  Refresh token long-lived requis (Marketing Developer Platform si volume).
+- **Mastodon** : instance `infosec.exchange` impose bot flag activé sur
+  le compte. Pas de promo directe — partage technique d'abord. Audience
+  tech crowd, vocabulaire technique acceptable.
 
-✅ **Done quand** : 5 posts publiés sur 24 h sur 4 canaux, 0 bannissement, engagement
+✅ **Done quand** : 5 posts publiés sur 24 h sur 2 canaux, engagement
 loggé dans `interactions.judge_score` (récupération likes/comments J+1).
 
 ---
@@ -791,7 +792,7 @@ de blog par semaine que ContentBot exécute.
 
 - Cible : 200-500 keywords longue traîne BtoB cybersécurité FR/EN
 - Sources gratuites : Google Search Console (déjà branché ?), Google Suggest, AnswerThePublic
-  free, Reddit r/cybersecurity questions, KeywordTool free
+  free, Hacker News commentaires (r/netsec retiré D-022), KeywordTool free
 - Score = volume × intention transactionnelle / difficulté
 
 ## 10.2 Output
@@ -811,32 +812,35 @@ Search Console suivi semaine + 2.
 
 ---
 
-# Partie 11 — Connecteurs sociaux (LinkedIn / X / Reddit)
+# Partie 11 — Connecteurs sociaux (LinkedIn / Mastodon)
 
 🎯 **Objectif** : modules Python `argos_ops/integrations/` testés, OAuth qui marche,
-post & lecture engagement automatisés.
+post & lecture engagement automatisés. **Périmètre réduit à 2 canaux**
+(D-004 retire X, D-022 retire Reddit) — LinkedIn + Mastodon uniquement.
 
-🧱 **Prérequis** : Partie 1 (comptes API créés).
+🧱 **Prérequis** : Partie 1 (comptes API créés). Mastodon déjà OK
+(P11-PREP-B done 2026-05-14, token validé). LinkedIn en attente
+d'approbation Community Management API.
 
 📦 **Livrables** :
 - `argos_ops/integrations/linkedin.py` (publish, get_engagement, list_posts)
-- `argos_ops/integrations/twitter.py` (idem)
-- `argos_ops/integrations/reddit.py` (idem + filtre subreddit rules)
+- `argos_ops/integrations/mastodon.py` (idem)
 - Tests d'intégration `tests/integrations/` avec cassettes vcrpy
 
 ## 11.1 Particularités
 
 - **LinkedIn** : auth la plus complexe, refresh token long-lived, API rate limit strict
   (100 calls/jour pour profil personnel sans Marketing Developer Platform)
-- **X / Twitter** : Free tier limite à 1500 posts/mois, lecture timeline payante
-- **Reddit** : OAuth simple, lecture libre, posting limité par subreddit karma
+- **Mastodon** : token statique (déjà obtenu via `scripts/smoke_mastodon.py`
+  2026-05-14), instance `infosec.exchange`, bot flag activé requis,
+  rate limit large (300 req / 5 min)
 
 ## 11.2 Pas de skill-creator ici
 
 Pure plomberie HTTP, mieux vaut du Python testé que des skills.
 
 ✅ **Done quand** : `python -m argos_ops.integrations.linkedin --test-post "hello"`
-publie un post test sur le profil et le supprime ensuite. Idem X et Reddit.
+publie un post test sur le profil et le supprime ensuite. Idem Mastodon.
 
 ---
 
@@ -1160,7 +1164,7 @@ manuellement un test.
 
 ### 16.2.8 Settings
 - Édition config globale Argos Ops (seuils, quotas par défaut)
-- Test des intégrations en 1 clic (LinkedIn / Mastodon / Reddit / Stripe / Gmail / Discord)
+- Test des intégrations en 1 clic (LinkedIn / Mastodon / Stripe / Gmail / Discord)
   → ping API, montre le résultat
 - Régénération des tokens OAuth qui ont expiré (relance le flow OAuth)
 - Liste des skills locaux installés
@@ -1372,6 +1376,690 @@ Trois niveaux de logs :
 
 ---
 
+# Partie 20 — Argos Memory (mémoire vivante partagée multi-agents)
+
+🎯 **Objectif** : doter la flotte Argos Ops d'une **mémoire grandissante,
+partagée et interrogeable** par tous les agents, persistée 100 % localement
+sur le poste du fondateur, avec comme seule limite la capacité disque de
+la machine. Chaque agent gagne en performance individuelle (contexte
+historique de ses propres runs) ET la flotte gagne en cohérence collective
+(les agents se nourrissent mutuellement de ce qu'ils ont appris).
+
+🧱 **Prérequis** :
+- **P3** (CRM + KB + pgvector + fastembed) — réutilise la même stack
+- **P6** (`kb-rag` skill) — le pattern recherche sémantique est étendu ici
+- **P14** (`claude-judge`) — les verdicts du juge sont une source mémoire
+  prioritaire (détection de dérive de ton)
+- **P15** (breakers) — un breaker `memory_storage_full` est ajouté
+- **P19** (`health_check.py`) — monitoring de la taille mémoire et de la
+  fraîcheur des écritures
+
+📦 **Livrables** :
+- Migration `argos_ops/crm/migrations/0007_memory.sql` (tables
+  `memory_items` + `memory_chunks` + index)
+- Module Python `argos_ops/memory/` (`__init__.py`, `archive.py`,
+  `search.py`, `redact.py`, `gc.py`)
+- Hook automatique dans `argos_ops/agents/base.py:run_agent()` qui
+  archive chaque `RunResult` (rétroactif sur les 8 agents existants)
+- Arborescence `data/memory/raw/<YYYY-MM-DD>/<agent>/<run_id>.json` +
+  `data/memory/insights/<YYYY-WW>/<theme>.md`
+- Skill `.claude/skills/argos-memory/` (équivalent `kb-rag` mais sur la
+  mémoire vivante des agents)
+- Skill `.claude/skills/memory-curator/` (extraction d'insights hebdo)
+- Skill `.claude/skills/memory-auditor/` (audit cohérence + nettoyage)
+- Slash commands `/curate-memory`, `/audit-memory`, `/memory-gc`
+- Tests (~40 prévus, couvre archive, redact, search, gc)
+- Breaker `memory_storage_full` (seuil P15, déclenche à 80 % de la
+  partition réservée)
+- Doc `docs/ARGOS_MEMORY.md` — référence opérateur
+
+## 20.1 Concept et gap actuel
+
+**Le problème** que cette partie résout :
+
+| Agent | Ce qu'il produit | Qui peut en bénéficier aujourd'hui |
+|-------|------------------|-------------------------------------|
+| EmailBot (P5) | classifications, drafts, threads | personne (sauf opérateur via `/check-emails`) |
+| SupportBot (P6) | réponses RAG, escalades | personne (chaque ticket repart de zéro) |
+| FinanceBot (P7) | relances, événements MRR | personne (l'historique Stripe reste dans Stripe) |
+| ContentBot (P9-DRAFT) | drafts par canal | personne (pas de mémoire des topics déjà couverts) |
+| AdBot (P12 shadow) | drafts d'annonces, recos CSV | personne (l'historique perdu d'une semaine sur l'autre) |
+| claude-judge (P14) | verdicts factuels/tone/legal | personne (pas de détection de dérive sur N jours) |
+| OutboundBot (P13, à venir) | personalizations, séquences | **CRITIQUE** : sans mémoire = doublons de contact = risque RGPD |
+
+**La distinction qu'il faut tenir** : Argos Memory n'est PAS *un seul*
+mécanisme. C'est deux problèmes différents, résolus par deux outils
+différents au sein du même système :
+
+1. **Filing (archivage propre)** — chaque output doit être persisté de
+   façon **déterministe**, sans LLM, dans une arborescence prévisible.
+   Pas de jugement créatif, pas de paraphrase, pas de classification IA
+   à ce niveau. Juste de la persistance fiable.
+2. **Apprentissage (insights)** — les patterns intéressants ne se
+   trouvent pas dans 1 output isolé, mais dans l'agrégation de N outputs
+   sur N jours. C'est là qu'un LLM (Claude Code) intervient, en mode
+   batch hebdomadaire, pour produire des notes synthétiques.
+
+> ❌ **Ne PAS faire** : N agents-rangeurs IA qui se courent après pour
+> classer chaque output au fur et à mesure. C'est over-engineered,
+> non-déterministe (un LLM qui renomme un fichier peut le perdre), et
+> coûte des tokens à chaque run. Le filing brut DOIT être en Python pur.
+
+## 20.2 Architecture en 5 couches
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  COUCHE 5 — Auditor skill (LLM, manuel ou hebdo)               │
+│  Audit cohérence + GC user-controlled                           │
+│  → /memory-gc EmailBot 90d                                      │
+└────────────────────────────────────────────────────────────────┘
+                              ▲
+┌────────────────────────────────────────────────────────────────┐
+│  COUCHE 4 — Curator skill (LLM batch hebdo)                     │
+│  Extraction d'insights agrégés (PII-free by design)             │
+│  → data/memory/insights/<YYYY-WW>/<theme>.md                    │
+└────────────────────────────────────────────────────────────────┘
+                              ▲
+┌────────────────────────────────────────────────────────────────┐
+│  COUCHE 3 — Index sémantique (pgvector, fastembed, REDACTED)    │
+│  table memory_chunks — recherche par similarité multi-agents     │
+│  → "trouve drafts proches de ce topic"                          │
+└────────────────────────────────────────────────────────────────┘
+                              ▲
+┌────────────────────────────────────────────────────────────────┐
+│  COUCHE 2 — Index structuré SQL (Postgres, REDACTED)            │
+│  table memory_items — métadonnées + tags + lead_id + path        │
+│  → "tous les runs d'EmailBot sur lead_id=42 cette semaine"      │
+└────────────────────────────────────────────────────────────────┘
+                              ▲
+┌────────────────────────────────────────────────────────────────┐
+│  COUCHE 1 — Raw archive (déterministe, FULL fidelity)           │
+│  data/memory/raw/<YYYY-MM-DD>/<agent>/<run_id>.json              │
+│  → hook automatique dans run_agent()                             │
+└────────────────────────────────────────────────────────────────┘
+                              ▲
+                       BaseAgent.run() → RunResult
+```
+
+**Règle d'or** : un agent qui veut interroger la mémoire passe par les
+**couches 2 ou 3** (redacted, indexées). Seul l'opérateur humain accède
+à la **couche 1** (raw plein), via le Admin Panel ou la CLI Python.
+
+## 20.3 Schéma DB (P20.A) — migration `0007_memory.sql`
+
+```sql
+-- =============================================================================
+-- Argos Memory — index structuré (couche 2)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS memory_items (
+  id BIGSERIAL PRIMARY KEY,
+  agent_run_id BIGINT REFERENCES agent_runs(id) ON DELETE CASCADE,
+  agent_name TEXT NOT NULL,            -- 'EmailBot', 'ContentBot', etc.
+  item_type TEXT NOT NULL,             -- 'email_draft' | 'classification' |
+                                       --   'judge_verdict' | 'content_draft' |
+                                       --   'ad_variant' | 'support_answer' |
+                                       --   'outbound_personalization' | etc.
+  raw_path TEXT NOT NULL,              -- 'data/memory/raw/2026-05-15/EmailBot/42.json'
+  redacted_summary TEXT,               -- résumé PII-free indexable, ~500 chars max
+  tags TEXT[] DEFAULT '{}',            -- ['lead-chaud', 'rgpd', 'fr-FR', ...]
+  lead_id BIGINT REFERENCES leads(id) ON DELETE SET NULL,
+  company_id BIGINT REFERENCES companies(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Pour le GC user-controlled (P20.D) :
+  retention_class TEXT NOT NULL DEFAULT 'standard'
+    CHECK (retention_class IN ('ephemeral', 'standard', 'permanent'))
+);
+CREATE INDEX IF NOT EXISTS idx_memory_items_agent ON memory_items(agent_name);
+CREATE INDEX IF NOT EXISTS idx_memory_items_type ON memory_items(item_type);
+CREATE INDEX IF NOT EXISTS idx_memory_items_lead ON memory_items(lead_id) WHERE lead_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_memory_items_created_at ON memory_items(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_memory_items_tags ON memory_items USING GIN(tags);
+
+-- =============================================================================
+-- Argos Memory — index sémantique (couche 3)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS memory_chunks (
+  id BIGSERIAL PRIMARY KEY,
+  memory_item_id BIGINT NOT NULL REFERENCES memory_items(id) ON DELETE CASCADE,
+  chunk_index INT NOT NULL,
+  content TEXT NOT NULL,               -- REDACTED — pas de PII
+  content_hash TEXT NOT NULL,          -- sha256 pour idempotence
+  embedding vector(768),               -- même modèle que kb_chunks (D-017)
+  UNIQUE (memory_item_id, chunk_index)
+);
+CREATE INDEX IF NOT EXISTS idx_memory_chunks_embedding
+  ON memory_chunks USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 100);
+```
+
+**Pourquoi tables séparées de `kb_chunks`** : la KB est statique
+(documents produit rédigés à la main, ~50 chunks stables), la mémoire
+est dynamique (potentiellement 100k+ chunks après 1 an). Index ivfflat
+optimisés différemment, et on évite que la mémoire pollue la recherche
+KB pure (`/run-support-tier1` doit chercher dans la KB produit, pas dans
+les drafts d'emails passés).
+
+**Pourquoi `retention_class`** : c'est le hook pour le GC user-controlled
+(Q3 répondue 2026-05-15). Par défaut tout est `standard`, mais l'agent
+peut tagger ses outputs `ephemeral` (drafts intermédiaires) ou
+`permanent` (verdicts judge, qu'on ne veut jamais perdre).
+
+## 20.4 Module Python — `argos_ops/memory/`
+
+API publique (depuis n'importe quel agent) :
+
+```python
+from argos_ops.memory import archive, search, redact
+
+# COUCHE 1+2 — écriture (appelée automatiquement par run_agent, mais
+# disponible aussi pour des écritures sub-run granulaires).
+await archive.write(
+    agent_run_id=run.id,
+    agent_name="EmailBot",
+    item_type="email_draft",
+    full_payload={"subject": "...", "body": "...", "to": "..."},
+    tags=["lead-chaud", "fr-FR"],
+    lead_id=42,
+    retention_class="standard",
+)
+# → écrit data/memory/raw/2026-05-15/EmailBot/<uuid>.json (full)
+# → applique redact.redact_for_index() pour le résumé
+# → INSERT INTO memory_items
+# → embed le redacted_summary + INSERT INTO memory_chunks
+
+# COUCHE 2 — recherche SQL filtrée
+items = await search.search_sql(
+    agent_name="EmailBot",
+    item_type="email_draft",
+    lead_id=42,
+    since=timedelta(days=7),
+)
+
+# COUCHE 3 — recherche sémantique cross-agent
+similar = await search.search_semantic(
+    query="comment relancer un lead silent depuis 14 jours",
+    agent_name=None,         # tous agents
+    item_type=None,          # tous types
+    top_k=5,
+)
+# → renvoie List[MemoryHit] avec score cosine + redacted_summary
+# → l'agent appelant peut ensuite charger le raw via search.load_raw(item_id)
+#   si autorisation (cf. § 20.6)
+```
+
+`redact.py` fournit `redact_for_index(text: str, mode: Literal["aggressive","standard"]) -> str` qui retire :
+- Emails (regex `\b[\w.+-]+@[\w.-]+\.\w+\b` → `<email>`)
+- Téléphones FR/intl (`<phone>`)
+- IBAN/RIB français (`<iban>`)
+- N° de CB (Luhn validate → `<cc>`)
+- IPv4/IPv6 publiques (`<ip>`)
+- Noms propres détectés via heuristique (Marc Dupont → `<person>`) —
+  optionnel, activable par flag, faux positifs à surveiller
+
+**Ne PAS rédacter** : noms de **société** (personne morale, hors RGPD),
+domaines publics, numéros de tickets internes, lead_id internes.
+
+## 20.5 Hook automatique dans `BaseAgent` (rétroactif)
+
+Modification de `argos_ops/agents/base.py:run_agent()` après le
+`complete_agent_run` final :
+
+```python
+# ... après complete_agent_run() existant
+if result.status == "success" and result.extras.get("memory") is not None:
+    await archive.write(
+        agent_run_id=run_id,
+        agent_name=agent.name,
+        item_type=result.extras["memory"]["item_type"],
+        full_payload=result.extras["memory"]["payload"],
+        tags=result.extras["memory"].get("tags", []),
+        lead_id=result.extras["memory"].get("lead_id"),
+        company_id=result.extras["memory"].get("company_id"),
+        retention_class=result.extras["memory"].get("retention", "standard"),
+    )
+```
+
+**Pour rendre P20 rétroactif sur les 8 agents existants** : chaque agent
+(EmailBot, SupportBot, FinanceBot, DigestBuilder, etc.) ajoute dans son
+`RunResult.extras["memory"] = {...}` à la fin de son `run()`. C'est
+une modification **localisée** (1 dict supplémentaire par agent), non
+breaking si l'agent oublie (le hook est `if ... is not None`).
+
+## 20.6 Anonymisation et privacy (Q4 répondue 2026-05-15)
+
+Stratégie **par couche** :
+
+| Couche | Contenu | PII ? | Accès |
+|--------|---------|-------|-------|
+| 1 — Raw archive | Plein, fidélité totale | ✅ contient PII | Opérateur humain uniquement (CLI Python, Admin Panel P16.D) |
+| 2 — SQL index (`memory_items.redacted_summary`) | Résumé sans PII | ❌ redacted via `redact.py` | Agents autorisés (cf. ACL) |
+| 3 — Semantic index (`memory_chunks.content`) | Chunks redacted | ❌ redacted | Tous les agents |
+| 4 — Insights curator | Patterns agrégés | ❌ par design (parle de N événements, pas de Marc Dupont) | Tous les agents, opérateur |
+
+**ACL minimale (v1)** : tous les agents Argos Ops ont accès lecture aux
+couches 2/3/4 (c'est l'intérêt). La couche 1 (raw) est accessible
+uniquement via :
+- CLI Python `argos_ops.memory.search.load_raw(item_id)`
+- Admin Panel P16.D (vue détail "Mémoire" avec auth 2FA)
+
+**Conformité RGPD** :
+- `memory_items` lié à `leads`/`companies` via FK → si un lead exerce son
+  droit à l'effacement (RGPD art. 17), `ON DELETE CASCADE` purge
+  automatiquement ses items mémoire
+- Documenter dans `data/legal/privacy.md` : ajout d'un traitement
+  "Mémoire agents — base d'apprentissage opérationnel"
+- Documenter dans `data/legal/ai-disclosure.md` : conformément à
+  l'AI Act, mentionner que les outputs des agents sont conservés pour
+  audit et apprentissage interne
+
+## 20.7 Curator skill `memory-curator` (P20.C)
+
+Skill markdown invoqué par `/curate-memory` (hebdo via Task Scheduler
+ou à la demande). Lit les `memory_items` des 7 derniers jours, groupe
+par `item_type` × `tags`, et écrit des notes synthétiques :
+
+```
+data/memory/insights/2026-W20/
+├── content_topics_covered.md      # "ContentBot a publié 4× sur supply chain S20"
+├── outbound_objections.md         # "3 leads ont objecté sur le pricing"
+├── judge_drift_signals.md         # "claude-judge note tone -10pts vs S19"
+├── support_unresolved.md          # "2 questions Tier 1 escaladées en Tier 2"
+└── ad_creative_winners.md         # "headline 'audit en 48h' CTR x2 vs autres"
+```
+
+Garde-fous :
+- Lit uniquement couche 2 (SQL index, redacted)
+- N'a pas accès au raw — impossible de fuiter une PII dans un insight
+- Output systématiquement passé à `claude-judge` (P14) avant écriture —
+  un insight tagué `tone: <70` est mis en queue plutôt qu'écrit
+
+## 20.8 Auditor skill + GC user-controlled (P20.D, réponse Q3)
+
+`memory-auditor` skill + 3 slash commands :
+
+```bash
+/audit-memory                       # sans arg : liste orphans, untagged, taille
+/memory-gc EmailBot 90d             # purge raw + items > 90j pour EmailBot
+/memory-gc --retention ephemeral    # purge tous les items 'ephemeral' > 7j
+```
+
+Le GC est **toujours user-initiated** (réponse Q3 du fondateur 2026-05-15) :
+- Pas de cron automatique de purge
+- L'auditor *suggère* (`💡 EmailBot : 12k items > 90j, ~340 MB. Lance
+  /memory-gc EmailBot 90d pour purger.`) mais n'exécute jamais
+- L'opérateur valide chaque purge
+
+`/memory-gc <agent> <duration>` :
+1. Liste les items concernés (dry-run par défaut)
+2. Demande confirmation explicite `[y/N]`
+3. Supprime les rows `memory_items` (cascade vers `memory_chunks`)
+4. Supprime les fichiers `data/memory/raw/<date>/<agent>/*.json` correspondants
+5. Log dans `agent_runs` (agent `MemoryGC`) avec count avant/après
+
+## 20.9 Phasage P20.A → P20.D
+
+| Sous-partie | Périmètre | Effort | Dépendances |
+|-------------|-----------|--------|-------------|
+| **P20.A** | Migration DB + module `argos_ops/memory/archive.py` + `redact.py` + hook BaseAgent + tests | ~1 session | P3 |
+| **P20.B** | `argos_ops/memory/search.py` (sémantique) + skill `argos-memory` | ~0.5 session | P20.A + P6 (kb-rag) |
+| **P20.C** | Skill `memory-curator` + `/curate-memory` + Task Scheduler hebdo | ~0.5 session | P20.B + P14 (judge) |
+| **P20.D** | Skill `memory-auditor` + `/audit-memory` + `/memory-gc` + breaker `memory_storage_full` | ~0.5 session | P20.A + P15 |
+
+**Ordre d'exécution recommandé** : P20.A en premier (foundation, débloque
+les écritures automatiques sur les 8 agents existants), puis P20.B
+(recherche sémantique, débloque la valeur cross-agent), puis P20.C/D en
+parallèle (curator et auditor sont indépendants).
+
+## 20.10 Bénéfices concrets par agent (boucle d'amélioration)
+
+| Agent | Ce que la mémoire débloque |
+|-------|----------------------------|
+| EmailBot | "ce lead a déjà été contacté il y a 3 mois, voici le thread" → 0 doublon |
+| SupportBot | "questions similaires escaladées dans le passé" → améliore le RAG |
+| FinanceBot | "relance J+15 sur ce client = pattern habituel" → ton calibré |
+| ContentBot (P9 full) | "topic supply chain couvert 2× ce mois sur LinkedIn" → varie l'angle |
+| AdBot (P12.B live) | "variante headline 'audit 48h' = winner S19" → réutilise patterns gagnants |
+| OutboundBot (P13) | "ce domaine a reçu une séquence il y a 6 mois, status: no-reply" → priorise nouveaux contacts |
+| claude-judge | "drift score tone -8pts vs moyenne 30j" → alerte fondateur |
+| TrendSpotter (Annexe D) | corrèle tendances détectées vs sujets déjà couverts |
+
+## 20.11 KPIs santé mémoire
+
+- Taille totale `data/memory/raw/` (alerte > 80 % partition)
+- Latence p95 `search.search_semantic()` < 500 ms (sur 100k items)
+- Taux d'items orphelins (sans `memory_chunks` après 24 h) < 1 %
+- Taux d'écriture rétroactive : 8/8 agents existants émettent
+  `extras["memory"]` en sortie de `run()`
+
+## 20.12 Anti-patterns à éviter
+
+- ❌ Faire écrire les agents directement dans `data/memory/raw/` sans
+  passer par `archive.write()` — bypass l'index, item devient orphelin
+- ❌ Indexer en sémantique du contenu brut non-redacted — fuite PII
+  garantie quand un autre agent l'utilisera comme contexte
+- ❌ Laisser le curator écrire des insights sans passage par
+  `claude-judge` — risque d'hallucination dans la mémoire long terme,
+  pire que pas de mémoire
+- ❌ Cron auto de purge — viole la décision Q3 (user-controlled),
+  risque de perte irréversible (un GC raté écrase un verdict judge clé)
+- ❌ Stocker dans `memory_items.redacted_summary` plus de 500 chars —
+  l'embedding mpnet a une fenêtre, et l'index ivfflat se dégrade vite
+
+✅ **Done quand** :
+- P20.A : migration appliquée, hook BaseAgent en place, 8 agents
+  existants ré-câblés pour émettre `extras["memory"]`, tests passent
+  (~40 tests)
+- P20.B : `search_semantic()` retourne des résultats pertinents sur un
+  corpus de 100+ items réels
+- P20.C : 1 cycle hebdo de curator produit des insights validés par
+  `claude-judge` et utiles à l'opérateur
+- P20.D : `/memory-gc` testé sur 1 agent (dry-run + apply), breaker
+  `memory_storage_full` câblé, doc opérateur livrée
+
+---
+
+# Partie 21 — Paramétrage inter-agents (capabilities pull-based)
+
+🎯 **Objectif** : permettre au fondateur de **configurer ce que chaque
+agent a le droit de faire vis-à-vis des outputs des autres agents**,
+sans recâbler le code à chaque combinaison désirée. Modèle **pull** :
+aucun agent ne *déclenche* un autre agent ; c'est l'agent qui, à son
+propre run normal, va chercher dans la mémoire ce que ses voisins ont
+produit dans son champ de compétence, et l'utilise comme contexte.
+
+Exemples cibles :
+- **TargetSpotter** lit les `email_inbound` d'EmailBot et les leads
+  qualifiés en `lead-chaud` → enrichit son backlog de prospection au
+  prochain run
+- **Agent compta** lit les outputs `stripe_event` et `dunning_sent` de
+  FinanceBot → reconcilie sa propre vision comptable
+- **BudgetWatcher** lit les `ad_variant_performance` d'AdBot **ET** les
+  `lead_volume` de TargetSpotter → ajuste sa recommandation budget (et
+  peut écrire un `budget_advice` que AdBot lit à son prochain run = boucle
+  douce)
+
+🧱 **Prérequis** :
+- **P20 (Argos Memory) hard prerequisite** — c'est le bus de
+  communication. Sans `memory_items` indexés, il n'y a rien à lire.
+- **P16 (Admin Panel)** — la vue matrice de configuration est une
+  nouvelle page (P16.E)
+- **P15 (breakers)** — toute capability `react` ou `write_back`
+  respecte les breakers de l'agent ciblé
+
+📦 **Livrables** :
+- Migration `argos_ops/crm/migrations/0008_capabilities.sql`
+  (table `agent_capabilities`)
+- Module Python `argos_ops/capabilities/` (`__init__.py`,
+  `loader.py`, `enforcer.py`, `writeback.py`, `cycles.py`)
+- Helper `consume_capabilities(agent_name)` appelé en début de chaque
+  `BaseAgent.run()` qui retourne le contexte pré-mâché à utiliser
+- Helper `write_back(target_agent, payload, capability_id)` pour les
+  agents autorisés à influencer un autre agent
+- Extension `argos_ops/ops_dashboard/` : page **Câblage** (Wiring) —
+  matrice subject × object avec édition à chaud
+- Script `scripts/export_capabilities.py` → dump YAML
+  `data/capabilities.yaml` (committable, audit git)
+- Script `scripts/seed_capabilities.py` → applique le YAML en DB
+  (idempotent, pour bootstrap/rollback)
+- Tests (~25 prévus : default policy, deny override, cycle detection,
+  write-back integrity)
+- Breaker `capability_loop_detected` (P15) — déclenché si la couche
+  cycle detection repère un pattern A→B→A en moins de 24h
+- Doc `docs/AGENT_CAPABILITIES.md` — référence opérateur
+
+## 21.1 Modèle pull confirmé (vs push/trigger)
+
+**Rejeté pour v1** : modèle push/trigger (« quand A produit X, déclenche
+B immédiatement »). Risques cascade, ping-pong, blow-up du daily_limit.
+
+**Adopté** : modèle **pull opportuniste**. Chaque agent garde sa
+cadence cron normale. Au début de son `run()`, il consulte ses
+*capabilities* configurées et tire de la mémoire P20 les outputs
+récents qui matchent. Latence = cadence cron de l'agent qui regarde
+(`*/15` pour EmailBot, `0 8` pour DigestBuilder, etc.) — c'est
+suffisant pour un système BtoB.
+
+```
+T0 :   EmailBot run (cron */15) → produit email_inbound (memory_item)
+T+8m : TargetSpotter run (cron */15, décalé) → consume_capabilities()
+       → SELECT * FROM memory_items
+         WHERE agent_name='EmailBot'
+           AND item_type='email_inbound'
+           AND created_at > now() - interval '20 min'
+           AND <filter de la capability>
+       → enrichit son contexte avec ces items, fait son boulot habituel
+```
+
+Pas de trigger, pas de cascade instantanée. La « boucle douce » via
+`write_back` (B écrit pour A, A le lit au prochain run) est possible
+mais lente (1 cycle = 1 cadence cron de chaque côté).
+
+## 21.2 Anatomie d'une capability
+
+```python
+@dataclass
+class Capability:
+    id: int                          # PK
+    subject_agent: str               # qui regarde — "TargetSpotter"
+    object_agent: str                # qui est regardé — "EmailBot"
+    permission: Literal["read", "react", "write_back"]
+    # ↑ "react" reste réservé pour P21.X future (push model)
+    #   v1 implémente "read" et "write_back" uniquement.
+    item_type_filter: list[str]      # ["email_inbound", "lead_qualified"]
+    tag_filter: list[str] | None     # ['lead-chaud'] — None = pas de filtre
+    enabled: bool                    # toggle on/off sans supprimer
+    created_at: datetime
+    updated_at: datetime
+    notes: str | None                # raison textuelle pour audit
+```
+
+**Sémantique selon `permission`** :
+
+- **`read`** (par défaut **ALLOW**) — `subject_agent` peut lire les
+  `memory_items` de `object_agent` qui matchent les filtres.
+  L'opérateur peut ajouter une row `enabled=False` pour **bloquer**
+  une lecture précise (deny override).
+- **`react`** — réservé futur. v1 = ignoré, lèvera `NotImplementedError`.
+  Documenté pour ne pas devoir migrer la table plus tard.
+- **`write_back`** (par défaut **DENY**) — `subject_agent` peut écrire
+  un `memory_item` avec `item_type` préfixé `advice.*` (ex
+  `advice.budget_adjust`) que `object_agent` lira à son prochain run.
+  Nécessite une row `enabled=True` explicite — risque comportemental.
+
+## 21.3 Schéma DB — migration `0008_capabilities.sql`
+
+```sql
+CREATE TABLE IF NOT EXISTS agent_capabilities (
+  id BIGSERIAL PRIMARY KEY,
+  subject_agent TEXT NOT NULL,
+  object_agent TEXT NOT NULL,
+  permission TEXT NOT NULL CHECK (permission IN ('read', 'react', 'write_back')),
+  item_type_filter TEXT[] NOT NULL DEFAULT '{}',
+  tag_filter TEXT[],                  -- NULL = pas de filtre tag
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (subject_agent, object_agent, permission, item_type_filter)
+);
+CREATE INDEX IF NOT EXISTS idx_capabilities_subject ON agent_capabilities(subject_agent);
+CREATE INDEX IF NOT EXISTS idx_capabilities_object ON agent_capabilities(object_agent);
+
+-- Audit trail : on enrichit agent_runs pour tracer ce qui a été consommé
+ALTER TABLE agent_runs
+  ADD COLUMN IF NOT EXISTS capabilities_consumed JSONB DEFAULT '[]'::jsonb;
+-- ex : [{"capability_id": 7, "items_consumed": 12}, ...]
+```
+
+## 21.4 Module Python — `argos_ops/capabilities/`
+
+API publique côté **agent qui consomme** :
+
+```python
+from argos_ops.capabilities import consume_capabilities
+
+async def run(self) -> RunResult:
+    # tirage opportuniste au début du run
+    context = await consume_capabilities(agent_name=self.name)
+    # context = {
+    #   "EmailBot": [<MemoryItem>, ...],          # items récents matchés
+    #   "FinanceBot": [<MemoryItem>, ...],
+    # }
+    # ... logique métier qui peut s'appuyer sur context ...
+```
+
+`consume_capabilities()` :
+1. Lit `agent_capabilities` WHERE `subject_agent = me AND enabled = true AND permission = 'read'`
+2. **Default policy** = ALLOW : si aucune row matchée, considère ouvert
+3. **Deny override** : si une row `enabled = false` existe pour un object donné, bloque
+4. Pour chaque object autorisé, fait `memory.search_sql()` avec
+   `item_type IN (item_type_filter) AND tags @> tag_filter AND
+   created_at > (last consume by me - safety window)`
+5. Log dans `agent_runs.capabilities_consumed` (JSONB)
+
+API publique côté **agent qui écrit-back** :
+
+```python
+from argos_ops.capabilities import write_back
+
+await write_back(
+    from_agent="BudgetWatcher",
+    to_agent="AdBot",
+    advice_type="budget_adjust",
+    payload={"daily_cap_eur": 30, "rationale": "MRR -8% S20"},
+)
+# Vérifie qu'une capability write_back BudgetWatcher → AdBot existe
+# et est enabled. Sinon raise CapabilityDenied.
+# Crée un memory_item item_type='advice.budget_adjust' que AdBot
+# lira via sa propre capability read AdBot ← *.
+```
+
+`cycles.py` — détection au moment de la création/édition d'une
+capability `write_back` :
+- Parcourt le graphe orienté des `write_back`
+- Si l'ajout crée un cycle (A→B→A), refuse côté API DB
+- Si une cascade indirecte est détectée à runtime (B lit A, écrit
+  back pour A qui lit B etc.), déclenche le breaker
+  `capability_loop_detected` (P15) — log Discord et désactive
+  temporairement la nouvelle capability
+
+## 21.5 Frontend Admin Panel — vue **Câblage** (P16.E)
+
+Nouvelle page `ops_dashboard/templates/wiring.html` (et route
+backend correspondante). Layout :
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Câblage inter-agents                                                 │
+│ Configure ce que chaque agent peut lire ou influencer.               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   Sujet ↓ \ Objet →   EmailBot  FinanceBot  AdBot   TargetSpotter   │
+│   ──────────────────  ────────  ──────────  ─────   ─────────────   │
+│   EmailBot              —         ◌            ◌         ◌          │
+│   FinanceBot            ◌          —           ◌         ◌          │
+│   AdBot                 ◌         ●            —         ●R         │
+│   TargetSpotter         ●R+filt   ◌            ◌          —         │
+│   BudgetWatcher         ◌         ●R           ●W        ●R         │
+│                                                                      │
+│   Légende : ◌ open (default allow read)  ●R read configuré          │
+│             ●W write-back grant         ●D deny explicite           │
+│             +filt = filtre item_type ou tag actif                   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+Click sur une cellule → drawer latéral pour configurer :
+- Permission (`read` / `write_back`)
+- `item_type_filter` (multi-select sur les types connus)
+- `tag_filter`
+- `enabled` toggle
+- `notes` (textarea — pourquoi cette capability ? trace pour audit)
+
+Une bande horizontale en bas de la page affiche les **3 derniers
+write-back** appliqués (`from → to · advice_type · timestamp`) pour
+que l'opérateur voie en glance qui influence qui.
+
+Bouton « Exporter en YAML » (haut droite) → télécharge
+`data/capabilities.yaml` pour commit/PR review.
+
+## 21.6 Default policies récap
+
+| Permission | Default | Override mechanism |
+|------------|---------|---------------------|
+| `read` | **ALLOW** (open par défaut) | Row `enabled=false` pour bloquer une combinaison |
+| `react` | N/A v1 (futur P21.X) | — |
+| `write_back` | **DENY** (closed par défaut) | Row `enabled=true` explicite |
+
+Justification du double standard : `read` est **non-modifiant** (B
+regarde, A ne sait pas / ne change pas). Ouvrir par défaut maximise la
+valeur sans risque. `write_back` est **modifiant** (B influence le
+comportement de A) — exige une décision explicite de l'opérateur.
+
+## 21.7 Audit trail
+
+Chaque run d'agent log dans `agent_runs.capabilities_consumed` :
+```json
+[
+  {"capability_id": 7, "object": "EmailBot", "items_consumed": 12},
+  {"capability_id": 9, "object": "FinanceBot", "items_consumed": 3}
+]
+```
+
+Chaque write-back log dans `agent_runs.output_summary` ET crée un
+`memory_item` avec `item_type='advice.*'` traçable. Donc on peut
+toujours répondre à « qui a recommandé quoi à qui, et quand ».
+
+Vue de cet audit dans le Admin Panel : page **Câblage** > onglet
+**Activité** (timeline des consume + write_back des 7 derniers jours).
+
+## 21.8 Phasage P21.A → P21.C
+
+| Sous-partie | Périmètre | Effort | Dépendances |
+|-------------|-----------|--------|-------------|
+| **P21.A** | Migration DB + `argos_ops/capabilities/loader.py` + `consume_capabilities()` (read seulement) + tests | ~0.5 session | P20.A |
+| **P21.B** | Frontend Admin Panel page Câblage (matrice + drawer édition + export YAML) | ~1 session | P21.A + P16.B |
+| **P21.C** | `write_back()` + cycle detection + breaker `capability_loop_detected` | ~0.5 session | P21.A + P15 |
+
+P21.A débloque immédiatement le cas TargetSpotter ↔ EmailBot et
+Compta ↔ FinanceBot (les exemples du fondateur). P21.C ajoute la
+mécanique BudgetWatcher ↔ AdBot (write-back).
+
+## 21.9 Bénéfices concrets
+
+| Combinaison | Capability | Bénéfice |
+|-------------|------------|----------|
+| TargetSpotter ← EmailBot | `read` filtré sur `email_inbound + lead-chaud` | Spotter enrichit son backlog en temps quasi-réel sans recoder son input pipeline |
+| Compta ← FinanceBot | `read` filtré sur `stripe_event, dunning_sent` | Vision comptable cohérente sans dupliquer la logique Stripe |
+| BudgetWatcher ← AdBot, TargetSpotter | `read` cross-agent | Décision budget informée par perf ads + volume leads |
+| AdBot ← BudgetWatcher | `write_back` sur `advice.budget_adjust` | Budget agile sans intervention humaine quotidienne (mais opérateur valide les advice via Admin Panel) |
+| claude-judge ← * | `read` sur tous les drafts | Détection drift de ton/factualité cross-agent |
+| OutboundBot ← TargetSpotter | `read` sur `lead_qualified` | Pipeline lead → outbound automatique (toujours pull, B = OutboundBot run au cron) |
+
+## 21.10 Anti-patterns à éviter
+
+- ❌ Implémenter le mode `react` (push trigger) en v1 — risques cascade
+  non maîtrisés, viole la décision Q5 (pull confirmé)
+- ❌ Ouvrir `write_back` par défaut — un agent malformé pourrait
+  influencer le comportement de tous les autres
+- ❌ Skip la cycle detection au moment du save — un cycle créé en UI
+  doit être refusé avant insertion, pas découvert à runtime
+- ❌ Ne pas tracer `capabilities_consumed` dans `agent_runs` — perd
+  l'audit, impossible de répondre à « qui a tiré quoi ce jour-là »
+- ❌ Stocker la config uniquement en DB sans export YAML — pas de
+  trace git, pas de rollback propre en cas de mauvais setup
+- ❌ Permettre à un agent de se write-back lui-même (auto-influence) —
+  contrainte CHECK SQL `subject_agent <> object_agent`
+
+✅ **Done quand** :
+- P21.A : table créée, `consume_capabilities()` câblé dans 2 agents
+  existants en démo (ex Compta ← FinanceBot), tests passent
+- P21.B : page Câblage live dans l'Admin Panel, matrice éditable,
+  YAML export fonctionnel
+- P21.C : 1 chaîne write-back testée (BudgetWatcher → AdBot), cycle
+  detection refuse un cycle volontaire, breaker câblé
+
+---
+
 # Annexe A — Dépendances entre parties
 
 ```
@@ -1381,9 +2069,14 @@ P0 → P1 → P2 → P3 → P4
                 P3 → P11 → P9 → P10
                 P3 → P12 (besoin P14, P15)
                 P3 → P13 (besoin P5, P14, P15, P17)
+                P3 → P20.A → P20.B → {P20.C, P20.D}
+                P20.A prérequis non-bloquant de P9-full, P12.B, P13
 P17 en parallèle de tout
 P18 mise à jour à chaque création de skill
 P19 démarre quand P4 existe
+P20 démarre quand P3+P6+P14+P15 sont done (✅ tous done au 2026-05-15)
+P21 hard prerequisite : P20.A (DB memory_items doit exister)
+P21.B prerequisite : P16.B (Admin Panel control mode)
 ```
 
 # Annexe B — Ordre recommandé d'exécution
@@ -1414,9 +2107,21 @@ Si le fondateur doit choisir 1 partie par jour pendant les 4 premières semaines
 | 30 | **P16.C — Admin Panel Escalations queue** | Sprint 3 |
 | 31 | **P16.D — Admin Panel KB editor + 2FA** | Sprint 4 |
 | 32-33 | P19 (observabilité) | Continu |
+| 34 | **P20.A — Argos Memory foundation** (DB + archive + hook BaseAgent) | Sprint 2 prereq |
+| 35 | **P20.B — Argos Memory semantic search** (skill `argos-memory`) | Sprint 2 prereq |
+| 36 | **P20.C — Argos Memory curator** (insights hebdo) | Sprint 2+ |
+| 37 | **P20.D — Argos Memory auditor + GC** (`/memory-gc`) | Sprint 2+ |
+| 38 | **P21.A — Capabilities foundation** (table + `consume_capabilities()` read) | Sprint 2+ (après P20.A) |
+| 39 | **P21.B — Capabilities Admin Panel page** (matrice Câblage + export YAML) | Sprint 2+ (après P21.A + P16.B) |
+| 40 | **P21.C — Capabilities write-back + cycle detection** | Sprint 2+ (après P21.A + P15) |
 
 Nota : dans la cadence du fondateur (10-12 sessions/jour), ces 30 jours de plan
 peuvent se compresser à ~3-5 jours réels.
+
+**Argos Memory (P20)** : si l'objectif est de livrer ContentBot full (P9),
+AdBot live (P12.B) ou OutboundBot (P13), il est fortement recommandé de
+faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
+"mémoire-aware" plutôt que d'être rétro-câblés.
 
 ---
 
@@ -1434,11 +2139,11 @@ actifs.
 
 | Agent | Catégorie | Description | Sprint pressenti | Dépendances |
 |-------|-----------|-------------|------------------|-------------|
-| **ReplyBot** | Comms sortante | Répond aux mentions LinkedIn / Reddit / Mastodon — humain-validé (Tier 1) avant publication | Sprint 3+ | P11 (connecteurs sociaux), P14 (juge) |
+| **ReplyBot** | Comms sortante | Répond aux mentions LinkedIn / Mastodon — humain-validé (Tier 1) avant publication | Sprint 3+ | P11 (connecteurs sociaux), P14 (juge) |
 | **ReviewBot** | Comms sortante | Sollicite des vrais avis (G2 / Capterra / Google) post-onboarding J+30. Modère uniquement insultes/diffamation | Sprint 4+ | P5 (EmailBot), P7 (FinanceBot pour repérer onboarding J+30) |
-| **TrendSpotter** | Contenu / SEO | Détecte tendances cybersec sur Reddit `/r/netsec`, Hacker News, blogs RSSI → alimente SEOBot avec keywords + angles. Pas de SERP scraping (D-017) | Sprint 2+ | P10 (SEOBot), P11 (Reddit connecteur) |
+| **TrendSpotter** | Contenu / SEO | Détecte tendances cybersec sur Hacker News + blogs RSSI + Mastodon `infosec.exchange` (Reddit retiré D-022) → alimente SEOBot avec keywords + angles. Pas de SERP scraping (D-017) | Sprint 2+ | P10 (SEOBot), P11 (Mastodon connecteur) |
 | **CompetitorWatcher** | Monitoring & Intel | Scrape hebdo pages features/pricing des concurrents (Acunetix, Detectify, Burp Pro, Intruder, Pentera) — diff vs semaine précédente, alerte Discord | Sprint 3+ | aucune (HTTP fetch direct + structured extract) |
-| **PressMonitor** | Monitoring & Intel | Alerte mentions « Argos », « Omnividens », « SecHunter » sur le web public (Google Alerts-style) + Reddit mentions | Sprint 3+ | P11 (Reddit) |
+| **PressMonitor** | Monitoring & Intel | Alerte mentions « Argos », « Omnividens », « SecHunter » sur le web public (Google Alerts-style) + Mastodon (Reddit retiré D-022) | Sprint 3+ | P11 (Mastodon) |
 | **ChurnPredictor** | Finance & Admin | Analyse signaux pré-churn (Stripe : `subscription_status` changes, downgrades) + interactions CRM (mails frustrés, support tickets P1) → score risque churn par customer | Sprint 4+ | P7 (FinanceBot), P5 (EmailBot), P6 (SupportBot) |
 | **InvoicePredictor** | Finance & Admin | Forecast cash flow 30j / 60j / 90j basé sur les subs Stripe actives (renouvellements certains + probabilistiques) + dunning en cours | Sprint 4+ | P7 (FinanceBot) |
 

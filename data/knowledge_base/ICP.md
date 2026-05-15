@@ -78,7 +78,7 @@ site (qualif inbound).
 | Profil | Solo, paie de sa poche, achète en 5 min carte bleue |
 | Ticket | Bas (€19-30/mois, plan Free → Pro) |
 | Rétention | **Faible** — prend 1 mois pour un programme bug bounty, puis stop |
-| Valeur réelle | **Évangélisation** : c'est lui qui va twitter / poster Reddit « Argos a trouvé un truc que Burp avait raté » |
+| Valeur réelle | **Évangélisation** : c'est lui qui va poster sur Mastodon / Hacker News « Argos a trouvé un truc que Burp avait raté » |
 | Ratio évangélisation/€ | Excellent — soutient la légitimité technique côté prospect Marc |
 
 **🚧 Garde-fous commerciaux (à respecter par tous les agents) :**
@@ -86,9 +86,9 @@ site (qualif inbound).
 - ❌ **Zéro effort OutboundBot** — pas de cold email à froid sur cette audience
 - ❌ **Zéro budget AdBot Google Ads ou LinkedIn Ads** — coût d'acquisition >
   ticket annuel
-- ✅ **Présence organique uniquement** : Reddit `/r/netsec`, `/r/bugbounty`,
-  Mastodon `infosec.exchange`, Hacker News, blog technique en EN à partir
-  de l'horizon EN (6-12 mois)
+- ✅ **Présence organique uniquement** : Mastodon `infosec.exchange`,
+  Hacker News, blog technique en EN à partir de l'horizon EN (6-12 mois)
+  (Reddit retiré du périmètre Argos Ops — [D-022](../../docs/DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops))
 - ✅ ContentBot peut produire du contenu visant cette audience à condition
   zéro dépense pub
 
@@ -134,7 +134,7 @@ Raisons :
 | Sprint 1-3 | FR + BE + CH + LU | — (par défaut) |
 | Sprint 4 + 6-12 mois | DACH (DE / AT / CH allemande) | Marché énorme + culture compliance qui valorise le BYOK |
 | 12-18 mois | NL / ES | KB EN stable + 1 employé support EN |
-| 18+ mois | Monde anglophone via product-led growth | Reddit `/r/netsec`, Twitter, blog technique EN |
+| 18+ mois | Monde anglophone via product-led growth | Hacker News, Mastodon `infosec.exchange`, blog technique EN |
 
 ### Langue de la KB / landing / emails
 
@@ -143,8 +143,8 @@ Raisons :
 - **Emails entrants `contact@omnividens.fr` : FR uniquement** au démarrage.
   Si un visiteur écrit en EN, SupportBot répond en FR avec excuse + invite
   à reformuler en FR (KB EN reportée au 12-18 mois — cf. tableau).
-- Blog : FR principal, articles EN ponctuels visant Persona 3 (Reddit /
-  Hacker News) à partir du Sprint 2
+- Blog : FR principal, articles EN ponctuels visant Persona 3 (Hacker News /
+  Mastodon infosec) à partir du Sprint 2
 
 ---
 
@@ -161,7 +161,7 @@ détecter le signal et timer l'approche) :
 | 4 | **Faille publique chez un concurrent / dans la stack** | CVE high-profile (Log4Shell, MoveIt, Okta, …) | 1-7 j post-publication | ⭐⭐⭐⭐ |
 | 5 | **Pentest annuel moisi** | Difficile à détecter externe — signal faible. Plutôt à capter via un mail entrant `contact@omnividens.fr` qui mentionne un pentest récent | Q4 (cycle budgétaire) + Q1 (post-rapport) | ⭐⭐ |
 | 6 | **Nouveau Head of Security / RSSI** | Poste créé < 90 j (LinkedIn) — recoupe avec #2 | post-arrivée | ⭐⭐⭐⭐ |
-| 7 | **Dev sénior frustré par un scan FP** | Signal organique : tweets, posts Reddit `/r/netsec` mentionnant Snyk/Acunetix avec frustration | continu | ⭐⭐⭐ (organique, pas outbound) |
+| 7 | **Dev sénior frustré par un scan FP** | Signal organique : tweets, posts Hacker News / Mastodon mentionnant Snyk/Acunetix avec frustration | continu | ⭐⭐⭐ (organique, pas outbound) |
 
 **Priorité OutboundBot :** déclencheurs 1, 2, 3, 6 (signaux LinkedIn fiables).
 **Priorité AdBot :** retargeter sur déclencheur 4 (audience qui a recherché

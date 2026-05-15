@@ -1,6 +1,6 @@
 ---
 name: content-scheduler
-description: Choisit l'heure et le jour optimaux pour publier un draft social sur LinkedIn / Mastodon / Reddit r/netsec / X, en respectant les fenêtres d'engagement de chaque canal + la règle 9:1 Reddit + un espacement minimal entre posts d'un même canal. Utilise ce skill quand le user demande de planifier un draft validé, de scheduler une queue de drafts, ou pendant /schedule-content. Pas de posting API — le skill retourne juste un timestamp suggéré que le fondateur (ou ContentBot P9 full après P11) applique.
+description: Choisit l'heure et le jour optimaux pour publier un draft social sur LinkedIn / Mastodon (Reddit retiré par D-022 2026-05-15), en respectant les fenêtres d'engagement de chaque canal + un espacement minimal entre posts d'un même canal. Utilise ce skill quand le user demande de planifier un draft validé, de scheduler une queue de drafts, ou pendant /schedule-content. Pas de posting API — le skill retourne juste un timestamp suggéré que le fondateur (ou ContentBot P9 full après P11) applique.
 ---
 
 # content-scheduler
@@ -11,7 +11,7 @@ Le posting est géré par P11 (connecteurs sociaux) en mode automatique
 ou par le fondateur manuellement jusqu'à P11 live.
 
 > **Pourquoi un skill et pas du code Python pur** : les fenêtres
-> d'engagement optimal évoluent (les algos LinkedIn / Mastodon / Reddit
+> d'engagement optimal évoluent (les algos LinkedIn / Mastodon
 > changent) et dépendent de l'audience FR / EN / DACH. Garder ce skill
 > en markdown permet d'ajuster les heuristiques sans toucher le code.
 > Le calcul d'horodatage exact reste déterministe côté Python (helper
@@ -23,8 +23,10 @@ ou par le fondateur manuellement jusqu'à P11 live.
 |---|---|---|---|---|
 | **LinkedIn** | Mardi / Mercredi / Jeudi | 7h30-9h30 + 12h-13h + 17h30-18h30 | 24 h | Audience hits le feed le matin avant standup et en pause déjeuner. Pas le vendredi soir, pas le weekend. |
 | **Mastodon (infosec.exchange)** | Tous les jours sauf dimanche | 9h-11h + 14h-17h + 21h-22h | 4 h | Audience tech infosec mondiale → couvre les fuseaux US Pacific et Europe. Pas le dimanche matin. |
-| **Reddit r/netsec** | Lundi / Mardi / Mercredi | 14h-18h (Paris) = matinée US Eastern | 7 jours minimum entre 2 posts perso (anti-spam karma) | Règle 9:1 stricte : 9 commentaires utiles non promo avant 1 post produit. Audience US-skewed. |
 | **X / Twitter** | Mardi / Mercredi / Jeudi | 12h + 18h | 12 h | Canal **bas priorité** (Free tier supprimé). Si présence maintenue, minimaliste. |
+
+> **Reddit retiré du périmètre par D-022 (2026-05-15)** — voir
+> [`docs/DECISIONS.md`](../../docs/DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops).
 
 ## Inputs
 
@@ -65,8 +67,8 @@ posera automatiquement au `scheduled_for`.
   `channel == draft.channel` ET `posted_at != null` ET `posted_at >
   now - 30 jours`
 - Extraire les `posted_at` pour calculer le dernier post du canal
-- Si Reddit : compter les `posted_at` Reddit sur 7 jours glissants — si
-  ≥ 1, refuser de scheduler un 2e post (espacement min 7 jours)
+- (Reddit retiré — D-022 2026-05-15 — pas de règle d'espacement
+  spécifique au-delà du min 4h de Mastodon)
 
 ### 3. Choix du créneau
 
@@ -101,11 +103,8 @@ Pousser sur `DISCORD_WEBHOOK_OPS_LOGS` :
 
 ## Anti-patterns à refuser
 
-- **Reddit promo < 7 jours après dernier post Reddit** — règle 9:1 +
-  espacement. Refuser, proposer Mastodon ou LinkedIn à la place.
 - **LinkedIn weekend** — refuser, proposer mardi/mercredi/jeudi le plus
   proche.
-- **Reddit dimanche** — audience US descend, traffic perdu.
 - **Cluster temporel** (3 posts LinkedIn en 48h) — refuser, étaler.
 - **Heure « morte »** (LinkedIn samedi 23h, Mastodon dimanche 4h) —
   refuser.

@@ -122,7 +122,7 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         displayName: "ReplyBot",
         shortLabel: "Mentions sociales",
         description:
-          "Réponse aux mentions LinkedIn / Reddit / Mastodon — humain-validé.",
+          "Réponse aux mentions LinkedIn / Mastodon — humain-validé.",
         status: "roadmap",
         roadmapRef: "Annexe D · Sprint 3+",
       },
@@ -155,7 +155,7 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         name: null,
         displayName: "ContentBot",
         shortLabel: "Publication",
-        description: "2-5 posts/jour LinkedIn / Mastodon / Reddit (P9).",
+        description: "2-5 posts/jour LinkedIn / Mastodon (P9).",
         status: "roadmap",
         roadmapRef: "P9 · Sprint 2",
       },

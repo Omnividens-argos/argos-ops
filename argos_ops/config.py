@@ -94,6 +94,23 @@ class Settings(BaseSettings):
     # une fois le premier run live audité.
     financebot_dunning_enabled: bool = Field(default=False, alias="FINANCEBOT_DUNNING_ENABLED")
 
+    # --- Outbound (P13 — shadow mode par défaut) ---
+    # Live mode = envoi réel via Zimbra SMTP depuis le domaine secondaire.
+    # Reste sur False tant que le domaine secondaire n'est pas acquis et
+    # warmed-up 4 semaines (cf. P13 § 13.2). Indépendant de FINANCEBOT_DUNNING_ENABLED.
+    outbound_live_mode: bool = Field(default=False, alias="OUTBOUND_LIVE_MODE")
+    # Domaine sacrificiel pour préserver la réputation `omnividens.fr` (P13 § 13.2).
+    # Ex : "try-omnividens.com", "hello-omnividens.com". Vide tant que pas acheté.
+    outbound_from_domain: str | None = Field(default=None, alias="OUTBOUND_FROM_DOMAIN")
+    # Secret HMAC pour signer les liens d'opt-out (1-clic, P17 conformité).
+    # Rotation = revocation globale de tous les liens d'opt-out existants.
+    outbound_unsubscribe_secret: SecretStr | None = Field(
+        default=None, alias="OUTBOUND_UNSUBSCRIBE_SECRET"
+    )
+    # Cap journalier d'envois — protection délivrabilité (warmup et croisière).
+    # Breaker `outbound_volume_exceeded` se déclenche si dépassement détecté.
+    outbound_daily_max: int = Field(default=30, alias="OUTBOUND_DAILY_MAX")
+
     @property
     def async_database_url(self) -> str:
         """URL adaptée à SQLAlchemy async (driver psycopg v3).
