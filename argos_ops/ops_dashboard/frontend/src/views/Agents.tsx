@@ -15,6 +15,7 @@ import {
   type CatalogAgent,
   type CatalogCategory,
   categoryCounts,
+  totalCounts,
 } from "../lib/agentCatalog";
 import {
   formatAbsoluteTime,
@@ -24,8 +25,11 @@ import {
   statusColor,
 } from "../lib/format";
 
-// Vue Agents — 6 catégories empilées avec headers sticky + cards agent
-// inline. Slots roadmap visibles mais désaturés. Décision 2026-05-12 (option a).
+// Vue Agents — 12 services empilés avec headers sticky + cards agent inline.
+// Slots roadmap visibles mais désaturés. Catalogue : agentCatalog.ts.
+// Révision 2026-05-23 : 12 services × 79 bots (cf. ARGOS_OPS_PLAN.md Annexe D).
+
+type StatusFilter = "all" | "active" | "roadmap";
 
 // Agents qu'on peut déclencher manuellement via "Run now" du drawer.
 // Doit rester aligné avec ``argos_ops/ops_dashboard/app.py::RUNNABLE_AGENTS``.
@@ -38,6 +42,7 @@ export function Agents() {
   const [selected, setSelected] = useState<string | null>(null);
   const [flash, setFlash] = useState<{ variant: "success" | "error"; msg: string } | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [bumpKey, setBumpKey] = useState(0);
 
   // Cache des configs par agent (toggle/pause needs config.enabled, paused_until).
@@ -71,10 +76,21 @@ export function Agents() {
 
   const refetch = () => setBumpKey((k) => k + 1);
 
-  const visibleCategories =
+  const visibleCategories = (
     activeCategory === "all"
       ? AGENT_CATEGORIES
-      : AGENT_CATEGORIES.filter((c) => c.id === activeCategory);
+      : AGENT_CATEGORIES.filter((c) => c.id === activeCategory)
+  )
+    .map((cat) => ({
+      ...cat,
+      agents: cat.agents
+        .filter((a) => statusFilter === "all" || a.status === statusFilter)
+        // actifs d'abord, puis roadmap (ordre catalog respecté par ailleurs)
+        .sort((a, b) => (a.status === b.status ? 0 : a.status === "active" ? -1 : 1)),
+    }))
+    .filter((cat) => cat.agents.length > 0);
+
+  const totals = totalCounts();
 
   return (
     <div className="p-6 space-y-5">
@@ -82,12 +98,21 @@ export function Agents() {
         <Flash variant={flash.variant} message={flash.msg} onDismiss={() => setFlash(null)} />
       )}
 
+      <FleetCounter totals={totals} />
+
       <CategoryFilter
         activeCategory={activeCategory}
         onChange={setActiveCategory}
       />
 
+      <StatusFilterBar value={statusFilter} onChange={setStatusFilter} />
+
       <div className="space-y-6">
+        {visibleCategories.length === 0 && (
+          <div className="rounded-md border border-dashed border-argos-border-subtle bg-argos-surface/40 p-6 text-center text-sm text-argos-fg-tertiary">
+            Aucun bot ne correspond à ces filtres.
+          </div>
+        )}
         {visibleCategories.map((cat) => (
           <CategorySection
             key={cat.id}
@@ -114,6 +139,60 @@ export function Agents() {
           onMutated={refetch}
         />
       )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Compteur global de la flotte (X actifs · Y roadmap · Z bots au plan).
+// =============================================================================
+function FleetCounter({
+  totals,
+}: {
+  totals: { active: number; roadmap: number; total: number };
+}) {
+  return (
+    <div className="flex items-baseline gap-3 flex-wrap">
+      <h1 className="text-base font-semibold text-argos-fg">Flotte Argos Ops</h1>
+      <span className="font-mono text-[11px] text-argos-fg-tertiary">
+        <span className="text-argos-healthy">{totals.active} actifs</span>
+        {" · "}
+        <span>{totals.roadmap} roadmap</span>
+        {" · "}
+        <span>{totals.total} bots au plan</span>
+      </span>
+    </div>
+  );
+}
+
+// =============================================================================
+// Filtre statut (Actifs / Roadmap / Tous).
+// =============================================================================
+function StatusFilterBar({
+  value,
+  onChange,
+}: {
+  value: StatusFilter;
+  onChange: (next: StatusFilter) => void;
+}) {
+  const opts: { id: StatusFilter; label: string }[] = [
+    { id: "all", label: "Tous" },
+    { id: "active", label: "Actifs uniquement" },
+    { id: "roadmap", label: "Roadmap uniquement" },
+  ];
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
+        Statut
+      </span>
+      {opts.map((o) => (
+        <ChipFilter
+          key={o.id}
+          label={o.label}
+          active={value === o.id}
+          onClick={() => onChange(o.id)}
+        />
+      ))}
     </div>
   );
 }
@@ -252,21 +331,21 @@ function AgentCard({ agent, liveData, config, onSelect, selected, onFlash, onMut
   // Slot roadmap : card désaturée, pas d'actions.
   if (agent.status === "roadmap") {
     return (
-      <div className="rounded-md border border-dashed border-argos-border-subtle bg-argos-surface/40 p-4 opacity-60">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-sm font-semibold text-argos-fg-secondary">
+      <div className="rounded-md border border-dashed border-argos-border-subtle bg-argos-surface/60 p-4">
+        <div className="flex items-center justify-between mb-1 gap-2">
+          <span className="text-sm font-semibold text-argos-fg-secondary truncate">
             {agent.displayName}
           </span>
           <Badge tone="neutral">Roadmap</Badge>
         </div>
-        <div className="font-mono text-[11px] text-argos-fg-tertiary mb-2">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary mb-2">
           {agent.shortLabel}
         </div>
-        <p className="text-xs text-argos-fg-tertiary leading-relaxed mb-2">
+        <p className="text-xs text-argos-fg-secondary leading-relaxed mb-2">
           {agent.description}
         </p>
         {agent.roadmapRef && (
-          <div className="font-mono text-[10px] text-argos-fg-disabled">
+          <div className="font-mono text-[10px] text-argos-fg-tertiary">
             {agent.roadmapRef}
           </div>
         )}
