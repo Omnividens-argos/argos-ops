@@ -65,6 +65,12 @@ dependencies = [
 
   # YAML — frontmatter skills + OutboundBot meta.yaml (P13)
   "pyyaml>=6.0",
+
+  # DNS resolution (P22.D DNSGuard) + RSS / Atom parsing (P22.D BreachWatcher,
+  # RegulatoryWatcher). dnspython est aussi consommé indirectement par
+  # aiosmtplib pour les MX lookups.
+  "dnspython>=2.6",
+  "feedparser>=6.0",
 ]
 
 [project.optional-dependencies]
