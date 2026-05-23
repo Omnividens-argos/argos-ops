@@ -88,9 +88,16 @@ def test_list_agents_returns_known_agents(client: TestClient) -> None:
         response = client.get("/api/agents")
     assert response.status_code == 200
     agents = response.json()
-    assert len(agents) == 4  # KNOWN_AGENTS = DigestBuilder, EmailBot, SupportBot, FinanceBot
+    assert len(agents) == 6  # KNOWN_AGENTS = Digest, Email, Support, Finance, BotHealth, Orchestrator
     names = [a["name"] for a in agents]
-    assert names == ["DigestBuilder", "EmailBot", "SupportBot", "FinanceBot"]
+    assert names == [
+        "DigestBuilder",
+        "EmailBot",
+        "SupportBot",
+        "FinanceBot",
+        "BotHealthBot",
+        "OrchestratorBot",
+    ]
     digest = next(a for a in agents if a["name"] == "DigestBuilder")
     assert digest["last_run_status"] == "success"
     assert digest["last_run_duration_seconds"] == pytest.approx(60.0)
@@ -427,9 +434,7 @@ def test_run_agent_now_reports_failed_status(client: TestClient) -> None:
     from argos_ops.agents.base import RunResult
 
     fake_run = AsyncMock(
-        return_value=RunResult(
-            status="skipped_disabled", error="agent disabled via Admin Panel"
-        )
+        return_value=RunResult(status="skipped_disabled", error="agent disabled via Admin Panel")
     )
     with patch.object(app_module, "run_agent", fake_run):
         response = client.post("/api/agents/EmailBot/runs")

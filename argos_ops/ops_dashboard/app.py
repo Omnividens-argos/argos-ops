@@ -57,14 +57,19 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "EmailBot",
     "SupportBot",
     "FinanceBot",
+    "BotHealthBot",
+    "OrchestratorBot",
 )
 
 # Agents qu'on peut déclencher manuellement via "Run now" du panel. SupportBot
 # et SEOBot sont interactifs (slash commands) — pas de BaseAgent subclass à
 # instancier, donc pas runnables ici. Les autres héritent de BaseAgent et
 # passent par ``run_agent`` qui respecte les checks runtime (breaker, disabled,
-# paused, daily_limit).
-RUNNABLE_AGENTS: frozenset[str] = frozenset({"DigestBuilder", "EmailBot", "FinanceBot"})
+# paused, daily_limit). OrchestratorBot est runnable en dry-run uniquement
+# depuis le panel (live mode passe par CLI explicite).
+RUNNABLE_AGENTS: frozenset[str] = frozenset(
+    {"DigestBuilder", "EmailBot", "FinanceBot", "BotHealthBot", "OrchestratorBot"}
+)
 
 
 def _build_agent(name: str) -> BaseAgent:
@@ -82,7 +87,18 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.finance_bot import FinanceBot
 
         return FinanceBot()
+    if name == "BotHealthBot":
+        from argos_ops.agents.bot_health import BotHealthBot
+
+        return BotHealthBot()
+    if name == "OrchestratorBot":
+        # Run now depuis le panel = dry-run par défaut (garde-fou) ;
+        # le live mode passe par CLI explicite `scripts/run_orchestrator.py --live`.
+        from argos_ops.agents.orchestrator import OrchestratorBot
+
+        return OrchestratorBot(live=False)
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
+
 
 # Mapping breaker → sévérité affichée dans l'UI. Cohérent avec la liste
 # du module ``argos_ops.breakers`` (mrr_drop_critical, etc.). Les
