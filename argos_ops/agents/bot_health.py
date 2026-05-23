@@ -30,13 +30,17 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
-from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
+from argos_ops.agents._watcher_base import (
+    color_title,
+    emit_alert_or_silence,
+    format_age,
+    format_duration,
+)
 from argos_ops.agents.base import BaseAgent, RunResult
-from argos_ops.config import get_settings
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun, Breaker
 from argos_ops.crm.repository import (
@@ -50,7 +54,6 @@ from argos_ops.notifications.discord import (
     YELLOW,
     Embed,
     EmbedField,
-    send_embed,
 )
 
 AgentHealthStatus = Literal["ok", "stale", "error"]
@@ -239,31 +242,11 @@ def build_report(
 # =============================================================================
 # Formatting
 # =============================================================================
-def _format_age(age_hours: float | None) -> str:
-    if age_hours is None:
-        return "jamais"
-    if age_hours < 1.0:
-        return f"{int(age_hours * 60)}min"
-    if age_hours < 48.0:
-        return f"{age_hours:.1f}h"
-    return f"{age_hours / 24:.1f}j"
-
-
-def _format_duration(seconds: float | None) -> str:
-    if seconds is None:
-        return "n/a"
-    if seconds < 1.0:
-        return f"{int(seconds * 1000)}ms"
-    if seconds < 60.0:
-        return f"{seconds:.1f}s"
-    return f"{seconds / 60:.1f}min"
-
-
 def _format_snapshot_value(snap: BotHealthSnapshot) -> str:
     parts = [
-        f"last={_format_age(snap.age_hours)}",
+        f"last={format_age(snap.age_hours)}",
         f"status={snap.last_run_status or 'n/a'}",
-        f"avg7d={_format_duration(snap.avg_duration_seconds_7d)}",
+        f"avg7d={format_duration(snap.avg_duration_seconds_7d)}",
     ]
     if snap.recent_errors_24h > 0:
         parts.append(f"errors24h={snap.recent_errors_24h}")
@@ -300,13 +283,7 @@ def build_health_embed(report: BotHealthReport, *, now: datetime | None = None) 
             )
         )
 
-    title_status = (
-        "RED"
-        if report.alert_color == RED
-        else "YELLOW"
-        if report.alert_color == YELLOW
-        else "GREEN"
-    )
+    title_status = color_title(report.alert_color, green=GREEN, yellow=YELLOW, red=RED)
     return Embed(
         title=f"BotHealthBot — {title_status}",
         description=report.summary,
@@ -349,7 +326,6 @@ class BotHealthBot(BaseAgent):
         self._max_age_hours = max_age_hours
 
     async def run(self) -> RunResult:
-        settings = get_settings()
         async with session_scope() as session:
             snapshots = await collect_snapshots(
                 session,
@@ -359,32 +335,8 @@ class BotHealthBot(BaseAgent):
             tripped = await list_tripped_breakers(session)
 
         report = build_report(snapshots, tripped)
-
-        if not report.should_alert:
-            logger.info(f"BotHealthBot — tout vert, silence Discord ({report.summary})")
-            return RunResult(
-                status="success",
-                output_summary=f"silence (vert) — {report.summary}",
-                extras={"alerted": False, "summary": report.summary},
-            )
-
-        if settings.discord_webhook_ops_logs is None:
-            logger.warning(
-                "BotHealthBot — alerte détectée mais DISCORD_WEBHOOK_OPS_LOGS non configuré"
-            )
-            return RunResult(
-                status="success",
-                output_summary=f"alerte non envoyée (webhook absent) — {report.summary}",
-                extras={"alerted": False, "summary": report.summary},
-            )
-
-        embed = build_health_embed(report)
-        await send_embed(settings.discord_webhook_ops_logs, embed)
-        logger.info(f"BotHealthBot — embed pushé ({report.summary})")
-        return RunResult(
-            status="success",
-            output_summary=f"alert pushed — {report.summary}",
-            extras={"alerted": True, "summary": report.summary},
+        return await emit_alert_or_silence(
+            report, embed_builder=build_health_embed, agent_name=self.name
         )
 
 

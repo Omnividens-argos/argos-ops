@@ -1,0 +1,10 @@
+# BackupVerifier (P22.C Tech/SRE Sprint 4) cherche ici les dumps Postgres
+# les plus récents (*.sql, *.dump, *.sql.gz). Alerte Discord si le plus
+# récent date de plus de 24h.
+#
+# Convention de nommage suggérée :
+#   argos-ops-YYYY-MM-DD.sql
+#   argos-ops-YYYY-MM-DD-HHMMSS.sql.gz
+#
+# Ce répertoire est volontairement vide en commit (`.gitkeep` only) car
+# les dumps eux-mêmes ne doivent jamais finir dans Git.

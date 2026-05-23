@@ -11,6 +11,9 @@
 *.p12
 *.pfx
 secrets/
+# Exception : journal de rotation = noms de secrets + dates, jamais les valeurs (P22.C SecretRotator).
+!data/secrets/
+!data/secrets/rotation_log.yaml
 service-account*.json
 credentials*.json
 token.json
