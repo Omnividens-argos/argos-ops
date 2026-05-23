@@ -42,6 +42,8 @@ coverage.xml
 
 # Données générées
 data/embeddings/
+data/_fetcher_cache/*
+!data/_fetcher_cache/.gitkeep
 logs/
 *.db
 *.sqlite
