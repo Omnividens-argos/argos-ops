@@ -2134,10 +2134,10 @@ faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
 
 ## Récap chiffres (auto-maintenu à chaque livraison)
 
-- ✅ **65 agents Python actifs** + **1 skill (ClaudeJudge)** = **66 livrés**
-- 🟡 **2 partiels** (skill ou shadow mode livré, agent Python pas en cron)
-- ⬜ **12 roadmap**
-- **Total cible : 79 bots** répartis sur 12 services
+- ✅ **83 agents Python actifs** + **1 skill (ClaudeJudge)** = **84 livrés**
+- 🟡 **1 partiel** (OutboundBot — P13.A shadow + P22.H stage mode, live attend domaine secondaire D-023)
+- ⬜ **2 roadmap** (CapabilityRouter bloqué sur P21.A, MemoryCurator bloqué sur P20.A)
+- **Total cible : 79 bots** répartis sur 12 services *(dépassé via 7 upgrades skills/shadow → agent Python full lors du méta-sprint P22.D-I).*
 
 Légende :
 - `[x] ✅` — livré et actif (Python agent en cron OU skill réutilisable)
@@ -2168,12 +2168,12 @@ Le frontend Admin Panel range les bots par service avec status pill.
 *Comptabilité, budget, trésorerie, dunning.*
 
 - [x] ✅ **FinanceBot** · Contrôleur financier · Sync Stripe + dunning J+3/J+7/J+15. *P7 livré 2026-05-09.*
-- [ ] ⬜ **InvoicePredictor** · Trésorier · Forecast cash flow 90j depuis Stripe subs actives. *Sprint 4+.*
-- [ ] ⬜ **ExpenseAuditor** · Contrôleur de gestion · Audit notes de frais + anomalies. *Sprint 10.*
-- [ ] ⬜ **TaxBot** · Fiscaliste · TVA CA3 mensuelle + IS prévisionnel. *Sprint 10.*
-- [ ] ⬜ **ReconcileBot** · Comptable · Rapproche Stripe ↔ relevés Qonto. *Sprint 10.*
-- [ ] ⬜ **BurnRateMonitor** · CFO adjoint · Alerte burn > seuil ou runway < 9 mois. *Sprint 10.*
-- [ ] ⬜ **VendorContractWatcher** · Achats · Renouvellements fournisseurs avant tacite reconduction. *Sprint 10.*
+- [x] ✅ **InvoicePredictor** · Trésorier · Forecast cash flow 30/60/90j depuis Stripe subs actives. *P22.F livré 2026-05-23.*
+- [x] ✅ **ExpenseAuditor** · Contrôleur de gestion · Audit CSV Qonto + anomalies (outliers / doublons / nouveaux vendors). *P22.F livré 2026-05-23.*
+- [x] ✅ **TaxBot** · Fiscaliste · TVA CA3 mensuelle + IS prévisionnel (draft markdown). *P22.F livré 2026-05-23.*
+- [x] ✅ **ReconcileBot** · Comptable · Rapproche Stripe payouts ↔ crédits Qonto. *P22.F livré 2026-05-23.*
+- [x] ✅ **BurnRateMonitor** · CFO adjoint · Alerte burn > seuil ou runway < 9 mois. *P22.F livré 2026-05-23.*
+- [x] ✅ **VendorContractWatcher** · Achats · Renouvellements fournisseurs avant tacite reconduction. *P22.F livré 2026-05-23.*
 
 ### 3. Sales / Commercial
 *Ramener des clients (cible primaire + secondaire).*
@@ -2272,9 +2272,9 @@ Le frontend Admin Panel range les bots par service avec status pill.
 ### 11. Documentation & Knowledge interne
 *Maintenance des docs techniques internes.*
 
-- [ ] ⬜ **DocLinter** · Technical Writer · Liens morts + cohérence des fichiers dans `docs/`. *Sprint 13.*
-- [ ] ⬜ **DiagramGenerator** · Tech Doc · Diagrammes Mermaid depuis specs / code. *Sprint 13.*
-- [ ] ⬜ **ADRWriter** · Tech Lead · ADR (Architecture Decision Record) depuis PR / discussion. *Sprint 13.*
+- [x] ✅ **DocLinter** · Technical Writer · Liens internes morts + anchors morts dans `docs/`, `README.md`, `CLAUDE.md`. *P22.F livré 2026-05-23.*
+- [x] ✅ **DiagramGenerator** · Tech Doc · Flowchart Mermaid depuis spec YAML. *P22.F livré 2026-05-23.*
+- [x] ✅ **ADRWriter** · Tech Lead · ADR MADR léger depuis input structuré, idempotent par slug. *P22.F livré 2026-05-23.*
 
 ### 12. Meta-Ops
 *Bots qui gèrent les bots.*
