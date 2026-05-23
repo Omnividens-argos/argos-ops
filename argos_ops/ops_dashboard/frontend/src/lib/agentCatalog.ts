@@ -448,7 +448,7 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         name: null,
         displayName: "RoadmapPublisher",
         shortLabel: "Head of Product",
-        description: "Publie la roadmap publique depuis l'état interne (PROGRESS.md).",
+        description: "Publie la roadmap publique depuis l'Annexe D du plan.",
         status: "roadmap",
         roadmapRef: "Annexe D · Sprint 11",
       },

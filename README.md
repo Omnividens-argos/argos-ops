@@ -31,7 +31,7 @@ Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour le détail.
 
 🚧 **En cours de bootstrap** — Sprint 0 (P0–P4), pas encore en production.
 
-État détaillé : [`docs/PROGRESS.md`](docs/PROGRESS.md).
+État détaillé bot par bot : [`docs/ARGOS_OPS_PLAN.md` — Annexe D](docs/ARGOS_OPS_PLAN.md#annexe-d--catalogue-cible--12-services--79-bots).
 
 ---
 

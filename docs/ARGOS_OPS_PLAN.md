@@ -2127,9 +2127,22 @@ faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
 
 # Annexe D — Catalogue cible : 12 services × 79 bots
 
-> Révision majeure 2026-05-23 (P22). La version précédente listait 7 agents
-> proposés sur 6 services. Le founder a demandé une cible plus large pour
-> matcher une vraie org-chart d'entreprise.
+> **Source unique de l'état d'avancement** (depuis 2026-05-23).
+> `CLAUDE.md` ne porte plus de section "État d'avancement" et
+> `docs/PROGRESS.md` est supprimé. Toute mise à jour de statut bot se fait
+> ici via les checkboxes ci-dessous.
+
+## Récap chiffres (auto-maintenu à chaque livraison)
+
+- ✅ **16 agents Python actifs** + **1 skill (ClaudeJudge)** = **17 livrés**
+- 🟡 **4 partiels** (skill ou shadow mode livré, agent Python pas en cron)
+- ⬜ **59 roadmap**
+- **Total cible : 79 bots** répartis sur 12 services
+
+Légende :
+- `[x] ✅` — livré et actif (Python agent en cron OU skill réutilisable)
+- `[~] 🟡` — partiel (skill / shadow mode livré, pas encore d'agent Python en cron)
+- `[ ] ⬜` — roadmap
 
 ## Principe d'organisation
 
@@ -2137,161 +2150,145 @@ Chaque bot = **1 tâche atomique = 1 poste-clé équivalent grande entreprise**.
 La flotte est structurée comme une org-chart : la Direction donne les
 directives, les pôles métier exécutent, Meta-Ops orchestre la flotte.
 
-**Source de vérité du catalogue** :
+**Catalogue technique** :
 [`argos_ops/ops_dashboard/frontend/src/lib/agentCatalog.ts`](../argos_ops/ops_dashboard/frontend/src/lib/agentCatalog.ts).
-Le frontend Admin Panel range les bots par service avec status pill (✅ actif
-/ 🛣️ roadmap).
-
-## Récap chiffres
-- **6 bots actifs** : DigestBuilder, EmailBot, SupportBot, SEOBot, FinanceBot,
-  ClaudeJudge (skill)
-- **11 bots roadmap déjà au plan** : OutboundBot (P13), LeadEnricher (P18),
-  ContentBot (P9), AdBot (P12), TrendSpotter, ReviewBot, ChurnPredictor,
-  InvoicePredictor, ReplyBot, PressMonitor, CompetitorWatcher
-- **62 bots nouveaux** (cette annexe, P22)
-- **Total cible : 79 bots** répartis sur 12 services
+Le frontend Admin Panel range les bots par service avec status pill.
 
 ## Les 12 services
 
 ### 1. Direction & Stratégie
 *Donne les directives et priorise les autres bots.*
 
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| StrategyBot | VP Stratégie | Synthèse hebdo KPIs critiques + alerte drift OKR | 9 |
-| OKRTracker | Chief of Staff | Réalisé vs objectifs trimestriels par pôle | 9 |
-| BoardReporter | Investor Relations | Board pack mensuel (MRR / burn / runway / NRR) | 9 |
-| DecisionLogger | Knowledge Steward | Capture décisions structurantes → DECISIONS.md | 9 |
+- [ ] ⬜ **StrategyBot** · VP Stratégie · Synthèse hebdo KPIs critiques + alerte drift OKR. *Sprint 9.*
+- [ ] ⬜ **OKRTracker** · Chief of Staff · Réalisé vs objectifs trimestriels par pôle. *Sprint 9.*
+- [ ] ⬜ **BoardReporter** · Investor Relations · Board pack mensuel (MRR / burn / runway / NRR). *Sprint 9.*
+- [ ] ⬜ **DecisionLogger** · Knowledge Steward · Capture décisions structurantes → DECISIONS.md. *Sprint 9.*
 
 ### 2. Finance & Trésorerie
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| **FinanceBot** ✅ | Contrôleur financier | Sync Stripe + dunning J+3/J+7/J+15 | P7 livré |
-| InvoicePredictor | Trésorier | Forecast cash flow 90j | 4+ |
-| ExpenseAuditor | Contrôleur de gestion | Audit notes de frais + anomalies | 10 |
-| TaxBot | Fiscaliste | TVA CA3 mensuelle + IS prévisionnel | 10 |
-| ReconcileBot | Comptable | Rapproche Stripe ↔ Qonto | 10 |
-| BurnRateMonitor | CFO adjoint | Alerte burn > seuil ou runway < 9 mois | 10 |
-| VendorContractWatcher | Achats | Renouvellements fournisseurs avant tacite | 10 |
+*Comptabilité, budget, trésorerie, dunning.*
+
+- [x] ✅ **FinanceBot** · Contrôleur financier · Sync Stripe + dunning J+3/J+7/J+15. *P7 livré 2026-05-09.*
+- [ ] ⬜ **InvoicePredictor** · Trésorier · Forecast cash flow 90j depuis Stripe subs actives. *Sprint 4+.*
+- [ ] ⬜ **ExpenseAuditor** · Contrôleur de gestion · Audit notes de frais + anomalies. *Sprint 10.*
+- [ ] ⬜ **TaxBot** · Fiscaliste · TVA CA3 mensuelle + IS prévisionnel. *Sprint 10.*
+- [ ] ⬜ **ReconcileBot** · Comptable · Rapproche Stripe ↔ relevés Qonto. *Sprint 10.*
+- [ ] ⬜ **BurnRateMonitor** · CFO adjoint · Alerte burn > seuil ou runway < 9 mois. *Sprint 10.*
+- [ ] ⬜ **VendorContractWatcher** · Achats · Renouvellements fournisseurs avant tacite reconduction. *Sprint 10.*
 
 ### 3. Sales / Commercial
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| OutboundBot | SDR Cold | Séquence cold email 5 touches | P13.A shadow done |
-| LeadEnricher | Lead Intel | Enrichit lead BtoB (nom + domaine) | P18 livré |
-| ProspectMiner | Sourcer | Trouve leads ICP via sources publiques | 3 |
-| IntentSignalsBot | Lead Gen Lead | Capte signaux d'achat (breaches, jobs CISO) | 3 |
-| MeetingBooker | Sales Ops | Confirme RDV démo + rappels J-1/H-1 | 3 |
-| DemoFollowupBot | Account Executive | Mail récap post-démo + next steps | 3 |
-| ProposalBot | Sales Engineer | Devis personnalisé depuis template | 5+ |
-| ContractGenerator | Sales Legal | CGV / MSA depuis template | 5+ |
-| DealRiskScorer | Sales Manager | Score pipe + flag stalled > 14j | 5+ |
+*Ramener des clients (cible primaire + secondaire).*
+
+- [~] 🟡 **OutboundBot** · SDR Cold Email · Séquence cold email 5 touches (D+0/3/7/14/30). *P13.A shadow done 2026-05-15. Live mode P13.B bloqué sur domaine secondaire.*
+- [~] 🟡 **LeadEnricher** · Lead Intel · Enrichit lead BtoB depuis nom + domaine. *P18 skill livré 2026-05-14. Agent Python autonome roadmap.*
+- [ ] ⬜ **ProspectMiner** · Sourcer · Trouve leads ICP via sources publiques (annonces, levées). *Sprint 3.*
+- [ ] ⬜ **IntentSignalsBot** · Lead Gen Lead · Capte signaux d'achat (breaches publics, embauches CISO). *Sprint 3.*
+- [ ] ⬜ **MeetingBooker** · Sales Ops · Confirme RDV démo + rappels J-1 / H-1. *Sprint 3.*
+- [ ] ⬜ **DemoFollowupBot** · Account Executive · Mail récap post-démo + next steps. *Sprint 3.*
+- [ ] ⬜ **ProposalBot** · Sales Engineer · Devis personnalisé depuis template. *Sprint 5+.*
+- [ ] ⬜ **ContractGenerator** · Sales Legal · CGV / MSA depuis template + variables client. *Sprint 5+.*
+- [ ] ⬜ **DealRiskScorer** · Sales Manager · Score pipe + flag deals stalled > 14j. *Sprint 5+.*
 
 ### 4. Marketing & Growth
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| **SEOBot** ✅ | SEO Strategist | Briefs blog SEO depuis KB | P10-MVP livré |
-| ContentBot | Content Manager | 2-5 posts/jour LinkedIn / Mastodon | P9 draft done |
-| AdBot | Paid Acquisition | Google / Meta / LinkedIn Ads | P12 shadow done |
-| TrendSpotter | Trend Analyst | Tendances cyber → SEO/Content | 2+ |
-| NewsletterBot | Email Marketing | Newsletter mensuelle | 12 |
-| SocialAnalytics | CM Analytics | Reporting engagement par canal | 12 |
-| BacklinkOutreach | SEO Off-page | Échanges de liens cyber | 12 |
-| KeywordRadar | SEO Specialist | Positions SERP + longue traîne | 12 |
-| LandingOptimizer | CRO Specialist | A/B tests pages clés | 12 |
-| WebinarPromoter | Field Marketing | Promo webinar + replay edit | 12 |
-| TestimonialHunter | Customer Marketing | Verbatims post-NPS positif | 12 |
-| CaseStudyDrafter | Content Senior | Case study compte référence | 12 |
+*Top funnel : SEO, ads, social, contenu, growth.*
+
+- [x] ✅ **SEOBot** · SEO Strategist · Briefs blog SEO structurés depuis KB. *P10-MVP livré 2026-05-12.*
+- [~] 🟡 **ContentBot** · Content Manager · 2-5 posts/jour LinkedIn / Mastodon. *P9-DRAFT livré 2026-05-14 (skill `content-writer` + `/draft-content`). Full agent Python bloqué sur P11 connecteurs sociaux.*
+- [~] 🟡 **AdBot** · Paid Acquisition · Pilotage Google / Meta / LinkedIn Ads. *P12 shadow done 2026-05-14 (skills `ads-creative-writer` + `ads-optimizer`). Live mode P12.B bloqué sur budget pub.*
+- [ ] ⬜ **TrendSpotter** · Trend Analyst · Tendances cyber → SEOBot / ContentBot. *Sprint 2+.*
+- [ ] ⬜ **NewsletterBot** · Email Marketing · Newsletter mensuelle depuis blog + actu cyber. *Sprint 12.*
+- [ ] ⬜ **SocialAnalytics** · Community Analytics · Reporting hebdo engagement par canal. *Sprint 12.*
+- [ ] ⬜ **BacklinkOutreach** · SEO Off-page · Prospecte sites cyber pour échanges de liens. *Sprint 12.*
+- [ ] ⬜ **KeywordRadar** · SEO Specialist · Surveille positions SERP + opportunités longue traîne. *Sprint 12.*
+- [ ] ⬜ **LandingOptimizer** · CRO Specialist · Analyse heatmaps + propose variantes A/B. *Sprint 12.*
+- [ ] ⬜ **WebinarPromoter** · Field Marketing · Promote webinar + replay edit. *Sprint 12.*
+- [ ] ⬜ **TestimonialHunter** · Customer Marketing · Verbatims post-NPS positif. *Sprint 12.*
+- [ ] ⬜ **CaseStudyDrafter** · Content Senior · Case study depuis compte référence. *Sprint 12.*
 
 ### 5. Customer Success & Support
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| **SupportBot** ✅ | Support Tier 1 | Réponses Tier 1 RAG sur KB | P6 livré |
-| ReviewBot | Customer Advocacy | Avis G2 / Capterra J+30 | 4+ |
-| ChurnPredictor | Retention Manager | Signaux pré-churn | 4+ |
-| OnboardingBot | CSM Onboarding | Checklist J+0 / J+7 / J+30 | 7 |
-| HealthScoreBot | CS Ops | Score santé compte | 7 |
-| KBUpdater | Knowledge Manager | Gaps KB depuis tickets → drafts | 7 |
-| NPSCollector | Voice of Customer | NPS post-onboarding + renew | 7 |
-| UpsellSpotter | Account Growth | Comptes prêts upsell (usage > seuil) | 7 |
-| EscalationRouter | Support Lead | Tri tickets P0 / P1 / P2 | 7 |
+*Onboarding, rétention, support technique.*
+
+- [x] ✅ **SupportBot** · Support Tier 1 · Réponses Tier 1 RAG sur KB Argos. *P6 livré 2026-05-09.*
+- [ ] ⬜ **ReviewBot** · Customer Advocacy · Sollicite avis G2 / Capterra / Google J+30. *Sprint 4+.*
+- [ ] ⬜ **ChurnPredictor** · Retention Manager · Détecte signaux pré-churn. *Sprint 4+.*
+- [ ] ⬜ **OnboardingBot** · CSM Onboarding · Checklist J+0 / J+7 / J+30 post-signup. *Sprint 7.*
+- [ ] ⬜ **HealthScoreBot** · CS Ops · Score santé compte (usage + tickets + NPS). *Sprint 7.*
+- [ ] ⬜ **KBUpdater** · Knowledge Manager · Détecte gaps KB depuis tickets → drafte article. *Sprint 7.*
+- [ ] ⬜ **NPSCollector** · Voice of Customer · NPS post-onboarding + à chaque renew. *Sprint 7.*
+- [ ] ⬜ **UpsellSpotter** · Account Growth · Repère comptes prêts upsell. *Sprint 7.*
+- [ ] ⬜ **EscalationRouter** · Support Lead · Trie tickets P0 / P1 / P2 selon SLA. *Sprint 7.*
 
 ### 6. Produit & R&D
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| ChangelogBot | Product Marketing | Changelog mensuel depuis commits | 11 |
-| ReleaseNotesBot | Product Manager | Release notes user-friendly | 11 |
-| FeedbackAggregator | Product Discovery | Agrège demandes clients par thème | 11 |
-| RoadmapPublisher | Head of Product | Publie roadmap publique depuis PROGRESS.md | 11 |
-| BugTriageBot | QA Lead | Tri issues GitHub par sévérité | 11 |
+*Roadmap, release notes, feedback, discovery.*
+
+- [ ] ⬜ **ChangelogBot** · Product Marketing · Changelog mensuel depuis commits mergés. *Sprint 11.*
+- [ ] ⬜ **ReleaseNotesBot** · Product Manager · Release notes user-friendly par feature. *Sprint 11.*
+- [ ] ⬜ **FeedbackAggregator** · Product Discovery · Agrège demandes clients par thème. *Sprint 11.*
+- [ ] ⬜ **RoadmapPublisher** · Head of Product · Publie roadmap publique depuis cette annexe D. *Sprint 11.*
+- [ ] ⬜ **BugTriageBot** · QA Lead · Trie issues GitHub par sévérité + assigne label. *Sprint 11.*
 
 ### 7. Tech / SRE / Sécurité IT
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| UptimeMonitor | SRE | Ping endpoints + alerte Discord | 4 |
-| DependencyAuditor | AppSec | Scan deps + alerte CVE | 4 |
-| LogAnomalyDetector | SRE Observability | Pics d'erreurs logs serveur | 4 |
-| BackupVerifier | DevOps | Backup Postgres + test restore | 4 |
-| SSLExpirer | IT Security | Certif SSL expirant < 30j | 4 |
-| DNSGuard | IT Network | Changements DNS suspects omnividens.fr | 4 |
-| SecretRotator | Security Engineer | Secrets > 90j (Stripe, Zimbra, webhooks) | 4 |
-| CIFlakeTracker | DevOps Lead | Tests CI flaky → issue auto | 4+ |
+*Uptime, secrets, dépendances, backups.*
+
+- [x] ✅ **UptimeMonitor** · SRE · Ping endpoints publics, alerte si down > 60s. *P22.C livré 2026-05-23.*
+- [x] ✅ **DependencyAuditor** · AppSec · Scan deps + alerte CVE (uv + osv.dev). *P22.C livré 2026-05-23.*
+- [x] ✅ **BackupVerifier** · DevOps · Vérifie backup Postgres récent < 24h. *P22.C livré 2026-05-23.*
+- [x] ✅ **SSLExpirer** · IT Security · Alerte certif SSL expirant < 30j. *P22.C livré 2026-05-23.*
+- [x] ✅ **SecretRotator** · Security Engineer · Alerte secrets > 90j. *P22.C livré 2026-05-23.*
+- [ ] ⬜ **LogAnomalyDetector** · SRE Observability · Pics d'erreurs dans logs serveur. *Sprint 4.*
+- [ ] ⬜ **DNSGuard** · IT Network · Changements DNS suspects sur omnividens.fr. *Sprint 4.*
+- [ ] ⬜ **CIFlakeTracker** · DevOps Lead · Tests CI flaky → issue auto. *Sprint 4+.*
 
 ### 8. Veille & Threat Intelligence
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| CompetitorWatcher | Competitive Intel | Scrape concurrents (features / pricing) | 3+ |
-| BreachWatcher | Threat Intel | Breaches publics (HIBP, CERT-FR) → leads chauds | 6 |
-| RegulatoryWatcher | Compliance Watch | Évolutions RGPD / AI Act / NIS2 / DORA | 6 |
-| CVEMonitor | Threat Intel | CVE critiques sur stack clients | 6+ |
-| DarkWebMonitor | Threat Intel Senior | Mentions domaines clients sur DW | 6+ |
-| BountyRadar | Bug Bounty Manager | Programmes bounty pertinents | 6+ |
+*Concurrence, breaches, régulation, CVE.*
+
+- [ ] ⬜ **CompetitorWatcher** · Competitive Intel · Scrape hebdo features / pricing concurrents. *Sprint 3+.*
+- [ ] ⬜ **BreachWatcher** · Threat Intel · Breaches publics (HIBP, CERT-FR) → leads chauds. *Sprint 6.*
+- [ ] ⬜ **RegulatoryWatcher** · Compliance Watch · Évolutions RGPD / AI Act / NIS2 / DORA. *Sprint 6.*
+- [ ] ⬜ **CVEMonitor** · Threat Intel · CVE critiques sur stack clients déclarée. *Sprint 6+.*
+- [ ] ⬜ **DarkWebMonitor** · Threat Intel Senior · Mentions domaines clients sur dark web. *Sprint 6+.*
+- [ ] ⬜ **BountyRadar** · Bug Bounty Manager · Programmes bounty pertinents à positionner. *Sprint 6+.*
 
 ### 9. Juridique & Compliance
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| RGPDAuditor | DPO | Registre traitements + alerte non documenté | 8 |
-| AIActComplianceBot | AI Compliance Officer | Vérifie agents IA vs catégorie AI Act | 8 |
-| BloctelGuard | Compliance Bloctel | Leads outbound vs liste opposition | 8 |
-| ContractDeadlineBot | Legal Ops | Renouvellements contrats clients (anniv-60j) | 8 |
-| IncidentLogger | RSSI | Log incidents sec internes + post-mortem | 8 |
+*RGPD, AI Act, Bloctel, contrats clients.*
+
+- [ ] ⬜ **RGPDAuditor** · DPO · Registre traitements + alerte traitement non documenté. *Sprint 8.*
+- [ ] ⬜ **AIActComplianceBot** · AI Compliance Officer · Vérifie chaque agent IA vs catégorie AI Act. *Sprint 8.*
+- [ ] ⬜ **BloctelGuard** · Compliance Bloctel · Check leads outbound vs liste opposition. *Sprint 8.*
+- [ ] ⬜ **ContractDeadlineBot** · Legal Ops · Renouvellements contrats clients (anniv-60j). *Sprint 8.*
+- [ ] ⬜ **IncidentLogger** · RSSI · Log incidents sec internes + post-mortem template. *Sprint 8.*
 
 ### 10. Communication
-*Tout ce qui sort vers l'extérieur en dehors du sales/marketing direct.*
+*RP, presse, comms de crise, brand consistency.*
 
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| **EmailBot** ✅ | Standardiste Inbox | Pull IMAP 15 min + ingestion CRM | P5 livré |
-| ReplyBot | Community Manager | Réponses mentions LinkedIn / Mastodon | 3+ |
-| PressMonitor | Veille presse | Mentions Argos / Omnividens / SecHunter | 5 |
-| PressReleaseDrafter | RP Manager | Communiqué de presse annonces | 5 |
-| MediaListBuilder | Attaché de presse | DB journalistes / médias cyber | 5+ |
-| CrisisCommBot | Comm de crise | Réponse type incident public | 5+ |
-| SpokespersonPrep | Media Training | Q&A briefs interviews founder | 5+ |
-| BrandGuardBot | Brand Manager | Cohérence ton / tagline / signature | 5 |
+- [x] ✅ **EmailBot** · Standardiste Inbox · Pull IMAP 15 min + ingestion CRM + notif Discord. *P5 livré 2026-05-09.*
+- [ ] ⬜ **ReplyBot** · Community Manager · Réponses mentions LinkedIn / Mastodon (humain-validé). *Sprint 3+.*
+- [ ] ⬜ **PressMonitor** · Veille presse · Mentions Argos / Omnividens / SecHunter sur le web. *Sprint 5.*
+- [ ] ⬜ **PressReleaseDrafter** · RP Manager · Communiqué de presse annonces produit / finance. *Sprint 5.*
+- [ ] ⬜ **MediaListBuilder** · Attaché de presse · DB journalistes / médias cyber pertinents. *Sprint 5+.*
+- [ ] ⬜ **CrisisCommBot** · Comm de crise · Réponse type prête en cas d'incident public. *Sprint 5+.*
+- [ ] ⬜ **SpokespersonPrep** · Media Training · Q&A briefs interviews founder. *Sprint 5+.*
+- [ ] ⬜ **BrandGuardBot** · Brand Manager · Cohérence ton / tagline / signature sur drafts sortants. *Sprint 5.*
 
 ### 11. Documentation & Knowledge interne
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| DocLinter | Technical Writer | Liens morts + cohérence docs/ | 13 |
-| DiagramGenerator | Tech Doc | Diagrammes Mermaid depuis specs / code | 13 |
-| ADRWriter | Tech Lead | ADR depuis discussion / PR | 13 |
+*Maintenance des docs techniques internes.*
+
+- [ ] ⬜ **DocLinter** · Technical Writer · Liens morts + cohérence des fichiers dans `docs/`. *Sprint 13.*
+- [ ] ⬜ **DiagramGenerator** · Tech Doc · Diagrammes Mermaid depuis specs / code. *Sprint 13.*
+- [ ] ⬜ **ADRWriter** · Tech Lead · ADR (Architecture Decision Record) depuis PR / discussion. *Sprint 13.*
 
 ### 12. Meta-Ops
 *Bots qui gèrent les bots.*
 
-| Bot | Poste | Tâche | Sprint |
-|---|---|---|---|
-| **DigestBuilder** ✅ | Reporting Officer | Récap quotidien Discord 8h Paris | P4 livré |
-| ClaudeJudge | QA des bots | Audite outputs (factual / tone / legal) | P14 skill livré |
-| OrchestratorBot | Chef de fleet | Route / priorise jobs entre bots | 1 |
-| BotHealthBot | SRE de la flotte | Surveille uptime + dernier run par agent | 1 |
-| BotPerfAnalyzer | Performance Engineer | Latence / coût / taux d'escalade par bot | 2 |
-| CapabilityRouter | Capability Manager | Route demandes vers bot qualifié | P21 spec |
-| MemoryCurator | Memory Steward | Nettoie / dédup Argos Memory | P20 spec |
-| ErrorTriageBot | Bot Ops | Trie erreurs runtime + issue auto | 2 |
-| KillSwitchOperator | Safety Officer | Enforce breakers P15 + assist reset | 2 |
-| BotConfigManager | Config Ops | Applique config inter-bots depuis Admin Panel | 2 |
+- [x] ✅ **DigestBuilder** · Reporting Officer · Récap quotidien Discord 8h Paris. *P4 livré 2026-05-08.*
+- [x] ✅ **ClaudeJudge** *(skill)* · QA des bots · Audite outputs (factual / tone / legal). *P14 livré 2026-05-14.*
+- [x] ✅ **OrchestratorBot** · Chef de fleet · Route / priorise jobs entre bots (dry-run par défaut). *P22.B livré 2026-05-23.*
+- [x] ✅ **BotHealthBot** · SRE de la flotte · Surveille uptime + dernier run par agent. *P22.B livré 2026-05-23.*
+- [x] ✅ **BotPerfAnalyzer** · Performance Engineer · Durée P50/P95 + taux d'erreur 7j par bot vs baseline. *P22.C livré 2026-05-23.*
+- [x] ✅ **ErrorTriageBot** · Bot Ops · Regroupe erreurs 24h par signature, alerte si ≥3 occurrences. *P22.C livré 2026-05-23.*
+- [x] ✅ **KillSwitchOperator** · Safety Officer · Enforce breakers P15 + guide reset. *P22.C livré 2026-05-23.*
+- [x] ✅ **BotConfigManager** · Config Ops · Diff agent_config DB vs baseline.yaml, alerte drifts. *P22.C livré 2026-05-23.*
+- [ ] ⬜ **CapabilityRouter** · Capability Manager · Route demandes vers bot qualifié (Capabilities P21). *Bloqué sur P21.A.*
+- [ ] ⬜ **MemoryCurator** · Memory Steward · Nettoie / dédup Argos Memory partagée. *Bloqué sur P20.A.*
 
 ---
 
@@ -2300,14 +2297,14 @@ Le frontend Admin Panel range les bots par service avec status pill (✅ actif
 Un slot roadmap passe en partie active **P-numérotée** quand :
 - le founder a une vraie demande pour cet agent, OU
 - un signal business le justifie (ex : ReviewBot prioritaire à 20+ clients,
-  ChurnPredictor à 50+ clients, KillSwitchOperator à 10+ bots actifs).
+  ChurnPredictor à 50+ clients).
 
 ## Anti-pattern : ne pas créer ces bots par anticipation
 
-YAGNI strict. Le catalogue 79 bots ne signifie pas « 79 bots à coder ».
-Il sert à :
-1. Donner au founder une **vision claire du champ d'action futur** dans le
-   dashboard.
+YAGNI strict. Le catalogue 79 bots ne signifie pas « 79 bots à coder
+demain ». Il sert à :
+
+1. Donner au founder une **vision claire du champ d'action futur**.
 2. **Cadrer les futures décisions** (DECISIONS.md) en ayant un nom canonique
    et un poste équivalent quand un agent émerge.
 3. Permettre à Claude Code de **réutiliser le catalogue** quand il propose
@@ -2315,15 +2312,14 @@ Il sert à :
 
 ## Sprints pressentis (ordre d'attaque conseillé)
 
-Les colonnes "Sprint" ci-dessus correspondent à cet ordre. Lecture :
-
-- **Sprint 1** : Meta-Ops core (OrchestratorBot + BotHealthBot) → indispensable
-  dès qu'on dépasse 5-6 bots actifs.
-- **Sprint 2** : P20 (Argos Memory) + P21 (Capabilities) + reste Meta-Ops.
+- **Sprint 1** ✅ : Meta-Ops core (OrchestratorBot + BotHealthBot) — done P22.B.
+- **Sprint 2** 🟡 partiel : reste Meta-Ops (BotPerfAnalyzer + ErrorTriageBot
+  + KillSwitchOperator + BotConfigManager) done P22.C. Toujours en attente :
+  P20 (Argos Memory), P21 (Capabilities), CapabilityRouter, MemoryCurator.
 - **Sprint 3** : Sales (ProspectMiner, IntentSignalsBot, MeetingBooker,
   DemoFollowupBot) — ramener des clients.
-- **Sprint 4** : Tech / SRE (Uptime, DepAudit, Backup, SSL, Secret) — éviter
-  les SPOFs avant de grossir.
+- **Sprint 4** 🟡 partiel : Tech / SRE (Uptime, DepAudit, Backup, SSL,
+  Secret) done P22.C. Reste LogAnomaly, DNS, CIFlake.
 - **Sprint 5** : Communication (PressMonitor, PressRelease, BrandGuard).
 - **Sprint 6** : Veille Intel (BreachWatcher, RegulatoryWatcher).
 - **Sprint 7** : CS (Onboarding, HealthScore, KBUpdater).
@@ -2333,6 +2329,17 @@ Les colonnes "Sprint" ci-dessus correspondent à cet ordre. Lecture :
 - **Sprint 11** : Produit (Changelog, ReleaseNotes, Feedback, BugTriage).
 - **Sprint 12** : Marketing avancé (Newsletter, Backlink, Keyword, etc.).
 - **Sprint 13** : Documentation (DocLinter, DiagramGenerator, ADRWriter).
+
+## Procédure de mise à jour de cette annexe
+
+À chaque livraison d'un bot, le founder (ou Claude Code en fin de session) :
+1. Change `[ ] ⬜` en `[x] ✅` (ou `[~] 🟡` si partiel) sur la ligne du bot.
+2. Ajoute la date entre `*italique*` à la fin de la ligne (ex : *P22.C livré 2026-05-23.*).
+3. Met à jour le compteur en tête (« Récap chiffres »).
+4. Marque le Sprint correspondant ✅ ou 🟡 dans la section « Sprints pressentis » si applicable.
+
+**Ne PAS** mettre à jour CLAUDE.md ni recréer un PROGRESS.md.
+**Ne PAS** dupliquer cette annexe ailleurs — elle est la source unique.
 
 ---
 
