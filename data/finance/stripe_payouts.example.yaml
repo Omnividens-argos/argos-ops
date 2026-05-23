@@ -1,0 +1,10 @@
+# Payouts Stripe — export manuel depuis Stripe Dashboard.
+# Le founder copie-colle ici les payouts pour que ReconcileBot puisse
+# les matcher avec les crédits Qonto.
+payouts:
+  - id: po_example_001
+    arrival_date: 2026-05-12
+    amount_eur: 1234.56
+  - id: po_example_002
+    arrival_date: 2026-05-19
+    amount_eur: 987.00
