@@ -2134,9 +2134,9 @@ faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
 
 ## Récap chiffres (auto-maintenu à chaque livraison)
 
-- ✅ **25 agents Python actifs** + **1 skill (ClaudeJudge)** = **26 livrés**
+- ✅ **38 agents Python actifs** + **1 skill (ClaudeJudge)** = **39 livrés**
 - 🟡 **4 partiels** (skill ou shadow mode livré, agent Python pas en cron)
-- ⬜ **50 roadmap**
+- ⬜ **37 roadmap**
 - **Total cible : 79 bots** répartis sur 12 services
 
 Légende :
@@ -2208,23 +2208,23 @@ Le frontend Admin Panel range les bots par service avec status pill.
 *Onboarding, rétention, support technique.*
 
 - [x] ✅ **SupportBot** · Support Tier 1 · Réponses Tier 1 RAG sur KB Argos. *P6 livré 2026-05-09.*
-- [ ] ⬜ **ReviewBot** · Customer Advocacy · Sollicite avis G2 / Capterra / Google J+30. *Sprint 4+.*
-- [ ] ⬜ **ChurnPredictor** · Retention Manager · Détecte signaux pré-churn. *Sprint 4+.*
-- [ ] ⬜ **OnboardingBot** · CSM Onboarding · Checklist J+0 / J+7 / J+30 post-signup. *Sprint 7.*
-- [ ] ⬜ **HealthScoreBot** · CS Ops · Score santé compte (usage + tickets + NPS). *Sprint 7.*
-- [ ] ⬜ **KBUpdater** · Knowledge Manager · Détecte gaps KB depuis tickets → drafte article. *Sprint 7.*
-- [ ] ⬜ **NPSCollector** · Voice of Customer · NPS post-onboarding + à chaque renew. *Sprint 7.*
-- [ ] ⬜ **UpsellSpotter** · Account Growth · Repère comptes prêts upsell. *Sprint 7.*
-- [ ] ⬜ **EscalationRouter** · Support Lead · Trie tickets P0 / P1 / P2 selon SLA. *Sprint 7.*
+- [x] ✅ **ReviewBot** · Customer Advocacy · Sollicite avis G2 / Capterra / Google J+30. *P22.G livré 2026-05-23 (promoteurs NPS ≥ 9 uniquement).*
+- [x] ✅ **ChurnPredictor** · Retention Manager · Détecte signaux pré-churn. *P22.G livré 2026-05-23 (score 0-100 + snapshot quotidien).*
+- [x] ✅ **OnboardingBot** · CSM Onboarding · Checklist J+0 / J+7 / J+30 post-signup. *P22.G livré 2026-05-23 (drafts humain-in-the-loop).*
+- [x] ✅ **HealthScoreBot** · CS Ops · Score santé compte (usage + tickets + NPS). *P22.G livré 2026-05-23 (heuristiques explicites, snapshot quotidien).*
+- [x] ✅ **KBUpdater** · Knowledge Manager · Détecte gaps KB depuis tickets → drafte article. *P22.G livré 2026-05-23 (clustering mots-clés, audit kb-rag + claude-judge).*
+- [x] ✅ **NPSCollector** · Voice of Customer · NPS post-onboarding + à chaque renew. *P22.G livré 2026-05-23 (J+14 onboarding / J+21 renew).*
+- [x] ✅ **UpsellSpotter** · Account Growth · Repère comptes prêts upsell. *P22.G livré 2026-05-23 (usage ≥ 80% quota plan).*
+- [x] ✅ **EscalationRouter** · Support Lead · Trie tickets P0 / P1 / P2 selon SLA. *P22.G livré 2026-05-23 (SLA breach détecté, snapshot triage).*
 
 ### 6. Produit & R&D
 *Roadmap, release notes, feedback, discovery.*
 
-- [ ] ⬜ **ChangelogBot** · Product Marketing · Changelog mensuel depuis commits mergés. *Sprint 11.*
-- [ ] ⬜ **ReleaseNotesBot** · Product Manager · Release notes user-friendly par feature. *Sprint 11.*
-- [ ] ⬜ **FeedbackAggregator** · Product Discovery · Agrège demandes clients par thème. *Sprint 11.*
-- [ ] ⬜ **RoadmapPublisher** · Head of Product · Publie roadmap publique depuis cette annexe D. *Sprint 11.*
-- [ ] ⬜ **BugTriageBot** · QA Lead · Trie issues GitHub par sévérité + assigne label. *Sprint 11.*
+- [x] ✅ **ChangelogBot** · Product Marketing · Changelog mensuel depuis commits mergés. *P22.G livré 2026-05-23 (conventional commits + sections keepachangelog).*
+- [x] ✅ **ReleaseNotesBot** · Product Manager · Release notes user-friendly par feature. *P22.G livré 2026-05-23 (depuis spec.yaml, ton anti-jargon).*
+- [x] ✅ **FeedbackAggregator** · Product Discovery · Agrège demandes clients par thème. *P22.G livré 2026-05-23 (clustering exact, digest Markdown).*
+- [x] ✅ **RoadmapPublisher** · Head of Product · Publie roadmap publique depuis cette annexe D. *P22.G livré 2026-05-23 (parser Annexe D, codes sprint retirés).*
+- [x] ✅ **BugTriageBot** · QA Lead · Trie issues GitHub par sévérité + assigne label. *P22.G livré 2026-05-23 (mots-clés P0/P1/P2, read-only).*
 
 ### 7. Tech / SRE / Sécurité IT
 *Uptime, secrets, dépendances, backups.*
