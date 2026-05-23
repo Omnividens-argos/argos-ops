@@ -1,0 +1,18 @@
+# Sources publiques consommées par IntentSignalsBot (P22.H Sales Sprint 3).
+#
+# Renommer en `sources.yaml` pour activer.
+
+breach:
+  - "https://www.cert.ssi.gouv.fr/feed/"
+
+ciso_hire:
+  # Export RSS d'une recherche LinkedIn Jobs sauvegardée.
+  # - "https://www.linkedin.com/jobs/search/?keywords=CISO&format=rss"
+
+fundraise:
+  - "https://news.crunchbase.com/feed/"
+  # - "https://www.maddyness.com/feed/"
+
+cve_critical:
+  # NVD RSS pour les CVE critiques touchant la stack ICP.
+  # - "https://nvd.nist.gov/feeds/xml/cve/misc/nvd-rss.xml"

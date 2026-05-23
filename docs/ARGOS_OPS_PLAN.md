@@ -2134,9 +2134,9 @@ faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
 
 ## Récap chiffres (auto-maintenu à chaque livraison)
 
-- ✅ **38 agents Python actifs** + **1 skill (ClaudeJudge)** = **39 livrés**
+- ✅ **47 agents Python actifs** + **1 skill (ClaudeJudge)** = **48 livrés**
 - 🟡 **4 partiels** (skill ou shadow mode livré, agent Python pas en cron)
-- ⬜ **37 roadmap**
+- ⬜ **28 roadmap**
 - **Total cible : 79 bots** répartis sur 12 services
 
 Légende :
@@ -2178,15 +2178,15 @@ Le frontend Admin Panel range les bots par service avec status pill.
 ### 3. Sales / Commercial
 *Ramener des clients (cible primaire + secondaire).*
 
-- [~] 🟡 **OutboundBot** · SDR Cold Email · Séquence cold email 5 touches (D+0/3/7/14/30). *P13.A shadow done 2026-05-15. Live mode P13.B bloqué sur domaine secondaire.*
-- [~] 🟡 **LeadEnricher** · Lead Intel · Enrichit lead BtoB depuis nom + domaine. *P18 skill livré 2026-05-14. Agent Python autonome roadmap.*
-- [ ] ⬜ **ProspectMiner** · Sourcer · Trouve leads ICP via sources publiques (annonces, levées). *Sprint 3.*
-- [ ] ⬜ **IntentSignalsBot** · Lead Gen Lead · Capte signaux d'achat (breaches publics, embauches CISO). *Sprint 3.*
-- [ ] ⬜ **MeetingBooker** · Sales Ops · Confirme RDV démo + rappels J-1 / H-1. *Sprint 3.*
-- [ ] ⬜ **DemoFollowupBot** · Account Executive · Mail récap post-démo + next steps. *Sprint 3.*
-- [ ] ⬜ **ProposalBot** · Sales Engineer · Devis personnalisé depuis template. *Sprint 5+.*
-- [ ] ⬜ **ContractGenerator** · Sales Legal · CGV / MSA depuis template + variables client. *Sprint 5+.*
-- [ ] ⬜ **DealRiskScorer** · Sales Manager · Score pipe + flag deals stalled > 14j. *Sprint 5+.*
+- [~] 🟡 **OutboundBot** · SDR Cold Email · Séquence cold email 5 touches (D+0/3/7/14/30). *P13.A shadow done 2026-05-15. P22.H stage mode livré 2026-05-23 (OutboundSender — sends → self pour audit). Live mode P13.B activable dès domaine secondaire warmé-up (cf. D-023).*
+- [x] ✅ **LeadEnricher** · Lead Intel · Enrichit lead BtoB depuis nom + domaine. *P18 skill livré 2026-05-14. Agent Python batch livré 2026-05-23 (P22.H Sprint 3).*
+- [x] ✅ **ProspectMiner** · Sourcer · Trouve leads ICP via sources publiques (annonces, levées). *P22.H Sprint 3 livré 2026-05-23.*
+- [x] ✅ **IntentSignalsBot** · Lead Gen Lead · Capte signaux d'achat (breaches publics, embauches CISO). *P22.H Sprint 3 livré 2026-05-23.*
+- [x] ✅ **MeetingBooker** · Sales Ops · Confirme RDV démo + rappels J-1 / H-1. *P22.H Sprint 3 livré 2026-05-23.*
+- [x] ✅ **DemoFollowupBot** · Account Executive · Mail récap post-démo + next steps. *P22.H Sprint 3 livré 2026-05-23.*
+- [x] ✅ **ProposalBot** · Sales Engineer · Devis personnalisé depuis template. *P22.H Sprint 3 livré 2026-05-23.*
+- [x] ✅ **ContractGenerator** · Sales Legal · CGV / MSA depuis template + variables client. *P22.H Sprint 3 livré 2026-05-23.*
+- [x] ✅ **DealRiskScorer** · Sales Manager · Score pipe + flag deals stalled > 14j. *P22.H Sprint 3 livré 2026-05-23.*
 
 ### 4. Marketing & Growth
 *Top funnel : SEO, ads, social, contenu, growth.*
