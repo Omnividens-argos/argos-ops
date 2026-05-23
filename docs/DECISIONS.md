@@ -1117,6 +1117,285 @@ Reddit » (pas réécrire D-022 historique). Aucun code Python n'avait été
 
 ---
 
+## D-023 — Activation OutboundBot P13.B en mode `stage` (fallback du domaine secondaire)
+
+**Date :** 2026-05-23
+**Partie :** P13.B (Sprint 3 Sales — P22.H prompt 6)
+
+**Décision :** Livrer le pipeline outbound SMTP réel
+(`argos_ops/agents/outbound_sender.py`, slash `/send-outbound-batch`) en
+**mode `stage`** par défaut, tant que le domaine secondaire n'est pas
+acquis et warmé-up. En stage, l'expéditeur reste `contact@omnividens.fr`,
+le destinataire est rerouté vers cette même boîte (audit founder), le
+sujet est préfixé `[STAGE]`, le footer RGPD + AI Act + opt-out HMAC est
+inclus normalement. Le basculement en mode `live` se fait par flip de 3
+variables `.env.local` (`OUTBOUND_LIVE_MODE=true`,
+`OUTBOUND_FROM_DOMAIN=<domaine>`, `OUTBOUND_UNSUBSCRIBE_SECRET=<hex 64>`)
+— aucune modification de code requise.
+
+**Pourquoi :**
+
+- Le prompt P22.H acte un pré-requis BLOCANT (domaine secondaire ~10€/an
+  acheté + configuré SPF/DKIM/DMARC) AVANT activation P13.B live. Le
+  domaine n'est pas encore acquis au 2026-05-23.
+- Le prompt prévoit explicitement le fallback : « Si pas dispo, livre
+  P13.B en mode stage (envoi vers boîte test) ».
+- Le mode `stage` permet de valider en condition réelle tout le pipeline
+  (rendering touch, footer RGPD, threading SMTP, idempotence du patch
+  `meta.yaml` après envoi) sans aucun risque sur la réputation
+  `omnividens.fr` ni le respect Bloctel/BtoB.
+- Alternatives écartées :
+  - **Bloquer P13.B jusqu'à acquisition du domaine** : laisse 8 bots
+    Sales sans le runtime SMTP, casse l'orchestration cross-bot
+    (MeetingBooker / DemoFollowupBot dépendent du même chemin SMTP).
+  - **Forcer le founder à acheter le domaine maintenant** : décision
+    business (budget pub, choix du nom, prestataire DNS) hors périmètre
+    technique du sprint.
+
+**Implication technique :**
+
+- `argos_ops/agents/outbound_sender.py:determine_mode()` retourne
+  `"stage" | "live" | "disabled"` selon les flags `.env`. Seul l'addr
+  destinataire et le préfixe sujet changent entre stage et live.
+- `OutboundBot` shadow (`outbound_bot.py`) **reste intact** — il
+  continue de scaffold les séquences depuis le CSV inbox. Pas de
+  régression P13.A.
+- Le partage du breaker `OutboundBot` (P15) entre les deux agents
+  garantit qu'un trip arrête à la fois le scaffold ET l'envoi —
+  garde-fou délivrabilité unifié.
+- Tests : `tests/test_outbound_live.py` couvre les 3 modes
+  (stage/live/disabled) + l'idempotence du patch `meta.yaml`.
+
+**Annule :** —
+
+**Action de suivi :**
+
+- [ ] Founder : acheter domaine secondaire + configurer SPF/DKIM/DMARC.
+- [ ] Founder : warmup 4 semaines en mode `stage` avant flip `live`
+  (cap `OUTBOUND_DAILY_MAX=30` déjà en place).
+- [ ] Lors du flip `live`, mettre à jour Annexe D § 3 ligne `OutboundBot`
+  de `[~] 🟡` vers `[x] ✅` + ajouter une décision dédiée à l'activation
+  effective (audit délivrabilité, conformité Bloctel checklist).
+
+**Réversibilité :**
+
+Totale — il suffit de retirer `OUTBOUND_LIVE_MODE=true` de `.env.local`
+pour revenir en stage. Le code et les tests restent inchangés.
+
+---
+
+## D-024 — Activation LinkedIn API (gate de ContentBot live mode)
+
+**Date :** 2026-05-23
+**Partie :** P9 full + P11 (P22.I prompt 7)
+
+**Décision :** ContentBot (P9 full, livré P22.I LOT A) supporte la
+publication réelle sur LinkedIn via `POST /v2/ugcPosts`
+([`argos_ops/social/linkedin.py`](../argos_ops/social/linkedin.py)) mais
+reste en **shadow mode** tant que `LINKEDIN_API_TOKEN` + `LINKEDIN_ORG_URN`
+ne sont pas configurés dans `.env.local`. Drafts publiés vers
+`data/content/published/` avec `status: published_shadow`.
+
+**Pourquoi :**
+
+- Drafts validés s'accumulent depuis P9-DRAFT (2026-05-14). Le bot full
+  est prêt — il manque uniquement le canal de publication.
+- Risque d'image si publication automatique sans validation préalable du
+  ton par le founder en condition réelle.
+- Préfère un gate explicite (token absent = pas de publication) à un
+  feature flag éparpillé.
+
+**Pré-requis pour passer en live :**
+
+1. **Création d'une LinkedIn Developer App** sur https://www.linkedin.com/developers/
+2. **Scopes requis :**
+   - `w_member_social` (publier sur le profil founder)
+   - `w_organization_social` (publier sur la page Omnividens si créée)
+3. **Token OAuth2 court-terme (60 jours)** — à renouveler manuellement
+   ou via futur OAuthRefreshBot.
+4. **URN de l'organisation** (ex : `urn:li:organization:12345`) à
+   récupérer via `GET /v2/organizations`.
+5. **Test en sandbox** : publier 1 post via `/publish-content` sur un
+   compte test avant production.
+
+**Implication technique :** code déjà livré, seul le token manque.
+Aucune modification requise quand on bascule.
+
+**Annule :** —
+
+**Action de suivi :**
+
+- [ ] Founder : créer LinkedIn Developer App + scopes + token + URN.
+- [ ] Founder : valider en sandbox que le ton `content-writer` lui convient.
+- [ ] Founder : décider cap `CONTENT_DAILY_MAX_PER_CHANNEL` (défaut 3).
+
+**Réversibilité :**
+
+Totale — retirer `LINKEDIN_API_TOKEN` de `.env.local` ramène le bot en
+shadow. Aucun risque côté API.
+
+---
+
+## D-025 — Activation Mastodon API (gate de ContentBot live mode)
+
+**Date :** 2026-05-23
+**Partie :** P9 full + P11 (P22.I prompt 7)
+
+**Décision :** ContentBot supporte aussi Mastodon via
+`POST /api/v1/statuses`
+([`argos_ops/social/mastodon.py`](../argos_ops/social/mastodon.py)).
+Instance par défaut : `https://infosec.exchange` (audience cyber +
+décentralisé, cohérent avec D-017). Override possible via
+`MASTODON_INSTANCE_URL`. Reste en shadow tant que `MASTODON_API_TOKEN`
+n'est pas configuré. Reddit reste exclu par [D-022](#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops).
+
+**Pourquoi :**
+
+- Mastodon = audience cyber active (community `infosec.exchange` = 60k+
+  comptes infosec) + alignement local-first (instance auto-hébergée
+  possible si besoin).
+- Cohérence avec D-017 (zéro dépendance API tierce critique côté LLM ;
+  côté publishing, l'API Mastodon est ouverte sans gate corporate).
+
+**Pré-requis :**
+
+1. **Compte Mastodon Omnividens** sur `infosec.exchange` (ou autre
+   instance — override via `MASTODON_INSTANCE_URL`).
+2. **Token d'accès** créé dans Settings → Development sur l'instance,
+   scopes `write:statuses`.
+3. **Test sandbox** : tooter 1 message via `/publish-content` sur un
+   compte test.
+
+**Implication technique :** identique à D-024 — code livré, token absent.
+
+**Annule :** —
+
+**Action de suivi :**
+
+- [ ] Founder : créer compte Omnividens sur l'instance choisie.
+- [ ] Founder : générer token scopes `write:statuses`.
+- [ ] Founder : valider sandbox.
+
+**Réversibilité :** totale.
+
+---
+
+## D-026 — Budget pub validé (gate de AdBot live mode)
+
+**Date :** 2026-05-23
+**Partie :** P12.B live mode (P22.I prompt 7)
+
+**Décision :** AdBot (P12.B live mode, livré P22.I LOT A) consomme les
+recommandations chiffrées d'`ads-optimizer` et peut les appliquer sur
+Google Ads / LinkedIn Campaign Manager / Meta Ads Manager. Reste en
+shadow tant que `ADS_LIVE_MODE=false` ET `ADS_DAILY_BUDGET_EUR=0`
+(archive les actions dans `data/ads/applied/<timestamp>-<platform>-<action>.yaml`
+avec `status: shadow`).
+
+**Pourquoi :**
+
+- Le code P12.B live est prêt mais le budget pub mensuel n'a pas encore
+  été validé. Sans budget, AdBot doit rester observateur (shadow).
+- Risque runaway si activation sans cap : `ad_spend_runaway` breaker P15
+  est en place mais ne protège pas contre un budget mal calibré
+  initialement.
+
+**Activation progressive :**
+
+1. **Backtest 4 semaines minimum** : produire 4 CSV `/analyze-ads` sur
+   un trafic shadow réel (Google Search Console / outils organic),
+   valider que les recommandations auraient été cohérentes si appliquées.
+2. **Budget pub mensuel validé founder** — proposition :
+   - **Phase 1** : 300 €/mois (10 €/jour) — Google Ads keywords ICP
+     uniquement, auto-pause / auto-scale dans ce cap.
+   - **Phase 2** : 600 €/mois (20 €/jour) après 4 semaines stables.
+   - **Phase 3** : LinkedIn Sponsored Content après ProspectMiner P22.H
+     stable (cibles ICP enrichies).
+3. **Activation progressive :**
+   - `ADS_LIVE_MODE=true` + `ADS_DAILY_BUDGET_EUR=10` (phase 1)
+   - Token Google Ads developer requis
+   - Breaker `ad_spend_runaway` (P15) opérationnel.
+
+**Garde-fous opérationnels :**
+
+- **Cap budget par action** : si la somme des `|delta|/7` d'une reco
+  dépasse `ADS_DAILY_BUDGET_EUR`, l'action est archivée avec
+  `status: blocked_budget_cap` et ne touche pas l'API.
+- **Breaker `ad_spend_runaway`** : tripe le bot complet si dépense
+  réelle > budget — protection contre dérive.
+
+**Annule :** —
+
+**Action de suivi :**
+
+- [ ] Founder : faire 4 semaines de backtest shadow.
+- [ ] Founder : décider budget mensuel acceptable (proposition phase 1 : 300 €/mois).
+- [ ] Founder : créer compte Google Ads developer + lier à `omnividens.fr`.
+
+**Réversibilité :** totale — retirer `ADS_LIVE_MODE=true` ramène en shadow.
+
+---
+
+## D-027 — Sessions parallèles d'agents IA = obligation de worktree isolé
+
+**Date :** 2026-05-23
+**Partie :** Méthodologie méta-sprint (retex consolidation P22.D du 2026-05-23)
+
+**Décision :** Pour tout méta-sprint où 2+ sessions Claude Code tournent
+en parallèle sur le repo Argos Ops, **chaque session DOIT opérer dans un
+git worktree isolé** (ou un répertoire cloné séparé), jamais sur le même
+working tree partagé.
+
+**Pourquoi :**
+
+La session de consolidation P22.D du 2026-05-23 a découvert que les 6
+Prompts 2-7 (P22.D-I) avaient en réalité travaillé sur le même working
+tree séquentiellement, ce qui a produit :
+
+- **Cross-contamination** de fichiers partagés (`docs/ARGOS_OPS_PLAN.md`,
+  `agentCatalog.ts`, `config.py`) via auto-merge silencieux lors des
+  cherry-picks ultérieurs.
+- **Doublons SHAs** (mêmes contenus committés 2× sur 2 branches).
+- **HEADs de branches mal-attribués** (la branche `feat/p22d-veille-tech-9-bots`
+  pointait sur un commit `feat(p22h-amont)`).
+- **Working tree pollué** (14 fichiers untracked d'une session
+  précédente non commités sur la branche active).
+- **Summaries non corroborés** par les commits réels (PROMPT-4 disait
+  modifier Annexe D, les commits ne le faisaient pas — omission tracking).
+
+**Coût payé :** ~2-3h de session pour reconstruire 6 branches propres
+via cherry-pick from main + fix commits mypy/ruff + résolution
+conflicts Annexe D / agentCatalog au cas par cas.
+
+**Implication technique :**
+
+- Outil disponible côté Claude Code : `Agent` tool avec
+  `isolation: "worktree"` (crée un worktree git temporaire automatique).
+- Pour les sessions humaines parallèles : créer un worktree manuellement
+  avant la session, `git worktree add ../argos-ops-p22X feat/p22X-<name>`.
+- Le founder reste responsable de la sérialisation des merges (PRs
+  ordonnées via le CONSOLIDATION-REPORT post-sprint).
+
+**Pas une régression :** les 67 bots livrés par P22.D-I sont
+fonctionnellement corrects (536 tests verts cumulés, 4 fix commits
+mypy/ruff appliqués lors de la consolidation). La dette est uniquement
+organisationnelle et a été remboursée intégralement par cette session
+de consolidation.
+
+**Annule :** —
+
+**Action de suivi :**
+
+- [x] Documenter cette règle dans `docs/DECISIONS.md` (cette entrée).
+- [ ] Founder : appliquer la règle au prochain méta-sprint multi-session.
+- [ ] (optionnel) ajouter un check pre-commit qui détecte un working
+  tree partagé entre branches `feat/*` actives — backlog Sprint 14.
+
+**Réversibilité :** la règle s'applique aux futurs méta-sprints. Aucun
+rollback nécessaire pour P22.D-I (déjà consolidé).
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown
