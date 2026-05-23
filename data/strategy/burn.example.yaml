@@ -1,0 +1,17 @@
+# Burn rate et runway (exemple).
+#
+# Renomme en `burn.yaml` et maintiens-le à jour mensuellement.
+# BoardReporter (P22.E) lit ce fichier pour intégrer burn + runway
+# au board pack mensuel.
+#
+# **Sensible** : ne pas committer en clair avec des chiffres réels.
+# Le `.example.yaml` sert juste de template. Pour la prod, garder
+# le fichier en `.gitignore` (ajouter la ligne `data/strategy/burn.yaml`).
+
+burn_eur: 0  # à compléter — moyenne mensuelle des 3 derniers mois
+runway_months: 0  # à compléter — cash dispo / burn_eur
+last_updated: "2026-05-23"
+notes: |
+  Données saisies manuellement par le fondateur depuis Qonto + relevés.
+  Pas de sync automatique tant qu'on n'a pas d'intégration Qonto API
+  (roadmap Sprint 10 — VendorContractWatcher / ReconcileBot).
