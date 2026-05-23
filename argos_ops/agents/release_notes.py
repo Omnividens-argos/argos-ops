@@ -92,7 +92,7 @@ def render_release_notes(entry: dict[str, Any]) -> str:
     parts = [f"# Argos {version} — {when}\n"]
     parts.append(
         "> Notes de version pour les utilisateurs Argos. Pour le détail technique "
-        f"commit-par-commit, voir le changelog interne.\n"
+        "commit-par-commit, voir le changelog interne.\n"
     )
 
     if highlights:

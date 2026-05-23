@@ -16,15 +16,15 @@ from argos_ops.cs.models import CustomerPlan, SupportTicket, TicketPriority
 
 
 def _ticket(**overrides: object) -> SupportTicket:
-    base: dict[str, object] = dict(
-        ticket_id="TCK-1",
-        customer_id="acme-sa",
-        subject="Question simple",
-        body="...",
-        opened_at=date(2026, 5, 22),
-        plan=CustomerPlan.PRO,
-        status="open",
-    )
+    base: dict[str, object] = {
+        "ticket_id": "TCK-1",
+        "customer_id": "acme-sa",
+        "subject": "Question simple",
+        "body": "...",
+        "opened_at": date(2026, 5, 22),
+        "plan": CustomerPlan.PRO,
+        "status": "open",
+    }
     base.update(overrides)
     return SupportTicket(**base)  # type: ignore[arg-type]
 

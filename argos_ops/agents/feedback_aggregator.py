@@ -46,7 +46,7 @@ class FeedbackTheme:
 
     topic: str
     count: int
-    sources: list[str]  # ex : ["email × 2", "support × 1"]
+    sources: list[str]  # ex : ["email x 2", "support x 1"]
     customers: list[str]  # customer_ids uniques
 
 
@@ -87,7 +87,7 @@ def aggregate(items: list[dict[str, Any]]) -> list[FeedbackTheme]:
             cid = entry.get("customer_id")
             if cid and cid not in customers:
                 customers.append(cid)
-        sources_render = [f"{src} × {n}" for src, n in source_counter.most_common()]
+        sources_render = [f"{src} x {n}" for src, n in source_counter.most_common()]
         themes.append(
             FeedbackTheme(
                 topic=topic,
@@ -129,8 +129,8 @@ def build_feedback_embed(report: FeedbackReport) -> Embed:
     return Embed(
         title=f"FeedbackAggregator — {len(report.themes)} thème(s) consolidé(s)",
         description=(
-            f"Digest dans `data/feedback/digest_<date>.md` — input pour les "
-            f"prochains arbitrages produit."
+            "Digest dans `data/feedback/digest_<date>.md` — input pour les "
+            "prochains arbitrages produit."
             if report.themes
             else "Aucune demande à agréger."
         ),

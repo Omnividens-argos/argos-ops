@@ -57,10 +57,7 @@ def list_commits(*, from_ref: str | None, to_ref: str = "HEAD") -> list[Commit]:
     Si ``from_ref`` est None, retourne les 100 derniers commits (cap large
     pour éviter de spammer un repo récent).
     """
-    if from_ref is None:
-        range_arg = f"-n100 {to_ref}"
-    else:
-        range_arg = f"{from_ref}..{to_ref}"
+    range_arg = f"-n100 {to_ref}" if from_ref is None else f"{from_ref}..{to_ref}"
     raw = run_git(["log", "--pretty=format:%H%x09%s", *range_arg.split()])
     commits: list[Commit] = []
     for line in raw.splitlines():

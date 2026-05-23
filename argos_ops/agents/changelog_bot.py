@@ -15,7 +15,6 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
-import yaml
 from loguru import logger
 
 from argos_ops.agents.base import BaseAgent, RunResult

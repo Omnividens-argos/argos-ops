@@ -15,7 +15,7 @@ existant. Le founder marque la réponse en patchant ``last_nps`` +
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 import yaml

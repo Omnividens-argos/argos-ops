@@ -23,17 +23,17 @@ from argos_ops.cs.scoring import (
 
 
 def _customer(**overrides: object) -> Customer:
-    base: dict[str, object] = dict(
-        customer_id="acme-sa",
-        name="Acme SA",
-        contact_email="marc@acme.fr",
-        contact_name="Marc Dupont",
-        plan=CustomerPlan.PRO,
-        signup_date=date(2026, 4, 1),
-        usage=CustomerUsage(scans_this_month=120, scans_quota=200, last_login_days_ago=2),
-        tickets_30d=1,
-        last_nps=8,
-    )
+    base: dict[str, object] = {
+        "customer_id": "acme-sa",
+        "name": "Acme SA",
+        "contact_email": "marc@acme.fr",
+        "contact_name": "Marc Dupont",
+        "plan": CustomerPlan.PRO,
+        "signup_date": date(2026, 4, 1),
+        "usage": CustomerUsage(scans_this_month=120, scans_quota=200, last_login_days_ago=2),
+        "tickets_30d": 1,
+        "last_nps": 8,
+    }
     base.update(overrides)
     return Customer(**base)  # type: ignore[arg-type]
 

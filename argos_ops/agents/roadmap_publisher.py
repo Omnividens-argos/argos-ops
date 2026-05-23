@@ -87,8 +87,8 @@ def render_public_roadmap(entries: list[BotEntry]) -> str:
     today_year = "2026"
     parts = [
         "# Roadmap publique Argos / Omnividens\n",
-        f"> État de la flotte d'agents Argos Ops, mis à jour automatiquement\n"
-        f"> depuis l'Annexe D interne. Les codes sprint internes sont retirés.\n",
+        "> État de la flotte d'agents Argos Ops, mis à jour automatiquement\n"
+        "> depuis l'Annexe D interne. Les codes sprint internes sont retirés.\n",
     ]
 
     counts = count_states(entries)
@@ -142,7 +142,7 @@ def build_roadmap_embed(stats: RoadmapStats) -> Embed:
         EmbedField(name="Services", value=str(stats.services), inline=True),
     ]
     return Embed(
-        title=f"RoadmapPublisher — roadmap publique régénérée",
+        title="RoadmapPublisher — roadmap publique régénérée",
         description=(
             f"Output : `{stats.output_path}`. Revue founder avant push site."
             if stats.output_path

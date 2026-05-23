@@ -124,7 +124,7 @@ def render_nps_email(*, contact_first_name: str, company: str, reason: str) -> t
 def render_review_email(*, contact_first_name: str, company: str) -> tuple[str, str]:
     """Renvoie ``(subject, body)`` pour une demande d'avis G2 / Capterra."""
     addressee = contact_first_name.strip() or "à vous"
-    subject = f"Argos — 5 min pour aider d'autres RSSI à choisir ?"
+    subject = "Argos — 5 min pour aider d'autres RSSI à choisir ?"
     body = (
         f"Bonjour {addressee},\n\n"
         f"Vous utilisez Argos depuis un moment chez {company} — merci pour la "
@@ -144,8 +144,8 @@ def render_review_email(*, contact_first_name: str, company: str) -> tuple[str, 
 
 __all__ = [
     "ONBOARDING_DAY_0",
-    "ONBOARDING_DAY_30",
     "ONBOARDING_DAY_7",
+    "ONBOARDING_DAY_30",
     "render_nps_email",
     "render_onboarding_email",
     "render_review_email",

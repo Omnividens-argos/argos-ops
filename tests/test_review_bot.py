@@ -17,17 +17,17 @@ from argos_ops.cs.models import Customer, CustomerPlan, CustomerUsage
 
 
 def _customer(**overrides: object) -> Customer:
-    base: dict[str, object] = dict(
-        customer_id="acme-sa",
-        name="Acme SA",
-        contact_email="marc@acme.fr",
-        contact_name="Marc Dupont",
-        plan=CustomerPlan.PRO,
-        signup_date=date(2026, 1, 1),
-        onboarding_done_at=date.today() - timedelta(days=45),
-        last_nps=9,
-        usage=CustomerUsage(),
-    )
+    base: dict[str, object] = {
+        "customer_id": "acme-sa",
+        "name": "Acme SA",
+        "contact_email": "marc@acme.fr",
+        "contact_name": "Marc Dupont",
+        "plan": CustomerPlan.PRO,
+        "signup_date": date(2026, 1, 1),
+        "onboarding_done_at": date.today() - timedelta(days=45),
+        "last_nps": 9,
+        "usage": CustomerUsage(),
+    }
     base.update(overrides)
     return Customer(**base)  # type: ignore[arg-type]
 

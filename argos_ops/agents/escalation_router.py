@@ -2,7 +2,7 @@
 
 Lit ``data/support/tickets.yaml``, classifie chaque ticket open en
 P0/P1/P2 (sujet+body keywords sauf override manuel), calcule le SLA
-réponse selon priorité × plan, et flag les SLA breach.
+réponse selon priorité x plan, et flag les SLA breach.
 
 Écrit ``data/support/triage_<YYYY-MM-DD>.yaml`` + Discord rouge si ≥1
 SLA breach, jaune si ≥1 P0/P1 ouvert sans breach. Read-only sur le YAML

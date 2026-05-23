@@ -17,7 +17,6 @@ from __future__ import annotations
 import re
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import date
 from pathlib import Path
 
 import yaml
