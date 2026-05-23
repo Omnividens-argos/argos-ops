@@ -55,13 +55,12 @@ MODE OPÉRATOIRE
 
 ÉTAPE A — État des lieux (toujours en début de session)
 ─────────────────────────────────────────────────────
-1. Lis `docs/ARGOS_OPS_PLAN.md` en entier
-2. Lis `argos-ops/CLAUDE.md` s'il existe (sinon Partie 2 pas faite)
-3. Lis `argos-ops/docs/PROGRESS.md` s'il existe (sinon initialise-le)
-4. Identifie la prochaine partie à traiter d'après l'Annexe B et les dépendances
-5. Annonce-moi : "Partie suivante = P{N} — {titre}. Type = {auto|manuel|mixte}.
+1. Lis `docs/ARGOS_OPS_PLAN.md` en entier (Annexe D = source unique de l'avancement)
+2. Lis `argos-ops/CLAUDE.md` (invariants projet — n'y cherche PAS l'état d'avancement, il n'y est plus)
+3. Identifie la prochaine partie/bot à traiter d'après l'Annexe D (checkboxes) et l'Annexe B (dépendances)
+4. Annonce-moi : "Partie suivante = P{N} — {titre}. Type = {auto|manuel|mixte}.
    Estimation : {temps}. On y va ?"
-6. ATTENDS ma confirmation ("go", "vas-y", "ok") avant de continuer
+5. ATTENDS ma confirmation ("go", "vas-y", "ok") avant de continuer
 
 ÉTAPE B — Exécution
 ───────────────────
@@ -78,14 +77,16 @@ Selon le type de la partie :
 
 ÉTAPE C — Clôture de partie
 ───────────────────────────
-1. Mettre à jour `argos-ops/docs/PROGRESS.md` (cocher la partie, ajouter date)
-2. Mettre à jour `argos-ops/CLAUDE.md` (état d'avancement + slash commands ajoutés
-   + skills ajoutés)
+1. Mettre à jour `docs/ARGOS_OPS_PLAN.md` Annexe D — cocher `[x] ✅` (ou `[~] 🟡`)
+   sur la ligne du bot livré + ajouter la date entre *italique*
+2. Mettre à jour le compteur en tête de l'Annexe D (« Récap chiffres »)
 3. Mettre à jour `docs/ARGOS_OPS_PLAN.md` Partie 18 (inventaire skills) si pertinent
-4. Si la partie a créé un skill : sauvegarder une mémoire dans le système de mémoire
-   auto si il y a un détail surprenant ou non-trivial à retenir
-5. Proposer le commit + créer la PR (jamais de push direct main)
-6. Annoncer la partie suivante et attendre ma confirmation
+4. Si la partie a créé un skill : ajouter une ligne dans `CLAUDE.md` § « Slash commands installés » ou « Skills locaux installés »
+5. NE PAS toucher à `CLAUDE.md` pour l'avancement (il n'a plus de section État) — uniquement les sections slash / skills si pertinent
+6. NE PAS rajouter de section dans `docs/PROGRESS.md` — ce fichier est obsolète (stub redirect)
+7. Si détail surprenant ou non-trivial à retenir → mémoire auto
+8. Proposer le commit + créer la PR (jamais de push direct main)
+9. Annoncer la partie suivante et attendre ma confirmation
 
 ═══════════════════════════════════════════════════════════════════════════════════
 PROTOCOLE "MODE GUIDE PAS-À-PAS" (manuel)
@@ -191,8 +192,8 @@ RÈGLES NON NÉGOCIABLES
 3. Tu ne stockes JAMAIS une clé API en clair dans un commit, jamais dans les logs
 4. Tu n'inventes JAMAIS un fait sur Argos (features, pricing, clients) — tu lis
    la KB ou tu demandes
-5. Tu ne saute JAMAIS l'étape de mise à jour PROGRESS.md / CLAUDE.md à la fin
-   d'une partie
+5. Tu ne sautes JAMAIS l'étape de mise à jour `docs/ARGOS_OPS_PLAN.md` Annexe D
+   (checkbox + date) à la fin d'une partie
 6. Tu n'enchaînes JAMAIS deux parties manuelles d'affilée sans pause de validation
 7. Si tu détectes une dérive (la partie en cours déborde du scope, ou nécessite
    une nouvelle brique non prévue), tu ARRÊTES, tu m'expliques, on décide
@@ -231,8 +232,8 @@ GO quand tu es prêt.
 1. Ouvre Claude Code dans `~/Desktop/argos-ops/`
 2. Colle le bloc PROMPT À COLLER ci-dessus
 3. Réponds "go"
-4. Claude Code lit `docs/PROGRESS.md`, voit la dernière partie complétée et
-   te propose la suivante
+4. Claude Code lit `docs/ARGOS_OPS_PLAN.md` Annexe D, voit les checkboxes
+   cochées et te propose la suivante
 5. Tu suis étape par étape, à ton rythme
 
 ### Note historique
@@ -250,7 +251,7 @@ Claude Code vérifiera juste que les prérequis P{N} sont OK et démarrera.
 ### Si tu veux faire une pause
 
 Écris simplement `pause` à n'importe quel moment. Claude Code stoppe proprement,
-sauvegarde l'état dans PROGRESS.md, et te dit où reprendre la prochaine fois.
+coche ce qui est livré dans l'Annexe D du plan, et te dit où reprendre la prochaine fois.
 
 ---
 

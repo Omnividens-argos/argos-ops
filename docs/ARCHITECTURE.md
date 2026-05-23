@@ -188,4 +188,4 @@ l'ordi.
 - [`ESCALATION_RULES.md`](ESCALATION_RULES.md) — règles Tier 0-4
 - [`COMPLIANCE.md`](COMPLIANCE.md) — RGPD / AI Act / Bloctel
 - [`DECISIONS.md`](DECISIONS.md) — journal des décisions structurantes
-- [`PROGRESS.md`](PROGRESS.md) — état d'avancement
+- [`ARGOS_OPS_PLAN.md` Annexe D](ARGOS_OPS_PLAN.md#annexe-d--catalogue-cible--12-services--79-bots) — état d'avancement bot par bot (source unique)

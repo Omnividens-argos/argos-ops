@@ -102,35 +102,27 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 
 ## État d'avancement
 
-> Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
-> Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
+> **Source unique** : [`docs/ARGOS_OPS_PLAN.md` Annexe D](docs/ARGOS_OPS_PLAN.md#annexe-d--catalogue-cible--12-services--79-bots).
+> Toute l'avancée bot par bot est cochée là (`[x] ✅` / `[~] 🟡` / `[ ] ⬜`).
+> Ne PAS rajouter de section d'avancement ici — CLAUDE.md doit rester stable.
 
-- **Sessions terminées :** 15 / 22 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P20/P21 specs** ajoutées 2026-05-15, **P22.A Catalogue 12 services × 79 bots** + **P22.B Meta-Ops core** + **P22.C Watchers Sprint (9 nouveaux watchers)** 2026-05-23)
-- **Phase en cours :** Catalogue refondu en **12 services × 79 bots** (cf. [`ARGOS_OPS_PLAN.md` Annexe D](docs/ARGOS_OPS_PLAN.md)). Services : Direction, Finance, Sales, Marketing, CS, Produit, Tech, Veille, Compliance, Communication, Documentation, Meta-Ops. **16 agents Python actifs (7 historiques + 9 watchers P22.C) + ClaudeJudge skill = 17 au catalogue**. 62 roadmap restants.
-  - 7 historiques : DigestBuilder, EmailBot, FinanceBot, SEOBot, SupportBot, BotHealthBot, OrchestratorBot
-  - 9 watchers P22.C : BotPerfAnalyzer, ErrorTriageBot, KillSwitchOperator, BotConfigManager, UptimeMonitor, SSLExpirer, SecretRotator, DependencyAuditor, BackupVerifier
-- **Dernière partie done :** **P22.C Watchers Sprint (2026-05-23)** — 9 watchers Meta-Ops Sprint 2 + Tech/SRE Sprint 4 tous via le helper canonique `argos_ops/agents/_watcher_base.py` (Protocol `WatcherReport` + `emit_alert_or_silence`). 6 slash commands + `setup_watchers_tasks.ps1` (script PS unique pour les 9 cron, `-DryRun` / `-Only`). 119 tests verts (406 au total). Bug latent corrigé dans `_map_severity` (CVSS vector = dernier nombre, pas premier).
-- **Prochaine partie :** **P20.A Argos Memory foundation** (pour brancher les hooks Orchestrator `_consume_memory()` / `_consume_capabilities()` aujourd'hui placeholders). Sprints Meta-Ops 2 et Tech/SRE 4 clos côté watchers.
-- **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`). **À enregistrer** côté fondateur : `argos-ops-health-check` (5h45) + `argos-ops-bot-health` (toutes les 2h) + **9 watchers via `scripts/setup_watchers_tasks.ps1`** (script unique idempotent, cadences par bot). Tous livrés en PS, à lancer en admin.
-- **Convention watcher (P22.C) :** tout nouveau watcher hérite de `BaseAgent` et **DOIT** passer par `argos_ops.agents._watcher_base.emit_alert_or_silence(report, embed_builder, agent_name)` — ne pas dupliquer le pattern silence-si-vert dans `run()`. Le report expose `should_alert: bool`, `alert_color: int`, `summary: str` (Protocol `WatcherReport`). Helpers de formatage : `format_age`, `format_duration`, `format_rate`, `color_title`.
-- **Décisions P3-P5 + P8 + P20 + P21 actives :** D-009 à D-021 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
-  **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
-  via Claude Code Pro Max (agents) + `fastembed` / `paraphrase-multilingual-mpnet-base-v2`
-  (embeddings). Aucune API LLM tierce. **D-018 = stack email** : OVH Zimbra
-  IMAP/SMTP `ssl0.ovh.net:993/465`, boîte canonique `contact@omnividens.fr`.
-- **Sécurité (2026-05-08) :** `argos_ops/logging.py` installe un filtre
-  loguru anti-fuite sur les patterns secrets (webhooks Discord, sk- API,
-  AIza, gh_, xox_, whsec_, AKIA). Auto-installé via `argos_ops/__init__.py`.
-  Le filtre couvrira aussi automatiquement le mot de passe Zimbra (P5)
-  via le redacting des `SecretStr` Pydantic.
-- **Setup local requis :** container Docker `argos-postgres-local` doit tourner
-  (`docker ps | grep argos-postgres-local`). Si arrêté, le redémarrer
-  (`docker start argos-postgres-local`). Volume `argos_postgres_data` persistant.
-  D-009 : DB serveur reportée à P4/P5.
-- **En cours dans le working tree (non commité) :** install local du skill
-  `.claude/skills/ui-ux-pro-max/` (référencé dans la section « Skills locaux
-  installés » ci-dessous). À gérer dans une PR séparée si besoin.
-- **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé, branch protection active sur `main`)
+## Repo & contraintes runtime
+
+- **Repo GitHub :** [Omnividens-argos/argos-ops](https://github.com/Omnividens-argos/argos-ops) (privé, branch protection sur `main`)
+- **Décisions structurantes** : voir [`docs/DECISIONS.md`](docs/DECISIONS.md). Les plus impactantes :
+  - **D-017** : Argos Ops 100 % local-first via Claude Code Pro Max + embeddings open-source (`fastembed` / `paraphrase-multilingual-mpnet-base-v2`). Aucune API LLM tierce.
+  - **D-018** : stack email = OVH Zimbra IMAP/SMTP `ssl0.ovh.net:993/465`, boîte canonique `contact@omnividens.fr`.
+- **Sécurité loguru** : `argos_ops/logging.py` installe un filtre anti-fuite sur les patterns secrets (webhooks Discord, `sk-`, `AIza`, `gh_`, `xox_`, `whsec_`, `AKIA`). Auto-installé via `argos_ops/__init__.py`.
+- **Setup local requis** : container Docker `argos-postgres-local` doit tourner (`docker ps | grep argos-postgres-local`). Si arrêté, `docker start argos-postgres-local`.
+
+## Convention watcher (P22.C)
+
+Tout nouveau watcher hérite de `BaseAgent` et **DOIT** passer par
+`argos_ops.agents._watcher_base.emit_alert_or_silence(report, embed_builder, agent_name)`
+— ne pas dupliquer le pattern silence-si-vert dans `run()`. Le report
+expose `should_alert: bool`, `alert_color: int`, `summary: str` (Protocol
+`WatcherReport`). Helpers de formatage : `format_age`, `format_duration`,
+`format_rate`, `color_title`.
 
 ---
 
@@ -309,6 +301,5 @@ _(`chat-orchestrator` retiré de l'inventaire par [D-019](docs/DECISIONS.md#d-01
 - [`docs/ESCALATION_RULES.md`](docs/ESCALATION_RULES.md) — règles Tier 0-4
 - [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) — RGPD / AI Act / Bloctel
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — journal des décisions structurantes
-- [`docs/PROGRESS.md`](docs/PROGRESS.md) — état d'avancement
-- [`docs/ARGOS_OPS_PLAN.md`](docs/ARGOS_OPS_PLAN.md) — plan stratégique 19 parties
+- [`docs/ARGOS_OPS_PLAN.md`](docs/ARGOS_OPS_PLAN.md) — plan stratégique + **Annexe D = source unique avancement bots**
 - [`docs/MASTER_PROMPT.md`](docs/MASTER_PROMPT.md) — prompt de session pour Claude Code
