@@ -119,8 +119,8 @@ def parse_spec(raw: dict[str, object]) -> DiagramSpec:
         if src not in seen_ids or dst not in seen_ids:
             raise ValueError(f"edge référence un node inconnu : {src} -> {dst}")
         label_raw = entry.get("label")
-        label = _sanitize_label(str(label_raw)) if label_raw is not None else None
-        edges.append(DiagramEdge(src=src, dst=dst, label=label))
+        edge_label = _sanitize_label(str(label_raw)) if label_raw is not None else None
+        edges.append(DiagramEdge(src=src, dst=dst, label=edge_label))
 
     return DiagramSpec(title=title, direction=direction, nodes=nodes, edges=edges)
 

@@ -20,6 +20,7 @@ Le founder exporte un CSV depuis l'interface web et le pose dans
 from __future__ import annotations
 
 import csv
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
@@ -56,7 +57,7 @@ class Anomaly:
     reason: str
 
 
-def _pick_column(header: list[str], aliases: tuple[str, ...]) -> str | None:
+def _pick_column(header: Sequence[str], aliases: tuple[str, ...]) -> str | None:
     """Trouve le nom de colonne réel parmi les alias acceptés."""
     for alias in aliases:
         if alias in header:
