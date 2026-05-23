@@ -2134,9 +2134,9 @@ faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
 
 ## Récap chiffres (auto-maintenu à chaque livraison)
 
-- ✅ **16 agents Python actifs** + **1 skill (ClaudeJudge)** = **17 livrés**
+- ✅ **25 agents Python actifs** + **1 skill (ClaudeJudge)** = **26 livrés**
 - 🟡 **4 partiels** (skill ou shadow mode livré, agent Python pas en cron)
-- ⬜ **59 roadmap**
+- ⬜ **50 roadmap**
 - **Total cible : 79 bots** répartis sur 12 services
 
 Légende :
@@ -2159,10 +2159,10 @@ Le frontend Admin Panel range les bots par service avec status pill.
 ### 1. Direction & Stratégie
 *Donne les directives et priorise les autres bots.*
 
-- [ ] ⬜ **StrategyBot** · VP Stratégie · Synthèse hebdo KPIs critiques + alerte drift OKR. *Sprint 9.*
-- [ ] ⬜ **OKRTracker** · Chief of Staff · Réalisé vs objectifs trimestriels par pôle. *Sprint 9.*
-- [ ] ⬜ **BoardReporter** · Investor Relations · Board pack mensuel (MRR / burn / runway / NRR). *Sprint 9.*
-- [ ] ⬜ **DecisionLogger** · Knowledge Steward · Capture décisions structurantes → DECISIONS.md. *Sprint 9.*
+- [x] ✅ **StrategyBot** · VP Stratégie · Synthèse hebdo KPIs critiques + alerte drift OKR. *P22.E livré 2026-05-23.*
+- [x] ✅ **OKRTracker** · Chief of Staff · Réalisé vs objectifs trimestriels par pôle. *P22.E livré 2026-05-23.*
+- [x] ✅ **BoardReporter** · Investor Relations · Board pack mensuel (MRR / burn / runway / NRR). *P22.E livré 2026-05-23.*
+- [x] ✅ **DecisionLogger** · Knowledge Steward · Capture décisions structurantes → DECISIONS.md. *P22.E livré 2026-05-23.*
 
 ### 2. Finance & Trésorerie
 *Comptabilité, budget, trésorerie, dunning.*
@@ -2251,11 +2251,11 @@ Le frontend Admin Panel range les bots par service avec status pill.
 ### 9. Juridique & Compliance
 *RGPD, AI Act, Bloctel, contrats clients.*
 
-- [ ] ⬜ **RGPDAuditor** · DPO · Registre traitements + alerte traitement non documenté. *Sprint 8.*
-- [ ] ⬜ **AIActComplianceBot** · AI Compliance Officer · Vérifie chaque agent IA vs catégorie AI Act. *Sprint 8.*
-- [ ] ⬜ **BloctelGuard** · Compliance Bloctel · Check leads outbound vs liste opposition. *Sprint 8.*
-- [ ] ⬜ **ContractDeadlineBot** · Legal Ops · Renouvellements contrats clients (anniv-60j). *Sprint 8.*
-- [ ] ⬜ **IncidentLogger** · RSSI · Log incidents sec internes + post-mortem template. *Sprint 8.*
+- [x] ✅ **RGPDAuditor** · DPO · Registre traitements + alerte traitement non documenté. *P22.E livré 2026-05-23.*
+- [x] ✅ **AIActComplianceBot** · AI Compliance Officer · Vérifie chaque agent IA vs catégorie AI Act. *P22.E livré 2026-05-23.*
+- [x] ✅ **BloctelGuard** · Compliance Bloctel · Check leads outbound vs liste opposition. *P22.E livré 2026-05-23.*
+- [x] ✅ **ContractDeadlineBot** · Legal Ops · Renouvellements contrats clients (anniv-60j). *P22.E livré 2026-05-23.*
+- [x] ✅ **IncidentLogger** · RSSI · Log incidents sec internes + post-mortem template. *P22.E livré 2026-05-23.*
 
 ### 10. Communication
 *RP, presse, comms de crise, brand consistency.*

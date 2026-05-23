@@ -1,0 +1,9 @@
+# Dossier post-mortems d'incidents internes (RSSI).
+#
+# Fichiers générés par IncidentLogger (P22.E) via le slash /log-incident.
+# Convention : <YYYY-MM-DD>-<slug>.md
+#
+# Les post-mortems sont des documents internes — ne pas les committer
+# dans la branche `main` sans revue. Convention : créer une branche
+# `chore/incident-<slug>` dédiée à chaque post-mortem, mergé une fois
+# rempli.

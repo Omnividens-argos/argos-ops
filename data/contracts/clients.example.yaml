@@ -1,0 +1,25 @@
+# Contrats clients (exemple).
+#
+# Renomme en `clients.yaml` et maintiens à jour à chaque signature
+# / renouvellement. ContractDeadlineBot (P22.E) lit ce fichier pour
+# alerter J-60 / J-30 avant chaque anniversaire de contrat.
+#
+# Chaque entrée :
+# - client : nom commercial
+# - start : date de signature (YYYY-MM-DD)
+# - term_months : durée en mois (12 par défaut, 24 pour MSA pluriannuel)
+# - notes : commentaire libre (annexe, tacite reconduction, etc.)
+#
+# **Ne PAS committer ce fichier avec des vrais noms de clients sans
+# revue confidentialité.** Le `.example.yaml` ici sert juste de template.
+
+contracts:
+  - client: "Exemple SAS"
+    start: "2025-01-15"
+    term_months: 12
+    notes: "MSA standard, tacite reconduction 12 mois, préavis 3 mois"
+
+  - client: "Demo Corp"
+    start: "2025-09-01"
+    term_months: 24
+    notes: "MSA 24m + annexe pentest annuel, préavis 6 mois"

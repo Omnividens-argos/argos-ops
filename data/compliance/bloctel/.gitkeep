@@ -1,0 +1,11 @@
+# Dossier Bloctel — listes mensuelles d'opposition.
+#
+# Convention de nommage : bloctel_YYYY-MM.txt (1 numéro par ligne, format
+# E.164 ou français — la normalisation est gérée côté Python).
+#
+# La liste est téléchargeable mensuellement depuis le portail Bloctel
+# (entreprise.bloctel.fr) après abonnement (gratuit pour < 1000 numéros / mois).
+#
+# **Ne JAMAIS committer un fichier `bloctel_*.txt` réel** — il contient des
+# données personnelles. Le .gitignore racine doit déjà bloquer les `*.txt`
+# dans ce dossier.

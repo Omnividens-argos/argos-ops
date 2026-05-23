@@ -1,0 +1,42 @@
+# RGPD — Registre des traitements (exemple).
+#
+# Renomme en `rgpd_registry.yaml` puis maintiens-le à jour à chaque
+# nouvelle collecte de données personnelles. RGPDAuditor (P22.E) croise
+# automatiquement ce fichier avec les scans PII sur le code.
+#
+# Chaque traitement DOIT déclarer :
+# - nom : court, parlant à un humain
+# - base_legale : intérêt légitime / consentement / contrat / obligation légale / mission service public / sauvegarde intérêts vitaux
+# - finalite : pourquoi on collecte
+# - paths : liste de chemins (fichiers ou dossiers) qui implémentent la collecte
+# - duree_conservation : durée maximale en mois (None = pas de limite documentée)
+# - destinataires : qui voit la donnée (interne uniquement / sous-traitants listés)
+#
+# Le fichier est versionné — toute modif passe par PR + revue.
+
+traitements:
+  - nom: "Lead BtoB outbound"
+    base_legale: "intérêt légitime"
+    finalite: "Prospection BtoB ciblée selon ICP, conforme RGPD considérant 47"
+    paths:
+      - argos_ops/agents/outbound_bot.py
+      - argos_ops/agents/email_bot.py
+    duree_conservation: 36
+    destinataires: "interne uniquement"
+
+  - nom: "Support client Tier 1"
+    base_legale: "exécution du contrat"
+    finalite: "Répondre aux tickets support clients Argos"
+    paths:
+      - argos_ops/crm/repository.py
+      - argos_ops/agents/email_bot.py
+    duree_conservation: 60
+    destinataires: "interne uniquement"
+
+  - nom: "Facturation Stripe"
+    base_legale: "exécution du contrat + obligation légale comptable"
+    finalite: "Émission factures + dunning + comptabilité"
+    paths:
+      - argos_ops/agents/finance_bot.py
+    duree_conservation: 120  # obligation fiscale 10 ans
+    destinataires: "Stripe (sous-traitant) + cabinet comptable"

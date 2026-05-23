@@ -1,0 +1,45 @@
+# OKRs trimestriels (exemple Q2 2026).
+#
+# Renomme en `2026-Q2.yaml` puis maintiens les `actual` à jour
+# manuellement (1×/semaine recommandé). OKRTracker (P22.E) compare
+# `actual / target` au prorata temporis du trimestre.
+#
+# Convention :
+# - quarter : label affiché (`YYYY-Qn`)
+# - year + quarter_num : utilisés pour calculer les bornes du trimestre
+# - objectives[].title : phrase courte ambition
+# - key_results[] : 1-3 KRs mesurables par objectif
+
+quarter: '2026-Q2'
+year: 2026
+quarter_num: 2
+
+objectives:
+  - title: "Atteindre 10 000 € MRR en fin de Q2"
+    key_results:
+      - name: "MRR fin Q2"
+        target: 10000
+        actual: 4500  # à mettre à jour manuellement
+        unit: EUR
+      - name: "Nouveaux clients signés"
+        target: 8
+        actual: 3
+        unit: clients
+
+  - title: "Industrialiser la flotte d'agents (12 services × 79 bots)"
+    key_results:
+      - name: "Bots Python actifs en cron"
+        target: 30
+        actual: 17  # cf. Annexe D Récap
+        unit: bots
+      - name: "Taux de succès agent runs"
+        target: 95
+        actual: 92
+        unit: '%'
+
+  - title: "Préparer le board Q3"
+    key_results:
+      - name: "Board pack mensuel délivré"
+        target: 3
+        actual: 1  # un seul mois passé en Q2
+        unit: packs
