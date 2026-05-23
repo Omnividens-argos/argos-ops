@@ -2168,12 +2168,12 @@ Le frontend Admin Panel range les bots par service avec status pill.
 *Comptabilité, budget, trésorerie, dunning.*
 
 - [x] ✅ **FinanceBot** · Contrôleur financier · Sync Stripe + dunning J+3/J+7/J+15. *P7 livré 2026-05-09.*
-- [x] ✅ **InvoicePredictor** · Trésorier · Forecast cash flow 30/60/90j depuis Stripe subs actives. *P22.F livré 2026-05-23.*
-- [x] ✅ **ExpenseAuditor** · Contrôleur de gestion · Audit CSV Qonto + anomalies (outliers / doublons / nouveaux vendors). *P22.F livré 2026-05-23.*
-- [x] ✅ **TaxBot** · Fiscaliste · TVA CA3 mensuelle + IS prévisionnel (draft markdown). *P22.F livré 2026-05-23.*
-- [x] ✅ **ReconcileBot** · Comptable · Rapproche Stripe payouts ↔ crédits Qonto. *P22.F livré 2026-05-23.*
-- [x] ✅ **BurnRateMonitor** · CFO adjoint · Alerte burn > seuil ou runway < 9 mois. *P22.F livré 2026-05-23.*
-- [x] ✅ **VendorContractWatcher** · Achats · Renouvellements fournisseurs avant tacite reconduction. *P22.F livré 2026-05-23.*
+- [ ] ⬜ **InvoicePredictor** · Trésorier · Forecast cash flow 90j depuis Stripe subs actives. *Sprint 4+.*
+- [ ] ⬜ **ExpenseAuditor** · Contrôleur de gestion · Audit notes de frais + anomalies. *Sprint 10.*
+- [ ] ⬜ **TaxBot** · Fiscaliste · TVA CA3 mensuelle + IS prévisionnel. *Sprint 10.*
+- [ ] ⬜ **ReconcileBot** · Comptable · Rapproche Stripe ↔ relevés Qonto. *Sprint 10.*
+- [ ] ⬜ **BurnRateMonitor** · CFO adjoint · Alerte burn > seuil ou runway < 9 mois. *Sprint 10.*
+- [ ] ⬜ **VendorContractWatcher** · Achats · Renouvellements fournisseurs avant tacite reconduction. *Sprint 10.*
 
 ### 3. Sales / Commercial
 *Ramener des clients (cible primaire + secondaire).*
@@ -2272,9 +2272,9 @@ Le frontend Admin Panel range les bots par service avec status pill.
 ### 11. Documentation & Knowledge interne
 *Maintenance des docs techniques internes.*
 
-- [x] ✅ **DocLinter** · Technical Writer · Liens internes morts + anchors morts dans `docs/`, `README.md`, `CLAUDE.md`. *P22.F livré 2026-05-23.*
-- [x] ✅ **DiagramGenerator** · Tech Doc · Flowchart Mermaid depuis spec YAML. *P22.F livré 2026-05-23.*
-- [x] ✅ **ADRWriter** · Tech Lead · ADR MADR léger depuis input structuré, idempotent par slug. *P22.F livré 2026-05-23.*
+- [ ] ⬜ **DocLinter** · Technical Writer · Liens morts + cohérence des fichiers dans `docs/`. *Sprint 13.*
+- [ ] ⬜ **DiagramGenerator** · Tech Doc · Diagrammes Mermaid depuis specs / code. *Sprint 13.*
+- [ ] ⬜ **ADRWriter** · Tech Lead · ADR (Architecture Decision Record) depuis PR / discussion. *Sprint 13.*
 
 ### 12. Meta-Ops
 *Bots qui gèrent les bots.*
