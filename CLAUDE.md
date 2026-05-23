@@ -105,11 +105,11 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 13 / 20 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P20/P21 specs** ajoutées 2026-05-15, **P22 Catalogue 12 services × 79 bots** 2026-05-23)
-- **Phase en cours :** Catalogue refondu en **12 services × 79 bots** (cf. [`ARGOS_OPS_PLAN.md` Annexe D](docs/ARGOS_OPS_PLAN.md)). Services : Direction, Finance, Sales, Marketing, CS, Produit, Tech, Veille, Compliance, Communication, Documentation, Meta-Ops. 6 actifs · 11 roadmap déjà au plan · 62 nouveaux. Admin Panel range les bots par service avec filtre statut (Actifs / Roadmap / Tous) + `FleetCounter` global.
-- **Dernière partie done :** **P22 (2026-05-23)** — refonte `agentCatalog.ts` (12 services × 79 bots), Annexe D du plan réécrite, Admin Panel mis à jour (`FleetCounter`, `StatusFilterBar`, tri actifs en premier par service, lisibilité cards roadmap améliorée).
-- **Prochaine partie :** Démarrer la **conception des bots** dans l'ordre des sprints (Annexe D §Sprints). Recommandation : **Sprint 1 Meta-Ops core** (OrchestratorBot + BotHealthBot) avant de coder un 7e bot métier, sinon **P20.A Argos Memory foundation** (prérequis pour que les futurs bots naissent mémoire-aware).
-- **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`)
+- **Sessions terminées :** 14 / 20 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P20/P21 specs** ajoutées 2026-05-15, **P22.A Catalogue 12 services × 79 bots** + **P22.B Meta-Ops core (BotHealth + Orchestrator dry-run)** 2026-05-23)
+- **Phase en cours :** Catalogue refondu en **12 services × 79 bots** (cf. [`ARGOS_OPS_PLAN.md` Annexe D](docs/ARGOS_OPS_PLAN.md)). Services : Direction, Finance, Sales, Marketing, CS, Produit, Tech, Veille, Compliance, Communication, Documentation, Meta-Ops. **8 actifs** (DigestBuilder, EmailBot, FinanceBot, SEOBot, SupportBot + ClaudeJudge skill + BotHealthBot + OrchestratorBot) · 9 roadmap au plan · 62 nouveaux.
+- **Dernière partie done :** **P22.B Meta-Ops core (2026-05-23)** — `BotHealthBot` (SRE de la flotte, silence-vert anti-spam) + `OrchestratorBot` (chef de fleet, dry-run par défaut, max_concurrent=2, hooks `_consume_memory()`/`_consume_capabilities()` placeholders P20/P21) + 2 slashs (`/run-bot-health`, `/orchestrate`) + Task Scheduler `argos-ops-bot-health` + 27 tests verts. P22.A : refonte `agentCatalog.ts` + Annexe D longue (livré plus tôt dans la session).
+- **Prochaine partie :** **P20.A Argos Memory foundation** (pour brancher les hooks Orchestrator placeholders aujourd'hui) — sinon continuer Sprint 2 Meta-Ops (BotPerfAnalyzer, ErrorTriageBot, KillSwitchOperator, BotConfigManager).
+- **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`). **À enregistrer** côté fondateur : `argos-ops-health-check` (5h45) + `argos-ops-bot-health` (toutes les 2h) — scripts PS idempotents livrés dans `scripts/setup_*_task.ps1`.
 - **Décisions P3-P5 + P8 + P20 + P21 actives :** D-009 à D-021 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
   via Claude Code Pro Max (agents) + `fastembed` / `paraphrase-multilingual-mpnet-base-v2`
@@ -178,6 +178,21 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   `outbound-personalizer` + `claude-judge`. Garde-fous email perso
   disqualifié, BANT < 40 refusé, footer opt-out HMAC obligatoire. Cf.
   [`.claude/commands/draft-outbound.md`](.claude/commands/draft-outbound.md)
+- **`/run-bot-health`** (P22.B) — lance `BotHealthBot`, SRE de la
+  flotte. Lit `agent_runs` + breakers, alerte Discord (webhook
+  `DISCORD_WEBHOOK_OPS_LOGS`) uniquement si ≥1 agent est stale ou
+  ≥1 erreur 24h ou ≥1 breaker tripped. Silence si tout vert
+  (anti-spam toutes les 2h). Task Scheduler dédié
+  `argos-ops-bot-health`. Cf.
+  [`.claude/commands/run-bot-health.md`](.claude/commands/run-bot-health.md)
+- **`/orchestrate`** (P22.B) — lance `OrchestratorBot`, chef de fleet.
+  Décide quels bots doivent tourner maintenant à partir de la cadence
+  cron canonique + config runtime + breakers + daily_limit. Mode
+  dry-run par défaut (logue le plan, ne lance rien), `--live` pour
+  exécuter avec sémaphore `max_concurrent=2`. Hooks
+  `_consume_memory()` / `_consume_capabilities()` placeholders
+  (branchés P20.A / P21). Cf.
+  [`.claude/commands/orchestrate.md`](.claude/commands/orchestrate.md)
 
 ---
 
