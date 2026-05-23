@@ -1,0 +1,26 @@
+# Sources publiques consommées par ProspectMiner (P22.H Sales Sprint 3).
+#
+# Renommer en `sources.yaml` pour activer. Le bot lit toutes les clés
+# optionnellement — si une catégorie n'est pas déclarée, elle est skippée
+# proprement.
+#
+# Politique D-016 / D-017 : aucun scraping LinkedIn HTML, aucune API
+# payante. Uniquement RSS / Atom auth-free.
+
+manual:
+  - full_name: "Marc Dupont"
+    company: "Acme Sécurité"
+    domain: "acme-securite.fr"
+    title_hint: "CISO"
+    raw_signal: "Recommandation Discord 2026-05-20"
+
+annonces_legales:
+  # BODACC / annonces-legales.fr RSS (création SAS / mutations capital secteur tech).
+  # - "https://www.bodacc.fr/.../rss"
+
+crunchbase_news:
+  - "https://news.crunchbase.com/feed/"
+
+linkedin_jobs:
+  # Export RSS d'une recherche LinkedIn sauvegardée (URL publique auth-free).
+  # - "https://www.linkedin.com/jobs/search/?keywords=ciso&geoId=105015875&format=rss"
