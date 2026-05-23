@@ -2125,37 +2125,214 @@ faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
 
 ---
 
-# Annexe D — Agents proposés (idées non encore priorisées)
+# Annexe D — Catalogue cible : 12 services × 79 bots
 
-Ces 7 agents sont **proposés au plan** suite à la refonte UX du Admin
-Control Panel le 2026-05-12. Ils complètent les 12 agents canoniques
-(Annexe A). Pas de partie numérotée encore — à instancier en Pn quand le
-fondateur prioritise, avec une décision dans `DECISIONS.md`.
+> Révision majeure 2026-05-23 (P22). La version précédente listait 7 agents
+> proposés sur 6 services. Le founder a demandé une cible plus large pour
+> matcher une vraie org-chart d'entreprise.
 
-Ils sont **visibles dans la vue Agents** du dashboard comme « slots
-roadmap » (cards désaturées avec badge `Roadmap`), pour que le fondateur
-voie en glance le champ d'action futur sans confondre avec les agents
-actifs.
+## Principe d'organisation
 
-| Agent | Catégorie | Description | Sprint pressenti | Dépendances |
-|-------|-----------|-------------|------------------|-------------|
-| **ReplyBot** | Comms sortante | Répond aux mentions LinkedIn / Mastodon — humain-validé (Tier 1) avant publication | Sprint 3+ | P11 (connecteurs sociaux), P14 (juge) |
-| **ReviewBot** | Comms sortante | Sollicite des vrais avis (G2 / Capterra / Google) post-onboarding J+30. Modère uniquement insultes/diffamation | Sprint 4+ | P5 (EmailBot), P7 (FinanceBot pour repérer onboarding J+30) |
-| **TrendSpotter** | Contenu / SEO | Détecte tendances cybersec sur Hacker News + blogs RSSI + Mastodon `infosec.exchange` (Reddit retiré D-022) → alimente SEOBot avec keywords + angles. Pas de SERP scraping (D-017) | Sprint 2+ | P10 (SEOBot), P11 (Mastodon connecteur) |
-| **CompetitorWatcher** | Monitoring & Intel | Scrape hebdo pages features/pricing des concurrents (Acunetix, Detectify, Burp Pro, Intruder, Pentera) — diff vs semaine précédente, alerte Discord | Sprint 3+ | aucune (HTTP fetch direct + structured extract) |
-| **PressMonitor** | Monitoring & Intel | Alerte mentions « Argos », « Omnividens », « SecHunter » sur le web public (Google Alerts-style) + Mastodon (Reddit retiré D-022) | Sprint 3+ | P11 (Mastodon) |
-| **ChurnPredictor** | Finance & Admin | Analyse signaux pré-churn (Stripe : `subscription_status` changes, downgrades) + interactions CRM (mails frustrés, support tickets P1) → score risque churn par customer | Sprint 4+ | P7 (FinanceBot), P5 (EmailBot), P6 (SupportBot) |
-| **InvoicePredictor** | Finance & Admin | Forecast cash flow 30j / 60j / 90j basé sur les subs Stripe actives (renouvellements certains + probabilistiques) + dunning en cours | Sprint 4+ | P7 (FinanceBot) |
+Chaque bot = **1 tâche atomique = 1 poste-clé équivalent grande entreprise**.
+La flotte est structurée comme une org-chart : la Direction donne les
+directives, les pôles métier exécutent, Meta-Ops orchestre la flotte.
 
-**Critère de priorisation** : un slot roadmap passe en partie active
-quand le fondateur a une vraie demande pour cet agent OU quand un signal
-business le justifie (ex : ReviewBot devient priorité quand on a 20+
-clients actifs ; ChurnPredictor quand on dépasse 50+ clients).
+**Source de vérité du catalogue** :
+[`argos_ops/ops_dashboard/frontend/src/lib/agentCatalog.ts`](../argos_ops/ops_dashboard/frontend/src/lib/agentCatalog.ts).
+Le frontend Admin Panel range les bots par service avec status pill (✅ actif
+/ 🛣️ roadmap).
 
-**Ne pas créer ces agents par anticipation** : YAGNI strict, on les ajoute
-au moment opportun pour ne pas avoir du code mort. Ils sont au plan pour
-**ne pas oublier** et **donner une vision du champ d'action futur** dans
-le dashboard, pas pour être implémentés tout de suite.
+## Récap chiffres
+- **6 bots actifs** : DigestBuilder, EmailBot, SupportBot, SEOBot, FinanceBot,
+  ClaudeJudge (skill)
+- **11 bots roadmap déjà au plan** : OutboundBot (P13), LeadEnricher (P18),
+  ContentBot (P9), AdBot (P12), TrendSpotter, ReviewBot, ChurnPredictor,
+  InvoicePredictor, ReplyBot, PressMonitor, CompetitorWatcher
+- **62 bots nouveaux** (cette annexe, P22)
+- **Total cible : 79 bots** répartis sur 12 services
+
+## Les 12 services
+
+### 1. Direction & Stratégie
+*Donne les directives et priorise les autres bots.*
+
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| StrategyBot | VP Stratégie | Synthèse hebdo KPIs critiques + alerte drift OKR | 9 |
+| OKRTracker | Chief of Staff | Réalisé vs objectifs trimestriels par pôle | 9 |
+| BoardReporter | Investor Relations | Board pack mensuel (MRR / burn / runway / NRR) | 9 |
+| DecisionLogger | Knowledge Steward | Capture décisions structurantes → DECISIONS.md | 9 |
+
+### 2. Finance & Trésorerie
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| **FinanceBot** ✅ | Contrôleur financier | Sync Stripe + dunning J+3/J+7/J+15 | P7 livré |
+| InvoicePredictor | Trésorier | Forecast cash flow 90j | 4+ |
+| ExpenseAuditor | Contrôleur de gestion | Audit notes de frais + anomalies | 10 |
+| TaxBot | Fiscaliste | TVA CA3 mensuelle + IS prévisionnel | 10 |
+| ReconcileBot | Comptable | Rapproche Stripe ↔ Qonto | 10 |
+| BurnRateMonitor | CFO adjoint | Alerte burn > seuil ou runway < 9 mois | 10 |
+| VendorContractWatcher | Achats | Renouvellements fournisseurs avant tacite | 10 |
+
+### 3. Sales / Commercial
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| OutboundBot | SDR Cold | Séquence cold email 5 touches | P13.A shadow done |
+| LeadEnricher | Lead Intel | Enrichit lead BtoB (nom + domaine) | P18 livré |
+| ProspectMiner | Sourcer | Trouve leads ICP via sources publiques | 3 |
+| IntentSignalsBot | Lead Gen Lead | Capte signaux d'achat (breaches, jobs CISO) | 3 |
+| MeetingBooker | Sales Ops | Confirme RDV démo + rappels J-1/H-1 | 3 |
+| DemoFollowupBot | Account Executive | Mail récap post-démo + next steps | 3 |
+| ProposalBot | Sales Engineer | Devis personnalisé depuis template | 5+ |
+| ContractGenerator | Sales Legal | CGV / MSA depuis template | 5+ |
+| DealRiskScorer | Sales Manager | Score pipe + flag stalled > 14j | 5+ |
+
+### 4. Marketing & Growth
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| **SEOBot** ✅ | SEO Strategist | Briefs blog SEO depuis KB | P10-MVP livré |
+| ContentBot | Content Manager | 2-5 posts/jour LinkedIn / Mastodon | P9 draft done |
+| AdBot | Paid Acquisition | Google / Meta / LinkedIn Ads | P12 shadow done |
+| TrendSpotter | Trend Analyst | Tendances cyber → SEO/Content | 2+ |
+| NewsletterBot | Email Marketing | Newsletter mensuelle | 12 |
+| SocialAnalytics | CM Analytics | Reporting engagement par canal | 12 |
+| BacklinkOutreach | SEO Off-page | Échanges de liens cyber | 12 |
+| KeywordRadar | SEO Specialist | Positions SERP + longue traîne | 12 |
+| LandingOptimizer | CRO Specialist | A/B tests pages clés | 12 |
+| WebinarPromoter | Field Marketing | Promo webinar + replay edit | 12 |
+| TestimonialHunter | Customer Marketing | Verbatims post-NPS positif | 12 |
+| CaseStudyDrafter | Content Senior | Case study compte référence | 12 |
+
+### 5. Customer Success & Support
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| **SupportBot** ✅ | Support Tier 1 | Réponses Tier 1 RAG sur KB | P6 livré |
+| ReviewBot | Customer Advocacy | Avis G2 / Capterra J+30 | 4+ |
+| ChurnPredictor | Retention Manager | Signaux pré-churn | 4+ |
+| OnboardingBot | CSM Onboarding | Checklist J+0 / J+7 / J+30 | 7 |
+| HealthScoreBot | CS Ops | Score santé compte | 7 |
+| KBUpdater | Knowledge Manager | Gaps KB depuis tickets → drafts | 7 |
+| NPSCollector | Voice of Customer | NPS post-onboarding + renew | 7 |
+| UpsellSpotter | Account Growth | Comptes prêts upsell (usage > seuil) | 7 |
+| EscalationRouter | Support Lead | Tri tickets P0 / P1 / P2 | 7 |
+
+### 6. Produit & R&D
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| ChangelogBot | Product Marketing | Changelog mensuel depuis commits | 11 |
+| ReleaseNotesBot | Product Manager | Release notes user-friendly | 11 |
+| FeedbackAggregator | Product Discovery | Agrège demandes clients par thème | 11 |
+| RoadmapPublisher | Head of Product | Publie roadmap publique depuis PROGRESS.md | 11 |
+| BugTriageBot | QA Lead | Tri issues GitHub par sévérité | 11 |
+
+### 7. Tech / SRE / Sécurité IT
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| UptimeMonitor | SRE | Ping endpoints + alerte Discord | 4 |
+| DependencyAuditor | AppSec | Scan deps + alerte CVE | 4 |
+| LogAnomalyDetector | SRE Observability | Pics d'erreurs logs serveur | 4 |
+| BackupVerifier | DevOps | Backup Postgres + test restore | 4 |
+| SSLExpirer | IT Security | Certif SSL expirant < 30j | 4 |
+| DNSGuard | IT Network | Changements DNS suspects omnividens.fr | 4 |
+| SecretRotator | Security Engineer | Secrets > 90j (Stripe, Zimbra, webhooks) | 4 |
+| CIFlakeTracker | DevOps Lead | Tests CI flaky → issue auto | 4+ |
+
+### 8. Veille & Threat Intelligence
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| CompetitorWatcher | Competitive Intel | Scrape concurrents (features / pricing) | 3+ |
+| BreachWatcher | Threat Intel | Breaches publics (HIBP, CERT-FR) → leads chauds | 6 |
+| RegulatoryWatcher | Compliance Watch | Évolutions RGPD / AI Act / NIS2 / DORA | 6 |
+| CVEMonitor | Threat Intel | CVE critiques sur stack clients | 6+ |
+| DarkWebMonitor | Threat Intel Senior | Mentions domaines clients sur DW | 6+ |
+| BountyRadar | Bug Bounty Manager | Programmes bounty pertinents | 6+ |
+
+### 9. Juridique & Compliance
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| RGPDAuditor | DPO | Registre traitements + alerte non documenté | 8 |
+| AIActComplianceBot | AI Compliance Officer | Vérifie agents IA vs catégorie AI Act | 8 |
+| BloctelGuard | Compliance Bloctel | Leads outbound vs liste opposition | 8 |
+| ContractDeadlineBot | Legal Ops | Renouvellements contrats clients (anniv-60j) | 8 |
+| IncidentLogger | RSSI | Log incidents sec internes + post-mortem | 8 |
+
+### 10. Communication
+*Tout ce qui sort vers l'extérieur en dehors du sales/marketing direct.*
+
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| **EmailBot** ✅ | Standardiste Inbox | Pull IMAP 15 min + ingestion CRM | P5 livré |
+| ReplyBot | Community Manager | Réponses mentions LinkedIn / Mastodon | 3+ |
+| PressMonitor | Veille presse | Mentions Argos / Omnividens / SecHunter | 5 |
+| PressReleaseDrafter | RP Manager | Communiqué de presse annonces | 5 |
+| MediaListBuilder | Attaché de presse | DB journalistes / médias cyber | 5+ |
+| CrisisCommBot | Comm de crise | Réponse type incident public | 5+ |
+| SpokespersonPrep | Media Training | Q&A briefs interviews founder | 5+ |
+| BrandGuardBot | Brand Manager | Cohérence ton / tagline / signature | 5 |
+
+### 11. Documentation & Knowledge interne
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| DocLinter | Technical Writer | Liens morts + cohérence docs/ | 13 |
+| DiagramGenerator | Tech Doc | Diagrammes Mermaid depuis specs / code | 13 |
+| ADRWriter | Tech Lead | ADR depuis discussion / PR | 13 |
+
+### 12. Meta-Ops
+*Bots qui gèrent les bots.*
+
+| Bot | Poste | Tâche | Sprint |
+|---|---|---|---|
+| **DigestBuilder** ✅ | Reporting Officer | Récap quotidien Discord 8h Paris | P4 livré |
+| ClaudeJudge | QA des bots | Audite outputs (factual / tone / legal) | P14 skill livré |
+| OrchestratorBot | Chef de fleet | Route / priorise jobs entre bots | 1 |
+| BotHealthBot | SRE de la flotte | Surveille uptime + dernier run par agent | 1 |
+| BotPerfAnalyzer | Performance Engineer | Latence / coût / taux d'escalade par bot | 2 |
+| CapabilityRouter | Capability Manager | Route demandes vers bot qualifié | P21 spec |
+| MemoryCurator | Memory Steward | Nettoie / dédup Argos Memory | P20 spec |
+| ErrorTriageBot | Bot Ops | Trie erreurs runtime + issue auto | 2 |
+| KillSwitchOperator | Safety Officer | Enforce breakers P15 + assist reset | 2 |
+| BotConfigManager | Config Ops | Applique config inter-bots depuis Admin Panel | 2 |
+
+---
+
+## Critère de priorisation
+
+Un slot roadmap passe en partie active **P-numérotée** quand :
+- le founder a une vraie demande pour cet agent, OU
+- un signal business le justifie (ex : ReviewBot prioritaire à 20+ clients,
+  ChurnPredictor à 50+ clients, KillSwitchOperator à 10+ bots actifs).
+
+## Anti-pattern : ne pas créer ces bots par anticipation
+
+YAGNI strict. Le catalogue 79 bots ne signifie pas « 79 bots à coder ».
+Il sert à :
+1. Donner au founder une **vision claire du champ d'action futur** dans le
+   dashboard.
+2. **Cadrer les futures décisions** (DECISIONS.md) en ayant un nom canonique
+   et un poste équivalent quand un agent émerge.
+3. Permettre à Claude Code de **réutiliser le catalogue** quand il propose
+   un nouveau bot — pas de réinvention, pas de doublons.
+
+## Sprints pressentis (ordre d'attaque conseillé)
+
+Les colonnes "Sprint" ci-dessus correspondent à cet ordre. Lecture :
+
+- **Sprint 1** : Meta-Ops core (OrchestratorBot + BotHealthBot) → indispensable
+  dès qu'on dépasse 5-6 bots actifs.
+- **Sprint 2** : P20 (Argos Memory) + P21 (Capabilities) + reste Meta-Ops.
+- **Sprint 3** : Sales (ProspectMiner, IntentSignalsBot, MeetingBooker,
+  DemoFollowupBot) — ramener des clients.
+- **Sprint 4** : Tech / SRE (Uptime, DepAudit, Backup, SSL, Secret) — éviter
+  les SPOFs avant de grossir.
+- **Sprint 5** : Communication (PressMonitor, PressRelease, BrandGuard).
+- **Sprint 6** : Veille Intel (BreachWatcher, RegulatoryWatcher).
+- **Sprint 7** : CS (Onboarding, HealthScore, KBUpdater).
+- **Sprint 8** : Compliance (RGPDAuditor, AIActComplianceBot, BloctelGuard).
+- **Sprint 9** : Direction (StrategyBot, OKRTracker, BoardReporter).
+- **Sprint 10** : Finance avancé (ExpenseAuditor, TaxBot, etc.).
+- **Sprint 11** : Produit (Changelog, ReleaseNotes, Feedback, BugTriage).
+- **Sprint 12** : Marketing avancé (Newsletter, Backlink, Keyword, etc.).
+- **Sprint 13** : Documentation (DocLinter, DiagramGenerator, ADRWriter).
 
 ---
 
