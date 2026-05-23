@@ -1,0 +1,39 @@
+# Baseline canonique de la config runtime des agents Argos Ops.
+#
+# Source de vérité pour BotConfigManager : il compare cette baseline
+# à la table ``agent_config`` en DB (modifiée via l'Admin Panel P16.B)
+# et alerte sur les drifts (ex : intensité bossée puis oubliée, agent
+# laissé désactivé pendant des jours, daily_limit changé sans audit).
+#
+# Les champs non listés ici ne sont pas considérés (l'Admin Panel
+# peut toucher à des paramètres locaux sans déclencher d'alerte).
+#
+# Quand un changement est intentionnel et durable : mettre à jour ce
+# fichier dans le commit qui acte la décision. Le drift est alors
+# automatiquement réabsorbé.
+
+agents:
+  DigestBuilder:
+    enabled: true
+    intensity_level: 5
+    daily_limit: null  # cron 1x/jour, pas de limite explicite
+  EmailBot:
+    enabled: true
+    intensity_level: 5
+    daily_limit: null  # cron */15 8-22h, ~56/jour
+  FinanceBot:
+    enabled: true
+    intensity_level: 5
+    daily_limit: null  # cron 1x/jour
+  SupportBot:
+    enabled: true
+    intensity_level: 5
+    daily_limit: null  # interactif, slash uniquement
+  BotHealthBot:
+    enabled: true
+    intensity_level: 5
+    daily_limit: null  # cron toutes les 2h
+  OrchestratorBot:
+    enabled: true
+    intensity_level: 5
+    daily_limit: null  # dry-run par défaut, pas de cadence cron

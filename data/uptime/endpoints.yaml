@@ -1,0 +1,18 @@
+# Endpoints publics surveillés par UptimeMonitor (P22.C Tech/SRE Sprint 4).
+#
+# Format :
+#   - name: <human-readable>
+#     url: <https URL>
+#     method: GET (default) | HEAD | POST
+#     timeout_seconds: 10.0 (default)
+#
+# Statuts attendus :
+#   - 2xx/3xx → up (silence Discord)
+#   - 4xx     → degraded (embed jaune)
+#   - 5xx, timeout, refused → down (embed rouge)
+
+endpoints:
+  - name: "Site public Omnividens"
+    url: "https://omnividens.fr/"
+  - name: "Admin Control Panel (P16)"
+    url: "https://ops.omnividens.fr/"
