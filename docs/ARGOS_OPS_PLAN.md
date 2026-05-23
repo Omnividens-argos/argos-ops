@@ -2134,9 +2134,9 @@ faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
 
 ## Récap chiffres (auto-maintenu à chaque livraison)
 
-- ✅ **47 agents Python actifs** + **1 skill (ClaudeJudge)** = **48 livrés**
-- 🟡 **4 partiels** (skill ou shadow mode livré, agent Python pas en cron)
-- ⬜ **28 roadmap**
+- ✅ **65 agents Python actifs** + **1 skill (ClaudeJudge)** = **66 livrés**
+- 🟡 **2 partiels** (skill ou shadow mode livré, agent Python pas en cron)
+- ⬜ **12 roadmap**
 - **Total cible : 79 bots** répartis sur 12 services
 
 Légende :
@@ -2192,17 +2192,17 @@ Le frontend Admin Panel range les bots par service avec status pill.
 *Top funnel : SEO, ads, social, contenu, growth.*
 
 - [x] ✅ **SEOBot** · SEO Strategist · Briefs blog SEO structurés depuis KB. *P10-MVP livré 2026-05-12.*
-- [~] 🟡 **ContentBot** · Content Manager · 2-5 posts/jour LinkedIn / Mastodon. *P9-DRAFT livré 2026-05-14 (skill `content-writer` + `/draft-content`). Full agent Python bloqué sur P11 connecteurs sociaux.*
-- [~] 🟡 **AdBot** · Paid Acquisition · Pilotage Google / Meta / LinkedIn Ads. *P12 shadow done 2026-05-14 (skills `ads-creative-writer` + `ads-optimizer`). Live mode P12.B bloqué sur budget pub.*
-- [ ] ⬜ **TrendSpotter** · Trend Analyst · Tendances cyber → SEOBot / ContentBot. *Sprint 2+.*
-- [ ] ⬜ **NewsletterBot** · Email Marketing · Newsletter mensuelle depuis blog + actu cyber. *Sprint 12.*
-- [ ] ⬜ **SocialAnalytics** · Community Analytics · Reporting hebdo engagement par canal. *Sprint 12.*
-- [ ] ⬜ **BacklinkOutreach** · SEO Off-page · Prospecte sites cyber pour échanges de liens. *Sprint 12.*
-- [ ] ⬜ **KeywordRadar** · SEO Specialist · Surveille positions SERP + opportunités longue traîne. *Sprint 12.*
-- [ ] ⬜ **LandingOptimizer** · CRO Specialist · Analyse heatmaps + propose variantes A/B. *Sprint 12.*
-- [ ] ⬜ **WebinarPromoter** · Field Marketing · Promote webinar + replay edit. *Sprint 12.*
-- [ ] ⬜ **TestimonialHunter** · Customer Marketing · Verbatims post-NPS positif. *Sprint 12.*
-- [ ] ⬜ **CaseStudyDrafter** · Content Senior · Case study depuis compte référence. *Sprint 12.*
+- [x] ✅ **ContentBot** · Content Manager · 2-5 posts/jour LinkedIn / Mastodon. *P22i livré 2026-05-23 (full agent Python + connecteurs P11). Shadow tant que LinkedIn / Mastodon tokens absents (D-024 / D-025).*
+- [x] ✅ **AdBot** · Paid Acquisition · Pilotage Google / Meta / LinkedIn Ads. *P22i livré 2026-05-23 (live mode P12.B). Shadow tant que ADS_LIVE_MODE=false + budget pub validé (D-026).*
+- [x] ✅ **TrendSpotter** · Trend Analyst · Tendances cyber → SEOBot / ContentBot. *P22i livré 2026-05-23.*
+- [x] ✅ **NewsletterBot** · Email Marketing · Newsletter mensuelle depuis blog + actu cyber. *P22i livré 2026-05-23.*
+- [x] ✅ **SocialAnalytics** · Community Analytics · Reporting hebdo engagement par canal. *P22i livré 2026-05-23.*
+- [x] ✅ **BacklinkOutreach** · SEO Off-page · Prospecte sites cyber pour échanges de liens. *P22i livré 2026-05-23.*
+- [x] ✅ **KeywordRadar** · SEO Specialist · Surveille positions SERP + opportunités longue traîne. *P22i livré 2026-05-23.*
+- [x] ✅ **LandingOptimizer** · CRO Specialist · Analyse heatmaps + propose variantes A/B. *P22i livré 2026-05-23.*
+- [x] ✅ **WebinarPromoter** · Field Marketing · Promote webinar + replay edit. *P22i livré 2026-05-23.*
+- [x] ✅ **TestimonialHunter** · Customer Marketing · Verbatims post-NPS positif. *P22i livré 2026-05-23.*
+- [x] ✅ **CaseStudyDrafter** · Content Senior · Case study depuis compte référence. *P22i livré 2026-05-23.*
 
 ### 5. Customer Success & Support
 *Onboarding, rétention, support technique.*
@@ -2261,13 +2261,13 @@ Le frontend Admin Panel range les bots par service avec status pill.
 *RP, presse, comms de crise, brand consistency.*
 
 - [x] ✅ **EmailBot** · Standardiste Inbox · Pull IMAP 15 min + ingestion CRM + notif Discord. *P5 livré 2026-05-09.*
-- [ ] ⬜ **ReplyBot** · Community Manager · Réponses mentions LinkedIn / Mastodon (humain-validé). *Sprint 3+.*
-- [ ] ⬜ **PressMonitor** · Veille presse · Mentions Argos / Omnividens / SecHunter sur le web. *Sprint 5.*
-- [ ] ⬜ **PressReleaseDrafter** · RP Manager · Communiqué de presse annonces produit / finance. *Sprint 5.*
-- [ ] ⬜ **MediaListBuilder** · Attaché de presse · DB journalistes / médias cyber pertinents. *Sprint 5+.*
-- [ ] ⬜ **CrisisCommBot** · Comm de crise · Réponse type prête en cas d'incident public. *Sprint 5+.*
-- [ ] ⬜ **SpokespersonPrep** · Media Training · Q&A briefs interviews founder. *Sprint 5+.*
-- [ ] ⬜ **BrandGuardBot** · Brand Manager · Cohérence ton / tagline / signature sur drafts sortants. *Sprint 5.*
+- [x] ✅ **ReplyBot** · Community Manager · Réponses mentions LinkedIn / Mastodon (humain-validé). *P22i livré 2026-05-23.*
+- [x] ✅ **PressMonitor** · Veille presse · Mentions Argos / Omnividens / SecHunter sur le web. *P22i livré 2026-05-23.*
+- [x] ✅ **PressReleaseDrafter** · RP Manager · Communiqué de presse annonces produit / finance. *P22i livré 2026-05-23.*
+- [x] ✅ **MediaListBuilder** · Attaché de presse · DB journalistes / médias cyber pertinents. *P22i livré 2026-05-23.*
+- [x] ✅ **CrisisCommBot** · Comm de crise · Réponse type prête en cas d'incident public. *P22i livré 2026-05-23.*
+- [x] ✅ **SpokespersonPrep** · Media Training · Q&A briefs interviews founder. *P22i livré 2026-05-23.*
+- [x] ✅ **BrandGuardBot** · Brand Manager · Cohérence ton / tagline / signature sur drafts sortants. *P22i livré 2026-05-23.*
 
 ### 11. Documentation & Knowledge interne
 *Maintenance des docs techniques internes.*

@@ -111,6 +111,27 @@ class Settings(BaseSettings):
     # Breaker `outbound_volume_exceeded` se déclenche si dépassement détecté.
     outbound_daily_max: int = Field(default=30, alias="OUTBOUND_DAILY_MAX")
 
+    # --- Social P11 (D-024 LinkedIn / D-025 Mastodon) ---
+    linkedin_api_token: SecretStr | None = Field(default=None, alias="LINKEDIN_API_TOKEN")
+    linkedin_org_urn: str | None = Field(default=None, alias="LINKEDIN_ORG_URN")
+    mastodon_instance_url: str = Field(
+        default="https://infosec.exchange", alias="MASTODON_INSTANCE_URL"
+    )
+    mastodon_access_token: SecretStr | None = Field(default=None, alias="MASTODON_ACCESS_TOKEN")
+    content_daily_max_per_channel: int = Field(default=3, alias="CONTENT_DAILY_MAX_PER_CHANNEL")
+    discord_webhook_content: SecretStr | None = Field(
+        default=None, alias="DISCORD_WEBHOOK_CONTENT"
+    )
+
+    # --- AdBot live (D-026 budget pub) ---
+    ads_live_mode: bool = Field(default=False, alias="ADS_LIVE_MODE")
+    ads_daily_budget_eur: int = Field(default=0, alias="ADS_DAILY_BUDGET_EUR")
+    google_ads_developer_token: SecretStr | None = Field(
+        default=None, alias="GOOGLE_ADS_DEVELOPER_TOKEN"
+    )
+    linkedin_ads_account_id: str | None = Field(default=None, alias="LINKEDIN_ADS_ACCOUNT_ID")
+    meta_ads_access_token: SecretStr | None = Field(default=None, alias="META_ADS_ACCESS_TOKEN")
+
     @property
     def async_database_url(self) -> str:
         """URL adaptée à SQLAlchemy async (driver psycopg v3).

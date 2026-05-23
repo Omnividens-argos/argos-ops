@@ -211,3 +211,68 @@ sortant (cf. plan § 14.3).
 - Compliance : ``docs/COMPLIANCE.md``
 - Slash commands consommateurs : ``/check-emails``, ``/draft-content``,
   ``/generate-seo-brief`` (et futur ``/draft-outbound`` P13)
+
+---
+
+## Axe brand (extension P22i Sprint 5 Comm, 2026-05-23)
+
+En plus des 3 axes canoniques (factual / tone / legal), un 4ème axe
+optionnel **brand** est ajouté pour les drafts marketing/comm. Il
+encode les règles non-négociables de cohérence brand Argos /
+Omnividens, sans dupliquer ce que la couche déterministe
+:mod:`argos_ops.comm.brand` détecte déjà.
+
+### Quand l'inclure dans la réponse JSON
+
+- Draft généré par : ContentBot, NewsletterBot, PressReleaseDrafter,
+  CaseStudyDrafter, BacklinkOutreach, TestimonialHunter, AdBot,
+  CrisisCommBot
+- **Pas** nécessaire pour les drafts internes (digest, alertes
+  Discord, briefs Q&A SpokespersonPrep) — ces canaux ne sont pas
+  exposés au public
+
+### Règles canoniques brand (à pondérer dans la note 0-100)
+
+1. **Tagline** : « Argos — on scanne, vous corrigez. » respectée (pas
+   de variante créative non-validée). Score -20 si remplacée.
+2. **Domaine** : seulement ``omnividens.fr`` (jamais ``.com``).
+   Score -30 si ``.com`` détecté (BrandGuardBot l'attrape aussi en
+   couche déterministe, mais le juge confirme).
+3. **Disclosure AI Act** : phrase ``Email rédigé par notre assistant
+   Argos Ops.`` présente sur tout draft email. Jamais « validé par
+   humain » (-25 si présent, non-vérifiable côté destinataire).
+4. **Tonalité** : factuelle, pas de FUD (Fear, Uncertainty, Doubt).
+   Score -10 par mot anxiogène non justifié.
+5. **Casse** : ``Argos`` et ``Omnividens`` toujours en capitale dans
+   le corps du texte (sauf code / URLs).
+
+### Format JSON étendu
+
+```json
+{
+  "factual": 95,
+  "tone": 90,
+  "legal": 100,
+  "brand": 85,
+  "reasons": {
+    "brand": ["tagline absente du footer", "FUD modéré sur le headline"]
+  },
+  "verdict_hint": "needs_human"
+}
+```
+
+Le champ ``brand`` est optionnel — son absence n'invalide pas le
+JSON. Le helper :func:`argos_ops.judge.parse_judge_json` doit
+préserver la rétro-compatibilité (les tests existants ne renvoient
+pas ``brand``).
+
+### Articulation avec BrandGuardBot
+
+- :mod:`argos_ops.comm.brand` = règles **déterministes** (regex,
+  always-on, pas de LLM)
+- Axe brand du juge = règles **subjectives** (tonalité, anti-FUD,
+  fluidité de marque)
+
+Les deux sont complémentaires. BrandGuardBot scanne en batch tous
+les drafts existants ; le juge inline catch les violations sur les
+drafts en cours de production avant écriture.
