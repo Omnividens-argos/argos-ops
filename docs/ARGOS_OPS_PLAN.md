@@ -2134,9 +2134,9 @@ faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
 
 ## Récap chiffres (auto-maintenu à chaque livraison)
 
-- ✅ **16 agents Python actifs** + **1 skill (ClaudeJudge)** = **17 livrés**
+- ✅ **25 agents Python actifs** + **1 skill (ClaudeJudge)** = **26 livrés**
 - 🟡 **4 partiels** (skill ou shadow mode livré, agent Python pas en cron)
-- ⬜ **59 roadmap**
+- ⬜ **50 roadmap**
 - **Total cible : 79 bots** répartis sur 12 services
 
 Légende :
@@ -2234,19 +2234,19 @@ Le frontend Admin Panel range les bots par service avec status pill.
 - [x] ✅ **BackupVerifier** · DevOps · Vérifie backup Postgres récent < 24h. *P22.C livré 2026-05-23.*
 - [x] ✅ **SSLExpirer** · IT Security · Alerte certif SSL expirant < 30j. *P22.C livré 2026-05-23.*
 - [x] ✅ **SecretRotator** · Security Engineer · Alerte secrets > 90j. *P22.C livré 2026-05-23.*
-- [ ] ⬜ **LogAnomalyDetector** · SRE Observability · Pics d'erreurs dans logs serveur. *Sprint 4.*
-- [ ] ⬜ **DNSGuard** · IT Network · Changements DNS suspects sur omnividens.fr. *Sprint 4.*
-- [ ] ⬜ **CIFlakeTracker** · DevOps Lead · Tests CI flaky → issue auto. *Sprint 4+.*
+- [x] ✅ **LogAnomalyDetector** · SRE Observability · Pics d'erreurs dans logs serveur. *P22.D livré 2026-05-23.*
+- [x] ✅ **DNSGuard** · IT Network · Changements DNS suspects sur omnividens.fr. *P22.D livré 2026-05-23.*
+- [x] ✅ **CIFlakeTracker** · DevOps Lead · Tests CI flaky → issue auto. *P22.D livré 2026-05-23.*
 
 ### 8. Veille & Threat Intelligence
 *Concurrence, breaches, régulation, CVE.*
 
-- [ ] ⬜ **CompetitorWatcher** · Competitive Intel · Scrape hebdo features / pricing concurrents. *Sprint 3+.*
-- [ ] ⬜ **BreachWatcher** · Threat Intel · Breaches publics (HIBP, CERT-FR) → leads chauds. *Sprint 6.*
-- [ ] ⬜ **RegulatoryWatcher** · Compliance Watch · Évolutions RGPD / AI Act / NIS2 / DORA. *Sprint 6.*
-- [ ] ⬜ **CVEMonitor** · Threat Intel · CVE critiques sur stack clients déclarée. *Sprint 6+.*
-- [ ] ⬜ **DarkWebMonitor** · Threat Intel Senior · Mentions domaines clients sur dark web. *Sprint 6+.*
-- [ ] ⬜ **BountyRadar** · Bug Bounty Manager · Programmes bounty pertinents à positionner. *Sprint 6+.*
+- [x] ✅ **CompetitorWatcher** · Competitive Intel · Scrape hebdo features / pricing concurrents. *P22.D livré 2026-05-23.*
+- [x] ✅ **BreachWatcher** · Threat Intel · Breaches publics (HIBP, CERT-FR) → leads chauds. *P22.D livré 2026-05-23.*
+- [x] ✅ **RegulatoryWatcher** · Compliance Watch · Évolutions RGPD / AI Act / NIS2 / DORA. *P22.D livré 2026-05-23.*
+- [x] ✅ **CVEMonitor** · Threat Intel · CVE critiques sur stack clients déclarée. *P22.D livré 2026-05-23.*
+- [x] ✅ **DarkWebMonitor** · Threat Intel Senior · Mentions domaines clients sur dark web. *P22.D livré 2026-05-23 (MVP HIBP).*
+- [x] ✅ **BountyRadar** · Bug Bounty Manager · Programmes bounty pertinents à positionner. *P22.D livré 2026-05-23.*
 
 ### 9. Juridique & Compliance
 *RGPD, AI Act, Bloctel, contrats clients.*
