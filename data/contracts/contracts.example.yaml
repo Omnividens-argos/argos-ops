@@ -1,0 +1,21 @@
+# Catalogue des contrats fournisseurs Argos (VendorContractWatcher).
+# Format : `vendor`, `renewal_date` (YYYY-MM-DD), `notice_period_days`,
+# `monthly_cost_eur` (Decimal), `notes` (optionnel).
+# Le bot alerte si la deadline d'annulation (renewal_date - notice) tombe
+# dans les 60 prochains jours.
+contracts:
+  - vendor: OVHcloud
+    renewal_date: 2026-09-01
+    notice_period_days: 60
+    monthly_cost_eur: 12.00
+    notes: hébergement omnividens.fr (compte ssl0.ovh.net)
+  - vendor: Stripe
+    renewal_date: 2027-01-01
+    notice_period_days: 0
+    monthly_cost_eur: 0.00
+    notes: commission % uniquement, pas de tacite reconduction
+  - vendor: Sentry
+    renewal_date: 2026-11-15
+    notice_period_days: 30
+    monthly_cost_eur: 26.00
+    notes: error tracking — plan team

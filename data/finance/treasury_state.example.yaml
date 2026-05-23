@@ -1,0 +1,8 @@
+# Snapshot trésorerie pour BurnRateMonitor.
+# À mettre à jour manuellement (mensuel ou après chaque opération significative).
+cash_balance_eur: 80000.00
+monthly_burn_eur: 8500.00
+monthly_revenue_eur: 3200.00
+snapshot_date: 2026-05-20
+# Cap mensuel au-delà duquel on alerte (défaut 12000 €).
+burn_cap_eur: 12000.00
