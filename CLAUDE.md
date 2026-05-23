@@ -105,11 +105,14 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
 > Source de vérité : [`docs/PROGRESS.md`](docs/PROGRESS.md).
 > Le tableau ci-dessous est un mini-résumé, mis à jour à chaque clôture de partie.
 
-- **Sessions terminées :** 14 / 20 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P20/P21 specs** ajoutées 2026-05-15, **P22.A Catalogue 12 services × 79 bots** + **P22.B Meta-Ops core (BotHealth + Orchestrator dry-run)** 2026-05-23)
-- **Phase en cours :** Catalogue refondu en **12 services × 79 bots** (cf. [`ARGOS_OPS_PLAN.md` Annexe D](docs/ARGOS_OPS_PLAN.md)). Services : Direction, Finance, Sales, Marketing, CS, Produit, Tech, Veille, Compliance, Communication, Documentation, Meta-Ops. **8 actifs** (DigestBuilder, EmailBot, FinanceBot, SEOBot, SupportBot + ClaudeJudge skill + BotHealthBot + OrchestratorBot) · 9 roadmap au plan · 62 nouveaux.
-- **Dernière partie done :** **P22.B Meta-Ops core (2026-05-23)** — `BotHealthBot` (SRE de la flotte, silence-vert anti-spam) + `OrchestratorBot` (chef de fleet, dry-run par défaut, max_concurrent=2, hooks `_consume_memory()`/`_consume_capabilities()` placeholders P20/P21) + 2 slashs (`/run-bot-health`, `/orchestrate`) + Task Scheduler `argos-ops-bot-health` + 27 tests verts. P22.A : refonte `agentCatalog.ts` + Annexe D longue (livré plus tôt dans la session).
-- **Prochaine partie :** **P20.A Argos Memory foundation** (pour brancher les hooks Orchestrator placeholders aujourd'hui) — sinon continuer Sprint 2 Meta-Ops (BotPerfAnalyzer, ErrorTriageBot, KillSwitchOperator, BotConfigManager).
-- **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`). **À enregistrer** côté fondateur : `argos-ops-health-check` (5h45) + `argos-ops-bot-health` (toutes les 2h) — scripts PS idempotents livrés dans `scripts/setup_*_task.ps1`.
+- **Sessions terminées :** 15 / 22 (P8 cancelled, P0-P7 + P15 + P16.A + P10-MVP + P16.B done, **refonte UX P16** 2026-05-12, **P20/P21 specs** ajoutées 2026-05-15, **P22.A Catalogue 12 services × 79 bots** + **P22.B Meta-Ops core** + **P22.C Watchers Sprint (9 nouveaux watchers)** 2026-05-23)
+- **Phase en cours :** Catalogue refondu en **12 services × 79 bots** (cf. [`ARGOS_OPS_PLAN.md` Annexe D](docs/ARGOS_OPS_PLAN.md)). Services : Direction, Finance, Sales, Marketing, CS, Produit, Tech, Veille, Compliance, Communication, Documentation, Meta-Ops. **16 agents Python actifs (7 historiques + 9 watchers P22.C) + ClaudeJudge skill = 17 au catalogue**. 62 roadmap restants.
+  - 7 historiques : DigestBuilder, EmailBot, FinanceBot, SEOBot, SupportBot, BotHealthBot, OrchestratorBot
+  - 9 watchers P22.C : BotPerfAnalyzer, ErrorTriageBot, KillSwitchOperator, BotConfigManager, UptimeMonitor, SSLExpirer, SecretRotator, DependencyAuditor, BackupVerifier
+- **Dernière partie done :** **P22.C Watchers Sprint (2026-05-23)** — 9 watchers Meta-Ops Sprint 2 + Tech/SRE Sprint 4 tous via le helper canonique `argos_ops/agents/_watcher_base.py` (Protocol `WatcherReport` + `emit_alert_or_silence`). 6 slash commands + `setup_watchers_tasks.ps1` (script PS unique pour les 9 cron, `-DryRun` / `-Only`). 119 tests verts (406 au total). Bug latent corrigé dans `_map_severity` (CVSS vector = dernier nombre, pas premier).
+- **Prochaine partie :** **P20.A Argos Memory foundation** (pour brancher les hooks Orchestrator `_consume_memory()` / `_consume_capabilities()` aujourd'hui placeholders). Sprints Meta-Ops 2 et Tech/SRE 4 clos côté watchers.
+- **3 Task Scheduler actifs** : `argos-ops-morning-digest` (`0 8`) + `argos-ops-email-bot` (`*/15` 8h-22h) + `argos-ops-finance-bot` (`0 6`). **À enregistrer** côté fondateur : `argos-ops-health-check` (5h45) + `argos-ops-bot-health` (toutes les 2h) + **9 watchers via `scripts/setup_watchers_tasks.ps1`** (script unique idempotent, cadences par bot). Tous livrés en PS, à lancer en admin.
+- **Convention watcher (P22.C) :** tout nouveau watcher hérite de `BaseAgent` et **DOIT** passer par `argos_ops.agents._watcher_base.emit_alert_or_silence(report, embed_builder, agent_name)` — ne pas dupliquer le pattern silence-si-vert dans `run()`. Le report expose `should_alert: bool`, `alert_color: int`, `summary: str` (Protocol `WatcherReport`). Helpers de formatage : `format_age`, `format_duration`, `format_rate`, `color_title`.
 - **Décisions P3-P5 + P8 + P20 + P21 actives :** D-009 à D-021 — voir [`docs/DECISIONS.md`](docs/DECISIONS.md).
   **D-017 = révision architecturale majeure** : Argos Ops 100 % local-first
   via Claude Code Pro Max (agents) + `fastembed` / `paraphrase-multilingual-mpnet-base-v2`
@@ -185,6 +188,13 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   (anti-spam toutes les 2h). Task Scheduler dédié
   `argos-ops-bot-health`. Cf.
   [`.claude/commands/run-bot-health.md`](.claude/commands/run-bot-health.md)
+- **`/run-bot-perf`** (P22.C) — `BotPerfAnalyzer`, durée P50/P95 + taux d'erreur 7j par bot vs baseline (jaune ≥1.5x, rouge ≥2x).
+- **`/run-error-triage`** (P22.C) — `ErrorTriageBot`, regroupe `agent_runs.error` 24h par signature, alerte si ≥3 occurrences.
+- **`/run-config-drift`** (P22.C) — `BotConfigManager`, diff `agent_config` DB vs `data/agent_config/baseline.yaml`.
+- **`/run-uptime`** (P22.C) — `UptimeMonitor`, ping endpoints `data/uptime/endpoints.yaml`.
+- **`/run-secret-audit`** (P22.C) — `SecretRotator`, alerte secrets > 90j depuis `data/secrets/rotation_log.yaml` (fichier en exception `.gitignore`, jamais de valeurs).
+- **`/run-dep-audit`** (P22.C) — `DependencyAuditor`, scan deps `uv export` + check CVE OSV.dev (alerte HIGH/CRITICAL).
+- _3 watchers P22.C sans slash (cron pur) :_ `KillSwitchOperator`, `SSLExpirer`, `BackupVerifier`.
 - **`/orchestrate`** (P22.B) — lance `OrchestratorBot`, chef de fleet.
   Décide quels bots doivent tourner maintenant à partir de la cadence
   cron canonique + config runtime + breakers + daily_limit. Mode
