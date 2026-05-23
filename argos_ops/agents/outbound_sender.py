@@ -33,13 +33,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import yaml
 from loguru import logger
 
 from argos_ops.agents.base import BaseAgent, RunResult
-from argos_ops.config import get_settings
+from argos_ops.config import Settings, get_settings
 from argos_ops.integrations.zimbra import send_email
 from argos_ops.notifications.discord import (
     GREEN,
@@ -49,6 +49,7 @@ from argos_ops.notifications.discord import (
     EmbedField,
     send_embed,
 )
+from argos_ops.outbound.models import SequenceState
 from argos_ops.outbound.sequence import SEQUENCES_DIR, load_sequence_state
 from argos_ops.outbound.templates import build_footer
 
@@ -73,7 +74,7 @@ class SendStats:
         )
 
 
-def determine_mode(settings) -> SendMode:
+def determine_mode(settings: Settings) -> SendMode:
     """Décide entre ``stage`` / ``live`` / ``disabled`` selon la config.
 
     - ``disabled`` si ``email_user`` ou ``email_password`` manquent — on
@@ -94,18 +95,19 @@ def determine_mode(settings) -> SendMode:
     return "stage"
 
 
-def _read_meta(meta_path: Path) -> dict:
-    return yaml.safe_load(meta_path.read_text(encoding="utf-8")) or {}
+def _read_meta(meta_path: Path) -> dict[str, Any]:
+    loaded = yaml.safe_load(meta_path.read_text(encoding="utf-8")) or {}
+    return loaded if isinstance(loaded, dict) else {}
 
 
-def _write_meta(meta_path: Path, payload: dict) -> None:
+def _write_meta(meta_path: Path, payload: dict[str, Any]) -> None:
     meta_path.write_text(
         yaml.safe_dump(payload, allow_unicode=True, sort_keys=False),
         encoding="utf-8",
     )
 
 
-def _read_touch_md(touch_path: Path) -> tuple[dict, str]:
+def _read_touch_md(touch_path: Path) -> tuple[dict[str, Any], str]:
     """Lit un touch_N.md → ``(frontmatter, body)``."""
     raw = touch_path.read_text(encoding="utf-8")
     if not raw.startswith("---\n"):
@@ -276,7 +278,7 @@ class OutboundSender(BaseAgent):
 
         return RunResult(status="success", output_summary=stats.summary())
 
-    def _extract_recipient(self, state, seq_dir: Path) -> str:
+    def _extract_recipient(self, state: SequenceState, seq_dir: Path) -> str:
         """Récupère le destinataire réel : 1er email_guess de l'enriched, sinon fallback."""
         enriched_path = (
             seq_dir.parent.parent.parent / state.enriched_path
@@ -293,7 +295,8 @@ class OutboundSender(BaseAgent):
                     front = yaml.safe_load(front_block) or {}
                     guesses = front.get("email_guesses") or []
                     if guesses:
-                        return guesses[0]["email"]
+                        email = guesses[0]["email"]
+                        return str(email) if email is not None else f"contact@{state.domain}"
                 except (ValueError, KeyError, TypeError):
                     pass
         # Fallback déterministe basé sur le slug : firstname.lastname@domain
@@ -303,7 +306,7 @@ class OutboundSender(BaseAgent):
         return f"contact@{state.domain}"
 
 
-def _persist_state(meta_path: Path, state) -> None:
+def _persist_state(meta_path: Path, state: SequenceState) -> None:
     """Réécrit meta.yaml après mise à jour de touches."""
     payload = {
         "lead_slug": state.lead_slug,

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import yaml
 from loguru import logger
@@ -62,7 +63,7 @@ def _write_enriched_md(
     *,
     full_name: str,
     domain: str,
-    enriched: dict[str, object],
+    enriched: dict[str, Any],
 ) -> None:
     """Écrit le fichier ``<slug>.md`` avec frontmatter YAML + body Markdown."""
     bant = enriched["bant"]
