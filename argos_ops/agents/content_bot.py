@@ -82,6 +82,7 @@ class ContentBot(BaseAgent):
     name = "ContentBot"
     command = "/publish-content"
     breaker_name = "ContentBot"
+    ai_act_risk_class = "limited"
 
     async def run(self) -> RunResult:
         settings = get_settings()

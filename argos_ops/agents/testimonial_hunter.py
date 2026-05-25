@@ -123,6 +123,7 @@ class TestimonialHunter(BaseAgent):
     name = "TestimonialHunter"
     command = "/draft-testimonial-request"
     breaker_name = "TestimonialHunter"
+    ai_act_risk_class = "limited"
 
     async def run(self) -> RunResult:
         nps = load_nps()

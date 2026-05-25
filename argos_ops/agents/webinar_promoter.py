@@ -159,6 +159,7 @@ class WebinarPromoter(BaseAgent):
     name = "WebinarPromoter"
     command = "/promote-webinar"
     breaker_name = "WebinarPromoter"
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         today = datetime.now(UTC).date()

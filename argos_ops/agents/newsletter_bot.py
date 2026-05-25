@@ -136,6 +136,7 @@ class NewsletterBot(BaseAgent):
     name = "NewsletterBot"
     command = "/draft-newsletter"
     breaker_name = "NewsletterBot"
+    ai_act_risk_class = "limited"
 
     def _month_str(self, now: datetime | None = None) -> str:
         now = now or datetime.now(UTC)

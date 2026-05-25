@@ -140,6 +140,7 @@ class BacklinkOutreach(BaseAgent):
     name = "BacklinkOutreach"
     command = "/run-backlink-outreach"
     breaker_name = "BacklinkOutreach"
+    ai_act_risk_class = "limited"
 
     async def run(self) -> RunResult:
         targets = load_targets()

@@ -149,6 +149,7 @@ class KeywordRadar(BaseAgent):
     name = "KeywordRadar"
     command = "/run-keyword-radar"
     breaker_name = "KeywordRadar"
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         current = load_keywords()

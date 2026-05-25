@@ -39,6 +39,26 @@ traitements:
     duree_conservation: 60  # 5 ans (prescription commerciale FR)
     destinataires: "interne uniquement"
 
+  - nom: "Marketing & Growth — drafting outbound (P22.I)"
+    base_legale: "intérêt légitime"
+    finalite: "Drafting de contenu sortant marketing (newsletter, backlink outreach, demandes testimonial post-NPS, case studies clients référencés). Tous les drafts sont validés humain-in-the-loop avant envoi."
+    paths:
+      - argos_ops/agents/newsletter_bot.py         # liste email newsletter (envoi humain)
+      - argos_ops/agents/backlink_outreach.py      # contact_email sites cyber FR
+      - argos_ops/agents/testimonial_hunter.py     # contact_name + email post-NPS promoteurs
+      - argos_ops/agents/case_study_drafter.py    # customer + quote + résultats (avec consentement)
+    duree_conservation: 36  # 3 ans (cf. CNIL prospection BtoB)
+    destinataires: "interne + LinkedIn/Mastodon APIs (ContentBot, sous-traitants)"
+
+  - nom: "Marketing & Growth — publication / pilotage (P22.I)"
+    base_legale: "intérêt légitime (présence en ligne, acquisition)"
+    finalite: "Publication automatique de posts sociaux validés + pilotage campagnes ads via APIs tierces"
+    paths:
+      - argos_ops/agents/content_bot.py            # publish LinkedIn + Mastodon
+      - argos_ops/agents/ad_bot_live.py            # Google/LinkedIn/Meta Ads APIs
+    duree_conservation: 36
+    destinataires: "LinkedIn / Mastodon / Google Ads / Meta Ads / LinkedIn Campaign Manager (sous-traitants)"
+
   - nom: "Support client Tier 1"
     base_legale: "exécution du contrat"
     finalite: "Répondre aux tickets support clients Argos"
@@ -77,3 +97,13 @@ bots_sans_pii:
       - argos_ops/agents/reconcile_bot.py          # payouts Stripe ↔ crédits Qonto (montants)
       - argos_ops/agents/burn_rate_monitor.py      # YAML treasury (cash/burn/revenue)
       - argos_ops/agents/vendor_contract_watcher.py  # YAML contrats fournisseurs (B2B)
+
+  - nom: "Marketing & Growth (P22.I) — bots audit-only / agrégation"
+    motif: "Lecture sources publiques (RSS, SERP, analytics agrégées internes) + health-check passif. Aucune PII identifiable traitée par ces 6 bots."
+    paths:
+      - argos_ops/agents/seo_bot.py                # health-check briefs SEO (compte fichiers)
+      - argos_ops/agents/trend_spotter.py          # YAML sources cyber publiques
+      - argos_ops/agents/social_analytics.py       # engagement agrégé par canal
+      - argos_ops/agents/keyword_radar.py          # positions SERP keywords trackés
+      - argos_ops/agents/landing_optimizer.py      # métriques landing pages anonymes
+      - argos_ops/agents/webinar_promoter.py       # métadonnées webinars publiques

@@ -60,6 +60,19 @@ const RUNNABLE_AGENTS = new Set<string>([
   "ProposalBot",
   "ContractGenerator",
   "DealRiskScorer",
+  // Marketing & Growth (P22.I).
+  "SEOBot",
+  "ContentBot",
+  "AdBot",
+  "TrendSpotter",
+  "NewsletterBot",
+  "SocialAnalytics",
+  "BacklinkOutreach",
+  "KeywordRadar",
+  "LandingOptimizer",
+  "WebinarPromoter",
+  "TestimonialHunter",
+  "CaseStudyDrafter",
 ]);
 
 export function Agents() {

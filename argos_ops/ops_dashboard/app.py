@@ -102,6 +102,22 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "ProposalBot",
         "ContractGenerator",
         "DealRiskScorer",
+        # Marketing & Growth (P22.I) — bots non-interactifs.
+        # ContentBot publie en shadow tant que CONTENT_LIVE_MODE manque.
+        # AdBot reste shadow tant que ADS_LIVE_MODE=false.
+        # SEOBot.run() est un health-check passif (compte les briefs présents).
+        "SEOBot",
+        "ContentBot",
+        "AdBot",
+        "TrendSpotter",
+        "NewsletterBot",
+        "SocialAnalytics",
+        "BacklinkOutreach",
+        "KeywordRadar",
+        "LandingOptimizer",
+        "WebinarPromoter",
+        "TestimonialHunter",
+        "CaseStudyDrafter",
     }
 )
 
@@ -213,6 +229,56 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.deal_risk_scorer import DealRiskScorer
 
         return DealRiskScorer()
+    if name == "SEOBot":
+        # Run now = health-check passif (compte les briefs SEO présents).
+        # Le drafting interactif passe par /generate-seo-brief côté slash.
+        from argos_ops.agents.seo_bot import SEOBot
+
+        return SEOBot()
+    if name == "ContentBot":
+        from argos_ops.agents.content_bot import ContentBot
+
+        return ContentBot()
+    if name == "AdBot":
+        from argos_ops.agents.ad_bot_live import AdBotLive
+
+        return AdBotLive()
+    if name == "TrendSpotter":
+        from argos_ops.agents.trend_spotter import TrendSpotter
+
+        return TrendSpotter()
+    if name == "NewsletterBot":
+        from argos_ops.agents.newsletter_bot import NewsletterBot
+
+        return NewsletterBot()
+    if name == "SocialAnalytics":
+        from argos_ops.agents.social_analytics import SocialAnalytics
+
+        return SocialAnalytics()
+    if name == "BacklinkOutreach":
+        from argos_ops.agents.backlink_outreach import BacklinkOutreach
+
+        return BacklinkOutreach()
+    if name == "KeywordRadar":
+        from argos_ops.agents.keyword_radar import KeywordRadar
+
+        return KeywordRadar()
+    if name == "LandingOptimizer":
+        from argos_ops.agents.landing_optimizer import LandingOptimizer
+
+        return LandingOptimizer()
+    if name == "WebinarPromoter":
+        from argos_ops.agents.webinar_promoter import WebinarPromoter
+
+        return WebinarPromoter()
+    if name == "TestimonialHunter":
+        from argos_ops.agents.testimonial_hunter import TestimonialHunter
+
+        return TestimonialHunter()
+    if name == "CaseStudyDrafter":
+        from argos_ops.agents.case_study_drafter import CaseStudyDrafter
+
+        return CaseStudyDrafter()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 

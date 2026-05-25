@@ -92,6 +92,29 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "OutboundBot": 26.0,
     "IntentSignalsBot": 26.0,
     "DealRiskScorer": 172.0,
+    # Marketing & Growth (P22.I) — cron via setup_marketing_tasks.ps1 :
+    #   - ContentBot         : */2 8-20 * * *   → 3h slack (publish toutes les 2h en journée)
+    #   - AdBot              : quotidien 09:00  → 26h slack
+    #   - TrendSpotter       : quotidien 07:30  → 26h slack
+    #   - SocialAnalytics    : lundi 09:00 (hebdo) → 172h slack
+    #   - BacklinkOutreach   : jeudi 09:00 (hebdo) → 172h slack
+    #   - KeywordRadar       : lundi 09:15 (hebdo) → 172h slack
+    #   - LandingOptimizer   : mardi 09:00 (hebdo) → 172h slack
+    #   - WebinarPromoter    : mercredi 09:00 (hebdo) → 172h slack
+    #   - TestimonialHunter  : quotidien 15:00  → 26h slack
+    #   - NewsletterBot      : 1er du mois 10:00 (mensuel) → 756h slack
+    #   - CaseStudyDrafter   : réactif (slash) → skip cadence
+    #   - SEOBot             : réactif (slash + health-check) → skip cadence
+    "ContentBot": 3.0,
+    "AdBot": 26.0,
+    "TrendSpotter": 26.0,
+    "SocialAnalytics": 172.0,
+    "BacklinkOutreach": 172.0,
+    "KeywordRadar": 172.0,
+    "LandingOptimizer": 172.0,
+    "WebinarPromoter": 172.0,
+    "TestimonialHunter": 26.0,
+    "NewsletterBot": 756.0,
 }
 
 # Default thresholds
