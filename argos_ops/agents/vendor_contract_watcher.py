@@ -45,6 +45,7 @@ from loguru import logger
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT
+from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
 DEFAULT_CONTRACTS_PATH: Path = REPO_ROOT / "data" / "contracts" / "contracts.yaml"
@@ -219,12 +220,18 @@ class VendorContractWatcher(BaseAgent):
     name = "VendorContractWatcher"
     command = None
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, contracts_path: Path = DEFAULT_CONTRACTS_PATH) -> None:
         self._path = contracts_path
 
     async def run(self) -> RunResult:
-        contracts = load_contracts(self._path)
+        try:
+            contracts = load_contracts(self._path)
+        except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+            raise AgentDataSourceError(
+                f"load contracts {self._path.name}: {exc}"
+            ) from exc
         if not contracts:
             logger.info(f"VendorContractWatcher — {self._path} absent ou vide, skip")
             return RunResult(

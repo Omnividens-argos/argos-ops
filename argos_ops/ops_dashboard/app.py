@@ -82,6 +82,13 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "OKRTracker",
         "BoardReporter",
         "DecisionLogger",
+        # Finance & Trésorerie (P22.F) — bots non-interactifs.
+        "InvoicePredictor",
+        "ExpenseAuditor",
+        "TaxBot",
+        "ReconcileBot",
+        "BurnRateMonitor",
+        "VendorContractWatcher",
     }
 )
 
@@ -133,6 +140,30 @@ def _build_agent(name: str) -> BaseAgent:
         )
 
         return DecisionLogger(output_path=DEFAULT_DECISIONS_PATH)
+    if name == "InvoicePredictor":
+        from argos_ops.agents.invoice_predictor import InvoicePredictor
+
+        return InvoicePredictor()
+    if name == "ExpenseAuditor":
+        from argos_ops.agents.expense_auditor import ExpenseAuditor
+
+        return ExpenseAuditor()
+    if name == "TaxBot":
+        from argos_ops.agents.tax_bot import TaxBot
+
+        return TaxBot()
+    if name == "ReconcileBot":
+        from argos_ops.agents.reconcile_bot import ReconcileBot
+
+        return ReconcileBot()
+    if name == "BurnRateMonitor":
+        from argos_ops.agents.burn_rate_monitor import BurnRateMonitor
+
+        return BurnRateMonitor()
+    if name == "VendorContractWatcher":
+        from argos_ops.agents.vendor_contract_watcher import VendorContractWatcher
+
+        return VendorContractWatcher()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 
