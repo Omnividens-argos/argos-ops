@@ -37,6 +37,7 @@ from loguru import logger
 
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
+from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import (
     GREEN,
     YELLOW,
@@ -70,7 +71,7 @@ def _load_demos(path: Path) -> list[dict[str, Any]]:
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     demos = raw.get("demos", [])
     if not isinstance(demos, list):
-        raise ValueError(f"demos/done.yaml malformé : {path}")
+        raise AgentDataSourceError(f"demos/done.yaml malformé : {path}")
     return demos
 
 
@@ -90,14 +91,16 @@ def _draft_followup(entry: dict[str, Any], drafts_dir: Path) -> Path:
     elif isinstance(when_raw, date):
         when = when_raw
     else:
-        raise ValueError(f"`when` invalide pour {entry.get('demo_id')}")
+        raise AgentDataSourceError(f"`when` invalide pour {entry.get('demo_id')}")
     next_steps_raw = entry.get("next_steps", []) or []
     next_steps: list[tuple[str, str]] = []
     for step in next_steps_raw:
         if isinstance(step, list) and len(step) == 2:
             next_steps.append((step[0], step[1]))
         else:
-            raise ValueError(f"`next_steps` doit être une liste de [owner, action] : {step!r}")
+            raise AgentDataSourceError(
+                f"`next_steps` doit être une liste de [owner, action] : {step!r}"
+            )
     body = render_demo_followup(
         first_name=entry.get("first_name", "à vous"),
         when=when,
@@ -151,6 +154,7 @@ class DemoFollowupBot(BaseAgent):
     name = "DemoFollowupBot"
     command = "/draft-demo-followup"
     breaker_name = "DemoFollowupBot"
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

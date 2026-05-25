@@ -39,6 +39,7 @@ from loguru import logger
 
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
+from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import (
     GREEN,
     YELLOW,
@@ -76,7 +77,7 @@ def _load_sources(path: Path) -> dict[str, Any]:
         return {}
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
-        raise ValueError(f"sources.yaml malformé : {path}")
+        raise AgentDataSourceError(f"sources.yaml malformé : {path}")
     return raw
 
 
@@ -271,6 +272,7 @@ class ProspectMiner(BaseAgent):
     name = "ProspectMiner"
     command = "/run-prospect-mining"
     breaker_name = "ProspectMiner"
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

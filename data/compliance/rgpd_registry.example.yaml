@@ -21,7 +21,22 @@ traitements:
     paths:
       - argos_ops/agents/outbound_bot.py
       - argos_ops/agents/email_bot.py
+      - argos_ops/agents/lead_enricher.py        # P22.H : enrichit nom + domaine + email guess
+      - argos_ops/agents/prospect_miner.py       # P22.H : sourcing leads via RSS publics
+      - argos_ops/agents/intent_signals.py       # P22.H : signaux achat publics (RSS)
     duree_conservation: 36
+    destinataires: "interne uniquement"
+
+  - nom: "Sales pipe & deals (P22.H)"
+    base_legale: "intérêt légitime + exécution du contrat (en pré-vente)"
+    finalite: "Suivi commercial : RDV démo, récap post-démo, devis, contrat, scoring du pipe"
+    paths:
+      - argos_ops/agents/meeting_booker.py       # email + nom + ICS attendee
+      - argos_ops/agents/demo_followup.py        # email + nom + pain points post-démo
+      - argos_ops/agents/proposal_bot.py         # contact_name + contact_email + SIRET
+      - argos_ops/agents/contract_generator.py   # CGV/MSA — contact_name + contact_email + SIRET
+      - argos_ops/agents/deal_risk_scorer.py     # pipe.yaml (company + amount + last_activity)
+    duree_conservation: 60  # 5 ans (prescription commerciale FR)
     destinataires: "interne uniquement"
 
   - nom: "Support client Tier 1"

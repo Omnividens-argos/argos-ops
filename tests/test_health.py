@@ -159,6 +159,11 @@ async def test_freshness_green_when_all_recent() -> None:
                 "ReconcileBot": _make_run("ReconcileBot", hours_ago=10.0),
                 "BurnRateMonitor": _make_run("BurnRateMonitor", hours_ago=10.0),
                 "VendorContractWatcher": _make_run("VendorContractWatcher", hours_ago=10.0),
+                "ProspectMiner": _make_run("ProspectMiner", hours_ago=4.0),
+                "LeadEnricher": _make_run("LeadEnricher", hours_ago=4.0),
+                "OutboundBot": _make_run("OutboundBot", hours_ago=4.0),
+                "IntentSignalsBot": _make_run("IntentSignalsBot", hours_ago=4.0),
+                "DealRiskScorer": _make_run("DealRiskScorer", hours_ago=24.0),
             }
         ),
     ):
@@ -206,6 +211,11 @@ async def test_freshness_yellow_at_80_percent_of_threshold() -> None:
                 "ReconcileBot": _make_run("ReconcileBot", hours_ago=10.0),
                 "BurnRateMonitor": _make_run("BurnRateMonitor", hours_ago=10.0),
                 "VendorContractWatcher": _make_run("VendorContractWatcher", hours_ago=10.0),
+                "ProspectMiner": _make_run("ProspectMiner", hours_ago=4.0),
+                "LeadEnricher": _make_run("LeadEnricher", hours_ago=4.0),
+                "OutboundBot": _make_run("OutboundBot", hours_ago=4.0),
+                "IntentSignalsBot": _make_run("IntentSignalsBot", hours_ago=4.0),
+                "DealRiskScorer": _make_run("DealRiskScorer", hours_ago=24.0),
             }
         ),
     ):

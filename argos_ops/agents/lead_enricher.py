@@ -27,6 +27,7 @@ from loguru import logger
 
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import get_settings
+from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import (
     GREEN,
     YELLOW,
@@ -147,6 +148,7 @@ class LeadEnricher(BaseAgent):
     name = "LeadEnricher"
     command = "/run-lead-enrich"
     breaker_name = "LeadEnricher"
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,
@@ -167,8 +169,7 @@ class LeadEnricher(BaseAgent):
         try:
             leads = read_inbox_csv(csv_path)
         except ValueError as exc:
-            logger.error(f"LeadEnricher — CSV invalide : {exc}")
-            return RunResult(status="failed", error=str(exc))
+            raise AgentDataSourceError(f"CSV invalide {csv_path.name}: {exc}") from exc
 
         stats = EnrichmentStats(leads_seen=len(leads))
         for lead in leads:

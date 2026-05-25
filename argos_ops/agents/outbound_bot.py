@@ -32,6 +32,7 @@ from loguru import logger
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.breakers import trip_with_notification
 from argos_ops.config import get_settings
+from argos_ops.exceptions import AgentDataSourceError, ConfigError
 from argos_ops.notifications.discord import (
     GREEN,
     YELLOW,
@@ -106,17 +107,15 @@ class OutboundBot(BaseAgent):
     name = "OutboundBot"
     command = "/run-outbound-bot"
     breaker_name = "OutboundBot"
+    ai_act_risk_class = "limited"
 
     async def run(self) -> RunResult:
         settings = get_settings()
         if settings.outbound_unsubscribe_secret is None:
-            return RunResult(
-                status="failed",
-                error=(
-                    "OUTBOUND_UNSUBSCRIBE_SECRET manquant — requis même en shadow "
-                    "pour pré-calculer les tokens d'opt-out. Génère via "
-                    '`python -c "import secrets; print(secrets.token_hex(32))"`.'
-                ),
+            raise ConfigError(
+                "OUTBOUND_UNSUBSCRIBE_SECRET manquant — requis même en shadow "
+                "pour pré-calculer les tokens d'opt-out. Génère via "
+                '`python -c "import secrets; print(secrets.token_hex(32))"`.'
             )
 
         csv_path = INBOX_DIR / DEFAULT_CSV_NAME
@@ -130,8 +129,7 @@ class OutboundBot(BaseAgent):
         try:
             leads = read_inbox_csv(csv_path)
         except ValueError as exc:
-            logger.error(f"OutboundBot — CSV invalide : {exc}")
-            return RunResult(status="failed", error=f"CSV invalide : {exc}")
+            raise AgentDataSourceError(f"CSV invalide {csv_path.name}: {exc}") from exc
 
         stats = ScaffoldStats(read=len(leads))
         logger.info(f"OutboundBot — {len(leads)} lead(s) lu(s) depuis {csv_path}")

@@ -138,6 +138,7 @@ class ProposalBot(BaseAgent):
     name = "ProposalBot"
     command = "/draft-proposal"
     breaker_name = "ProposalBot"
+    ai_act_risk_class = "limited"
 
     def __init__(self, *, proposals_root: Path = DEFAULT_PROPOSALS_ROOT) -> None:
         self._proposals_root = proposals_root

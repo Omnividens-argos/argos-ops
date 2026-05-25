@@ -103,6 +103,7 @@ class ContractGenerator(BaseAgent):
     name = "ContractGenerator"
     command = "/draft-contract"
     breaker_name = "ContractGenerator"
+    ai_act_risk_class = "limited"
 
     def __init__(
         self,

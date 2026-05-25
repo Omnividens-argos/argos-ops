@@ -147,6 +147,7 @@ class DealRiskScorer(BaseAgent):
     name = "DealRiskScorer"
     command = "/run-deal-scoring"
     breaker_name = "DealRiskScorer"
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, pipe_path: Path = DEFAULT_PIPE_PATH) -> None:
         self._pipe_path = pipe_path

@@ -64,6 +64,16 @@ HealthStatus = Literal["green", "yellow", "red"]
 #   - ReconcileBot           : lundi 7h15 (hebdo)           → 7j + 4h slack
 #   - BurnRateMonitor        : lundi 7h30 (hebdo)           → 7j + 4h slack
 #   - VendorContractWatcher  : lundi 7h45 (hebdo)           → 7j + 4h slack
+# Sales / Commercial (P22.H) — cron via setup_sales_tasks.ps1 :
+#   - ProspectMiner    : quotidien 7h          → 26h slack
+#   - LeadEnricher     : quotidien 7h15        → 26h slack
+#   - OutboundBot      : quotidien 9h          → 26h slack
+#   - IntentSignalsBot : quotidien 8h          → 26h slack
+#   - DealRiskScorer   : lundi 8h30 (hebdo)    → 172h slack
+#   - MeetingBooker    : réactif (slash) → skip cadence
+#   - DemoFollowupBot  : réactif (slash) → skip cadence
+#   - ProposalBot      : réactif (slash) → skip cadence
+#   - ContractGenerator: réactif (slash) → skip cadence
 DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "DigestBuilder": 26.0,
     "EmailBot": 14.5,
@@ -77,6 +87,11 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "ReconcileBot": 172.0,
     "BurnRateMonitor": 172.0,
     "VendorContractWatcher": 172.0,
+    "ProspectMiner": 26.0,
+    "LeadEnricher": 26.0,
+    "OutboundBot": 26.0,
+    "IntentSignalsBot": 26.0,
+    "DealRiskScorer": 172.0,
 }
 
 # Default thresholds
