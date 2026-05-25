@@ -28,6 +28,7 @@ from loguru import logger
 
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT
+from argos_ops.exceptions import AgentDataSourceError
 
 DEFAULT_DECISIONS_PATH: Path = REPO_ROOT / "docs" / "DECISIONS.md"
 
@@ -183,7 +184,7 @@ class DecisionLogger(BaseAgent):
         try:
             content = path.read_text(encoding="utf-8") if exists else ""
         except (OSError, UnicodeDecodeError) as exc:
-            return RunResult(status="failed", error=f"read {path.name}: {exc}")
+            raise AgentDataSourceError(f"read {path.name}: {exc}") from exc
         count = len(_DECISION_HEADER_RE.findall(content))
         return RunResult(
             status="success",
