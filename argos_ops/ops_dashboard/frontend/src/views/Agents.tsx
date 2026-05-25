@@ -34,7 +34,16 @@ type StatusFilter = "all" | "active" | "roadmap";
 // Agents qu'on peut déclencher manuellement via "Run now" du drawer.
 // Doit rester aligné avec ``argos_ops/ops_dashboard/app.py::RUNNABLE_AGENTS``.
 // SupportBot et SEOBot sont interactifs (slash commands) — pas de bouton ici.
-const RUNNABLE_AGENTS = new Set<string>(["DigestBuilder", "EmailBot", "FinanceBot"]);
+const RUNNABLE_AGENTS = new Set<string>([
+  "DigestBuilder",
+  "EmailBot",
+  "FinanceBot",
+  // Direction & Stratégie (P22.E).
+  "StrategyBot",
+  "OKRTracker",
+  "BoardReporter",
+  "DecisionLogger",
+]);
 
 export function Agents() {
   const fetcher = useCallback((s?: AbortSignal) => fetchAgents(s), []);

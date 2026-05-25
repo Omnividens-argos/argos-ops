@@ -150,6 +150,9 @@ async def test_freshness_green_when_all_recent() -> None:
                 "DigestBuilder": _make_run("DigestBuilder", hours_ago=2.0),
                 "EmailBot": _make_run("EmailBot", hours_ago=0.5),
                 "FinanceBot": _make_run("FinanceBot", hours_ago=4.0),
+                "StrategyBot": _make_run("StrategyBot", hours_ago=10.0),
+                "OKRTracker": _make_run("OKRTracker", hours_ago=10.0),
+                "BoardReporter": _make_run("BoardReporter", hours_ago=24.0),
             }
         ),
     ):
@@ -188,6 +191,9 @@ async def test_freshness_yellow_at_80_percent_of_threshold() -> None:
                 "DigestBuilder": _make_run("DigestBuilder", hours_ago=22.0),
                 "EmailBot": _make_run("EmailBot", hours_ago=0.5),
                 "FinanceBot": _make_run("FinanceBot", hours_ago=4.0),
+                "StrategyBot": _make_run("StrategyBot", hours_ago=10.0),
+                "OKRTracker": _make_run("OKRTracker", hours_ago=10.0),
+                "BoardReporter": _make_run("BoardReporter", hours_ago=24.0),
             }
         ),
     ):

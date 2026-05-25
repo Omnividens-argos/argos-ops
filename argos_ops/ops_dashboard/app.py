@@ -68,7 +68,21 @@ KNOWN_AGENTS: tuple[str, ...] = (
 # paused, daily_limit). OrchestratorBot est runnable en dry-run uniquement
 # depuis le panel (live mode passe par CLI explicite).
 RUNNABLE_AGENTS: frozenset[str] = frozenset(
-    {"DigestBuilder", "EmailBot", "FinanceBot", "BotHealthBot", "OrchestratorBot"}
+    {
+        "DigestBuilder",
+        "EmailBot",
+        "FinanceBot",
+        "BotHealthBot",
+        "OrchestratorBot",
+        # Direction & Stratégie (P22.E) — bots non-interactifs.
+        # DecisionLogger.run() est un health-check passif (compte les
+        # décisions présentes), pas l'append : l'append reste via slash
+        # /log-decision qui collecte les inputs.
+        "StrategyBot",
+        "OKRTracker",
+        "BoardReporter",
+        "DecisionLogger",
+    }
 )
 
 
@@ -97,6 +111,28 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.orchestrator import OrchestratorBot
 
         return OrchestratorBot(live=False)
+    if name == "StrategyBot":
+        from argos_ops.agents.strategy_bot import StrategyBot
+
+        return StrategyBot()
+    if name == "OKRTracker":
+        from argos_ops.agents.okr_tracker import OKRTracker
+
+        return OKRTracker()
+    if name == "BoardReporter":
+        from argos_ops.agents.board_reporter import BoardReporter
+
+        return BoardReporter()
+    if name == "DecisionLogger":
+        # Run now = health-check passif (compte les décisions présentes
+        # dans le journal canonique). L'append interactif passe par
+        # /log-decision côté slash, pas par le panel.
+        from argos_ops.agents.decision_logger import (
+            DEFAULT_DECISIONS_PATH,
+            DecisionLogger,
+        )
+
+        return DecisionLogger(output_path=DEFAULT_DECISIONS_PATH)
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 

@@ -52,10 +52,18 @@ HealthStatus = Literal["green", "yellow", "red"]
 #   - EmailBot      : */15 8-22 * * *     → max 1h en jour ; 14h overnight
 #   - FinanceBot    : 0 6 * * *           → 24h ± 1h slack
 #   - SupportBot    : interactif (slash) → pas de cadence cron, on skip
+# Direction & Stratégie (P22.E) — cron via setup_direction_tasks.ps1 :
+#   - StrategyBot   : lundi 8h Paris (hebdo)    → 7j + 4h slack
+#   - OKRTracker    : lundi 8h Paris (hebdo)    → 7j + 4h slack
+#   - BoardReporter : 1er du mois 7h Paris      → 31j + 12h slack
+#   - DecisionLogger : interactif (slash) → pas de cadence cron, skip
 DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "DigestBuilder": 26.0,
     "EmailBot": 14.5,
     "FinanceBot": 26.0,
+    "StrategyBot": 172.0,  # 7j + 4h
+    "OKRTracker": 172.0,  # 7j + 4h
+    "BoardReporter": 756.0,  # 31j + 12h
 }
 
 # Default thresholds

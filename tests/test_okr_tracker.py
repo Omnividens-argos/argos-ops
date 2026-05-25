@@ -28,7 +28,9 @@ def test_quarter_bounds_q2() -> None:
 
 
 def test_quarter_bounds_invalid() -> None:
-    with pytest.raises(ValueError):
+    from argos_ops.exceptions import ConfigError
+
+    with pytest.raises(ConfigError):
         quarter_bounds(2026, 5)
 
 

@@ -30,6 +30,7 @@ from argos_ops.config import REPO_ROOT
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun
 from argos_ops.crm.repository import sum_active_mrr_eur
+from argos_ops.exceptions import AgentDataSourceError, AgentOutputError
 
 DEFAULT_OUTPUT_DIR: Path = REPO_ROOT / "data" / "strategy"
 DEFAULT_BURN_PATH: Path = REPO_ROOT / "data" / "strategy" / "burn.yaml"
@@ -235,12 +236,14 @@ class BoardReporter(BaseAgent):
         try:
             metrics = await self.build_metrics()
         except Exception as exc:
-            logger.error(f"BoardReporter — build_metrics failed: {exc}")
-            return RunResult(status="failed", error=f"build_metrics: {exc}")
+            raise AgentDataSourceError(f"build_metrics: {exc}") from exc
 
-        self._output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = self._output_dir / f"board-{metrics.period}.md"
-        output_path.write_text(render_board_pack(metrics), encoding="utf-8")
+        try:
+            self._output_dir.mkdir(parents=True, exist_ok=True)
+            output_path = self._output_dir / f"board-{metrics.period}.md"
+            output_path.write_text(render_board_pack(metrics), encoding="utf-8")
+        except OSError as exc:
+            raise AgentOutputError(f"write board pack: {exc}") from exc
         summary = (
             f"board pack écrit dans {output_path.name} "
             f"(MRR {metrics.mrr_eur:.0f}€ · {metrics.runs_month} runs · "

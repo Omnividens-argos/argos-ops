@@ -25,6 +25,7 @@ import yaml
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT
+from argos_ops.exceptions import AgentDataSourceError, ConfigError
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
 DEFAULT_OKR_DIR: Path = REPO_ROOT / "data" / "okr"
@@ -72,7 +73,7 @@ _QUARTER_BOUNDS: dict[int, tuple[int, int, int, int]] = {
 def quarter_bounds(year: int, quarter: int) -> tuple[date, date]:
     """Retourne ``(start, end)`` du trimestre."""
     if quarter not in _QUARTER_BOUNDS:
-        raise ValueError(f"quarter invalide: {quarter}")
+        raise ConfigError(f"quarter invalide: {quarter}")
     sm, sd, em, ed = _QUARTER_BOUNDS[quarter]
     return date(year, sm, sd), date(year, em, ed)
 
@@ -276,7 +277,10 @@ class OKRTracker(BaseAgent):
 
     async def run(self) -> RunResult:
         path = self._resolve_path()
-        report = load_okr(path, today=self._today)
+        try:
+            report = load_okr(path, today=self._today)
+        except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+            raise AgentDataSourceError(f"load_okr {path.name}: {exc}") from exc
         return await emit_alert_or_silence(
             report, embed_builder=build_okr_embed, agent_name=self.name
         )

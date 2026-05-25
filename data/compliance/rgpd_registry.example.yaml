@@ -40,3 +40,15 @@ traitements:
       - argos_ops/agents/finance_bot.py
     duree_conservation: 120  # obligation fiscale 10 ans
     destinataires: "Stripe (sous-traitant) + cabinet comptable"
+
+# Bots exemptés (aucune donnée perso traitée) — listés ici pour la traçabilité
+# de l'audit interne RGPDAuditor. Ne déclencher AUCUNE alerte sur ces paths.
+# À mettre à jour si un de ces bots venait à toucher de la PII.
+bots_sans_pii:
+  - nom: "Direction & Stratégie (P22.E)"
+    motif: "Agrégation de métriques internes (agent_runs, MRR agrégé, OKR KPIs, décisions)"
+    paths:
+      - argos_ops/agents/strategy_bot.py     # lit agent_runs (nom d'agent, status)
+      - argos_ops/agents/okr_tracker.py      # lit data/okr/*.yaml (KPIs cibles)
+      - argos_ops/agents/board_reporter.py   # MRR agrégé via sum_active_mrr_eur
+      - argos_ops/agents/decision_logger.py  # docs/DECISIONS.md (décisions internes)

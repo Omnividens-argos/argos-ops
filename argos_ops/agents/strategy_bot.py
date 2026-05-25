@@ -27,6 +27,7 @@ from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun
+from argos_ops.exceptions import AgentDataSourceError, AgentOutputError
 from argos_ops.notifications.discord import GREEN, Embed, EmbedField, send_embed
 
 DEFAULT_OUTPUT_DIR: Path = REPO_ROOT / "data" / "strategy"
@@ -203,8 +204,7 @@ class StrategyBot(BaseAgent):
         try:
             runs = await self._fetch_runs(cutoff)
         except Exception as exc:
-            logger.error(f"StrategyBot — DB read failed: {exc}")
-            return RunResult(status="failed", error=f"db read: {exc}")
+            raise AgentDataSourceError(f"db read agent_runs: {exc}") from exc
 
         metrics = aggregate(runs)
         iso_year, iso_week, _ = self._now.isocalendar()
@@ -215,39 +215,55 @@ class StrategyBot(BaseAgent):
             window_start=cutoff,
             window_end=self._now,
         )
-        self._output_dir.mkdir(parents=True, exist_ok=True)
-        digest_path = self._output_dir / f"digest-{iso_year}-W{iso_week:02d}.md"
-        digest_path.write_text(body, encoding="utf-8")
+        try:
+            self._output_dir.mkdir(parents=True, exist_ok=True)
+            digest_path = self._output_dir / f"digest-{iso_year}-W{iso_week:02d}.md"
+            digest_path.write_text(body, encoding="utf-8")
+        except OSError as exc:
+            raise AgentOutputError(f"write digest: {exc}") from exc
 
-        # Push Embed Discord (toujours — rendez-vous hebdo)
+        # Push Embed Discord (toujours — rendez-vous hebdo).
+        # Mode dégradé : si le webhook est absent ou que le push échoue,
+        # on continue — le markdown sur disque reste la source de vérité.
         settings = get_settings()
         webhook = settings.discord_webhook_ops_logs
         total = sum(m.total_runs for m in metrics)
-        embed = Embed(
-            title=f"StrategyBot — Semaine {iso_year}-W{iso_week:02d}",
-            description=f"{total} runs · {len(metrics)} agents actifs",
-            color=GREEN,
-            fields=[
-                EmbedField(
-                    name=m.agent_name,
-                    value=f"{m.total_runs} runs · {m.success_rate * 100:.0f}% succès",
-                    inline=True,
-                )
-                for m in metrics[:9]
-            ],
-            footer="Argos Ops • StrategyBot",
-            timestamp=self._now.isoformat(),
-        )
-        if webhook is not None:
+        discord_pushed = False
+        if webhook is None:
+            logger.warning(
+                "StrategyBot — DISCORD_WEBHOOK_OPS_LOGS absent, "
+                "digest écrit sur disque uniquement (mode dégradé)"
+            )
+        else:
+            embed = Embed(
+                title=f"StrategyBot — Semaine {iso_year}-W{iso_week:02d}",
+                description=f"{total} runs · {len(metrics)} agents actifs",
+                color=GREEN,
+                fields=[
+                    EmbedField(
+                        name=m.agent_name,
+                        value=f"{m.total_runs} runs · {m.success_rate * 100:.0f}% succès",
+                        inline=True,
+                    )
+                    for m in metrics[:9]
+                ],
+                footer="Argos Ops • StrategyBot",
+                timestamp=self._now.isoformat(),
+            )
             try:
                 await send_embed(webhook, embed)
+                discord_pushed = True
             except Exception as exc:
-                logger.warning(f"StrategyBot — push Discord échoué: {exc}")
+                logger.warning(f"StrategyBot — push Discord échoué (digest OK sur disque): {exc}")
 
         return RunResult(
             status="success",
             output_summary=f"digest écrit dans {digest_path.name} ({total} runs)",
-            extras={"digest_path": str(digest_path), "total_runs": total},
+            extras={
+                "digest_path": str(digest_path),
+                "total_runs": total,
+                "discord_pushed": discord_pushed,
+            },
         )
 
 

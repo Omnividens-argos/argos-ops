@@ -44,6 +44,9 @@ coverage.xml
 data/embeddings/
 data/_fetcher_cache/*
 !data/_fetcher_cache/.gitkeep
+# Outputs StrategyBot / BoardReporter (P22.E) — regénérés à chaque run
+data/strategy/digest-*.md
+data/strategy/board-*.md
 logs/
 *.db
 *.sqlite
