@@ -39,6 +39,7 @@ from loguru import logger
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT
+from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
 DEFAULT_TREASURY_PATH: Path = REPO_ROOT / "data" / "finance" / "treasury_state.yaml"
@@ -214,12 +215,18 @@ class BurnRateMonitor(BaseAgent):
     name = "BurnRateMonitor"
     command = None  # pas de slash (cron pur)
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, treasury_path: Path = DEFAULT_TREASURY_PATH) -> None:
         self._path = treasury_path
 
     async def run(self) -> RunResult:
-        snapshot = load_treasury(self._path)
+        try:
+            snapshot = load_treasury(self._path)
+        except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+            raise AgentDataSourceError(
+                f"load treasury {self._path.name}: {exc}"
+            ) from exc
         report = build_report(snapshot)
         if snapshot is None:
             logger.info(f"BurnRateMonitor — {self._path} absent, skip silencieux")

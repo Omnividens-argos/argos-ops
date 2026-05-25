@@ -39,6 +39,7 @@ from argos_ops.crm.repository import (
     get_or_create_company,
     get_or_create_lead,
 )
+from argos_ops.exceptions import AgentDataSourceError, ConfigError
 from argos_ops.integrations.stripe_client import (
     DunningLevel,
     StripeInvoice,
@@ -346,19 +347,14 @@ class FinanceBot(BaseAgent):
     name = "FinanceBot"
     command = "/daily-finance-sync"
     breaker_name = "FinanceBot"
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         settings = get_settings()
         if settings.stripe_secret_key is None:
-            return RunResult(
-                status="failed",
-                error="STRIPE_SECRET_KEY manquant dans .env.local",
-            )
+            raise ConfigError("STRIPE_SECRET_KEY manquant dans .env.local")
         if settings.email_user is None or settings.email_password is None:
-            return RunResult(
-                status="failed",
-                error="EMAIL_USER/EMAIL_PASSWORD manquants — voir D-005",
-            )
+            raise ConfigError("EMAIL_USER/EMAIL_PASSWORD manquants — voir D-005")
 
         stats = FinanceStats()
 
@@ -366,8 +362,7 @@ class FinanceBot(BaseAgent):
         try:
             subs = await fetch_active_subscriptions(settings.stripe_secret_key)
         except Exception as exc:
-            logger.error(f"FinanceBot — Stripe subs fetch a échoué : {type(exc).__name__}")
-            return RunResult(status="failed", error=f"Stripe subs: {type(exc).__name__}: {exc}")
+            raise AgentDataSourceError(f"Stripe subs fetch: {exc}") from exc
 
         stats.n_subs = len(subs)
         stats.n_active_subs = sum(1 for s in subs if s.status in ("active", "trialing"))
@@ -392,8 +387,7 @@ class FinanceBot(BaseAgent):
         try:
             invoices = await fetch_open_invoices(settings.stripe_secret_key)
         except Exception as exc:
-            logger.error(f"FinanceBot — Stripe invoices fetch a échoué : {type(exc).__name__}")
-            return RunResult(status="failed", error=f"Stripe invoices: {type(exc).__name__}: {exc}")
+            raise AgentDataSourceError(f"Stripe invoices fetch: {exc}") from exc
 
         stats.n_open_invoices = len(invoices)
 

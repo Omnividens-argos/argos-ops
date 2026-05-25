@@ -57,6 +57,13 @@ HealthStatus = Literal["green", "yellow", "red"]
 #   - OKRTracker    : lundi 8h Paris (hebdo)    → 7j + 4h slack
 #   - BoardReporter : 1er du mois 7h Paris      → 31j + 12h slack
 #   - DecisionLogger : interactif (slash) → pas de cadence cron, skip
+# Finance & Trésorerie (P22.F) — cron via setup_finance_tasks.ps1 :
+#   - InvoicePredictor       : lundi 7h (hebdo)             → 7j + 4h slack
+#   - ExpenseAuditor         : 5 du mois 7h (mensuel)       → 31j + 12h slack
+#   - TaxBot                 : 15 du mois 7h (mensuel)      → 31j + 12h slack
+#   - ReconcileBot           : lundi 7h15 (hebdo)           → 7j + 4h slack
+#   - BurnRateMonitor        : lundi 7h30 (hebdo)           → 7j + 4h slack
+#   - VendorContractWatcher  : lundi 7h45 (hebdo)           → 7j + 4h slack
 DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "DigestBuilder": 26.0,
     "EmailBot": 14.5,
@@ -64,6 +71,12 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "StrategyBot": 172.0,  # 7j + 4h
     "OKRTracker": 172.0,  # 7j + 4h
     "BoardReporter": 756.0,  # 31j + 12h
+    "InvoicePredictor": 172.0,
+    "ExpenseAuditor": 756.0,
+    "TaxBot": 756.0,
+    "ReconcileBot": 172.0,
+    "BurnRateMonitor": 172.0,
+    "VendorContractWatcher": 172.0,
 }
 
 # Default thresholds

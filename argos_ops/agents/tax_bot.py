@@ -25,6 +25,7 @@ from loguru import logger
 
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
+from argos_ops.exceptions import AgentDataSourceError, AgentOutputError, ConfigError
 from argos_ops.finance.tva import (
     CA3Report,
     ISForecast,
@@ -107,6 +108,7 @@ class TaxBot(BaseAgent):
     name = "TaxBot"
     command = "/run-tax-prep"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,
@@ -120,16 +122,12 @@ class TaxBot(BaseAgent):
     async def run(self) -> RunResult:
         settings = get_settings()
         if settings.stripe_secret_key is None:
-            return RunResult(
-                status="failed",
-                error="STRIPE_SECRET_KEY manquant dans .env.local",
-            )
+            raise ConfigError("STRIPE_SECRET_KEY manquant dans .env.local")
 
         try:
             subs = await fetch_active_subscriptions(settings.stripe_secret_key)
         except Exception as exc:
-            logger.error(f"TaxBot — Stripe fetch a échoué : {type(exc).__name__}")
-            return RunResult(status="failed", error=f"Stripe: {type(exc).__name__}: {exc}")
+            raise AgentDataSourceError(f"Stripe fetch: {exc}") from exc
 
         mrr = compute_mrr_eur(subs)
         now = datetime.now(UTC)
@@ -139,7 +137,10 @@ class TaxBot(BaseAgent):
         is_forecast = (
             estimate_is(self._projected_profit) if self._projected_profit is not None else None
         )
-        target = write_tax_draft(ca3, is_forecast, target_dir=self._target_dir)
+        try:
+            target = write_tax_draft(ca3, is_forecast, target_dir=self._target_dir)
+        except OSError as exc:
+            raise AgentOutputError(f"write tax draft: {exc}") from exc
         logger.info(f"TaxBot — CA3 draft écrit dans {target}")
 
         return RunResult(

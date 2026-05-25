@@ -52,3 +52,13 @@ bots_sans_pii:
       - argos_ops/agents/okr_tracker.py      # lit data/okr/*.yaml (KPIs cibles)
       - argos_ops/agents/board_reporter.py   # MRR agrégé via sum_active_mrr_eur
       - argos_ops/agents/decision_logger.py  # docs/DECISIONS.md (décisions internes)
+
+  - nom: "Finance & Trésorerie (P22.F) — bots d'agrégation interne"
+    motif: "Calculs financiers internes (MRR/ARR agrégé, forecast cash flow, TVA CA3, runway, contrats fournisseurs). Aucune PII identifiable n'est exposée par ces 6 bots. Les emails clients restent confinés à FinanceBot (déjà déclaré sous 'Facturation Stripe')."
+    paths:
+      - argos_ops/agents/invoice_predictor.py      # forecast 30/60/90j depuis MRR agrégé
+      - argos_ops/agents/expense_auditor.py        # CSV Qonto (noms vendors = entreprises)
+      - argos_ops/agents/tax_bot.py                # TVA CA3 + IS depuis MRR agrégé
+      - argos_ops/agents/reconcile_bot.py          # payouts Stripe ↔ crédits Qonto (montants)
+      - argos_ops/agents/burn_rate_monitor.py      # YAML treasury (cash/burn/revenue)
+      - argos_ops/agents/vendor_contract_watcher.py  # YAML contrats fournisseurs (B2B)
