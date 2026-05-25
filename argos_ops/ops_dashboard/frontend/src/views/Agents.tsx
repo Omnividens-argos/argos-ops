@@ -43,6 +43,13 @@ const RUNNABLE_AGENTS = new Set<string>([
   "OKRTracker",
   "BoardReporter",
   "DecisionLogger",
+  // Finance & Trésorerie (P22.F).
+  "InvoicePredictor",
+  "ExpenseAuditor",
+  "TaxBot",
+  "ReconcileBot",
+  "BurnRateMonitor",
+  "VendorContractWatcher",
 ]);
 
 export function Agents() {

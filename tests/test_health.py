@@ -153,6 +153,12 @@ async def test_freshness_green_when_all_recent() -> None:
                 "StrategyBot": _make_run("StrategyBot", hours_ago=10.0),
                 "OKRTracker": _make_run("OKRTracker", hours_ago=10.0),
                 "BoardReporter": _make_run("BoardReporter", hours_ago=24.0),
+                "InvoicePredictor": _make_run("InvoicePredictor", hours_ago=10.0),
+                "ExpenseAuditor": _make_run("ExpenseAuditor", hours_ago=24.0),
+                "TaxBot": _make_run("TaxBot", hours_ago=24.0),
+                "ReconcileBot": _make_run("ReconcileBot", hours_ago=10.0),
+                "BurnRateMonitor": _make_run("BurnRateMonitor", hours_ago=10.0),
+                "VendorContractWatcher": _make_run("VendorContractWatcher", hours_ago=10.0),
             }
         ),
     ):
@@ -194,6 +200,12 @@ async def test_freshness_yellow_at_80_percent_of_threshold() -> None:
                 "StrategyBot": _make_run("StrategyBot", hours_ago=10.0),
                 "OKRTracker": _make_run("OKRTracker", hours_ago=10.0),
                 "BoardReporter": _make_run("BoardReporter", hours_ago=24.0),
+                "InvoicePredictor": _make_run("InvoicePredictor", hours_ago=10.0),
+                "ExpenseAuditor": _make_run("ExpenseAuditor", hours_ago=24.0),
+                "TaxBot": _make_run("TaxBot", hours_ago=24.0),
+                "ReconcileBot": _make_run("ReconcileBot", hours_ago=10.0),
+                "BurnRateMonitor": _make_run("BurnRateMonitor", hours_ago=10.0),
+                "VendorContractWatcher": _make_run("VendorContractWatcher", hours_ago=10.0),
             }
         ),
     ):
