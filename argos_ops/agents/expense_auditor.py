@@ -32,6 +32,7 @@ from loguru import logger
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT
+from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.finance.expense_csv import (
     Anomaly,
     detect_anomalies,
@@ -183,6 +184,7 @@ class ExpenseAuditor(BaseAgent):
     name = "ExpenseAuditor"
     command = "/run-expense-audit"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, expenses_dir: Path = DEFAULT_EXPENSES_DIR) -> None:
         self._dir = expenses_dir
@@ -197,7 +199,10 @@ class ExpenseAuditor(BaseAgent):
                 extras={"alerted": False},
             )
 
-        expenses = parse_qonto_csv(source)
+        try:
+            expenses = parse_qonto_csv(source)
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            raise AgentDataSourceError(f"parse CSV {source.name}: {exc}") from exc
         history = load_vendor_history(self._dir)
         anomalies = detect_anomalies(expenses, historic_vendors=history)
         report = build_report(source, anomalies)

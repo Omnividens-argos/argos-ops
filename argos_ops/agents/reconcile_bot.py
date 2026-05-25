@@ -39,6 +39,7 @@ from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.agents.expense_auditor import find_latest_csv
 from argos_ops.config import REPO_ROOT
+from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.finance.expense_csv import parse_qonto_csv
 from argos_ops.finance.reconcile import (
     ReconcileReport,
@@ -158,6 +159,7 @@ class ReconcileBot(BaseAgent):
     name = "ReconcileBot"
     command = "/run-reconcile"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,
@@ -169,7 +171,12 @@ class ReconcileBot(BaseAgent):
         self._expenses_dir = expenses_dir
 
     async def run(self) -> RunResult:
-        payouts_entries = load_payouts_yaml(self._payouts_path)
+        try:
+            payouts_entries = load_payouts_yaml(self._payouts_path)
+        except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+            raise AgentDataSourceError(
+                f"load payouts {self._payouts_path.name}: {exc}"
+            ) from exc
         payouts = parse_payouts_yaml_entries(payouts_entries)
         if not payouts:
             logger.info(
@@ -192,7 +199,10 @@ class ReconcileBot(BaseAgent):
                 extras={"alerted": False},
             )
 
-        expenses = parse_qonto_csv(csv)
+        try:
+            expenses = parse_qonto_csv(csv)
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            raise AgentDataSourceError(f"parse CSV {csv.name}: {exc}") from exc
         report = reconcile(payouts, expenses)
         run_report = build_run_report(report)
         return await emit_alert_or_silence(

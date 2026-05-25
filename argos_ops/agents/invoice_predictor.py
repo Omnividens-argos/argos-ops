@@ -22,6 +22,7 @@ from loguru import logger
 
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
+from argos_ops.exceptions import AgentDataSourceError, AgentOutputError, ConfigError
 from argos_ops.finance.cash_flow import CashFlowForecast, forecast_cash_flow
 from argos_ops.integrations.stripe_client import (
     StripeSubscription,
@@ -82,6 +83,7 @@ class InvoicePredictor(BaseAgent):
     name = "InvoicePredictor"
     command = "/run-invoice-forecast"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, target_dir: Path = DEFAULT_FORECAST_DIR) -> None:
         self._target_dir = target_dir
@@ -89,21 +91,20 @@ class InvoicePredictor(BaseAgent):
     async def run(self) -> RunResult:
         settings = get_settings()
         if settings.stripe_secret_key is None:
-            return RunResult(
-                status="failed",
-                error="STRIPE_SECRET_KEY manquant dans .env.local",
-            )
+            raise ConfigError("STRIPE_SECRET_KEY manquant dans .env.local")
 
         try:
             subs: list[StripeSubscription] = await fetch_active_subscriptions(
                 settings.stripe_secret_key
             )
         except Exception as exc:
-            logger.error(f"InvoicePredictor — Stripe fetch a échoué : {type(exc).__name__}")
-            return RunResult(status="failed", error=f"Stripe: {type(exc).__name__}: {exc}")
+            raise AgentDataSourceError(f"Stripe fetch: {exc}") from exc
 
         forecast = forecast_cash_flow(subs, as_of=datetime.now(UTC))
-        target = write_forecast(forecast, target_dir=self._target_dir)
+        try:
+            target = write_forecast(forecast, target_dir=self._target_dir)
+        except OSError as exc:
+            raise AgentOutputError(f"write forecast: {exc}") from exc
         logger.info(f"InvoicePredictor — forecast écrit dans {target}")
 
         return RunResult(
