@@ -26,6 +26,7 @@ from loguru import logger
 
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
+from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import (
     GREEN,
     YELLOW,
@@ -68,7 +69,9 @@ def _load_requests(path: Path) -> list[MeetingRequest]:
         elif isinstance(starts_at_raw, datetime):
             starts_at = starts_at_raw
         else:
-            raise ValueError(f"starts_at invalide pour {entry.get('request_id')}")
+            raise AgentDataSourceError(
+                f"starts_at invalide pour {entry.get('request_id')}"
+            )
         if starts_at.tzinfo is None:
             starts_at = starts_at.replace(tzinfo=UTC)
         out.append(
@@ -197,6 +200,7 @@ class MeetingBooker(BaseAgent):
     name = "MeetingBooker"
     command = "/book-meeting"
     breaker_name = "MeetingBooker"
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

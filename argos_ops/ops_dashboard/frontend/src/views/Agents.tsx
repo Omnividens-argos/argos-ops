@@ -50,6 +50,16 @@ const RUNNABLE_AGENTS = new Set<string>([
   "ReconcileBot",
   "BurnRateMonitor",
   "VendorContractWatcher",
+  // Sales / Commercial (P22.H).
+  "OutboundBot",
+  "LeadEnricher",
+  "ProspectMiner",
+  "IntentSignalsBot",
+  "MeetingBooker",
+  "DemoFollowupBot",
+  "ProposalBot",
+  "ContractGenerator",
+  "DealRiskScorer",
 ]);
 
 export function Agents() {

@@ -89,6 +89,19 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "ReconcileBot",
         "BurnRateMonitor",
         "VendorContractWatcher",
+        # Sales / Commercial (P22.H) — bots non-interactifs.
+        # OutboundBot reste shadow tant que OUTBOUND_LIVE_MODE=false.
+        # MeetingBooker/DemoFollowup/Proposal/Contract draftent uniquement,
+        # le founder envoie via zimbra-ops après validation.
+        "OutboundBot",
+        "LeadEnricher",
+        "ProspectMiner",
+        "IntentSignalsBot",
+        "MeetingBooker",
+        "DemoFollowupBot",
+        "ProposalBot",
+        "ContractGenerator",
+        "DealRiskScorer",
     }
 )
 
@@ -164,6 +177,42 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.vendor_contract_watcher import VendorContractWatcher
 
         return VendorContractWatcher()
+    if name == "OutboundBot":
+        from argos_ops.agents.outbound_bot import OutboundBot
+
+        return OutboundBot()
+    if name == "LeadEnricher":
+        from argos_ops.agents.lead_enricher import LeadEnricher
+
+        return LeadEnricher()
+    if name == "ProspectMiner":
+        from argos_ops.agents.prospect_miner import ProspectMiner
+
+        return ProspectMiner()
+    if name == "IntentSignalsBot":
+        from argos_ops.agents.intent_signals import IntentSignalsBot
+
+        return IntentSignalsBot()
+    if name == "MeetingBooker":
+        from argos_ops.agents.meeting_booker import MeetingBooker
+
+        return MeetingBooker()
+    if name == "DemoFollowupBot":
+        from argos_ops.agents.demo_followup import DemoFollowupBot
+
+        return DemoFollowupBot()
+    if name == "ProposalBot":
+        from argos_ops.agents.proposal_bot import ProposalBot
+
+        return ProposalBot()
+    if name == "ContractGenerator":
+        from argos_ops.agents.contract_generator import ContractGenerator
+
+        return ContractGenerator()
+    if name == "DealRiskScorer":
+        from argos_ops.agents.deal_risk_scorer import DealRiskScorer
+
+        return DealRiskScorer()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 
