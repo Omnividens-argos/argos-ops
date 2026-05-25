@@ -104,6 +104,7 @@ class SocialAnalytics(BaseAgent):
     name = "SocialAnalytics"
     command = "/run-social-analytics"
     breaker_name = "SocialAnalytics"
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         metrics = load_engagement_window(days=7)

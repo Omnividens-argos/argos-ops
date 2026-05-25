@@ -124,6 +124,7 @@ class CaseStudyDrafter(BaseAgent):
     name = "CaseStudyDrafter"
     command = "/draft-case-study"
     breaker_name = "CaseStudyDrafter"
+    ai_act_risk_class = "limited"
 
     async def run(self) -> RunResult:
         candidates = load_candidates()

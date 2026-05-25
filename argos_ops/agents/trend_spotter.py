@@ -75,6 +75,7 @@ class TrendSpotter(BaseAgent):
     name = "TrendSpotter"
     command = "/run-trend-spot"
     breaker_name = "TrendSpotter"
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         items = load_trend_sources()

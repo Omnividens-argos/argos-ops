@@ -162,6 +162,7 @@ class LandingOptimizer(BaseAgent):
     name = "LandingOptimizer"
     command = "/run-landing-optim"
     breaker_name = "LandingOptimizer"
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         metrics = load_metrics()

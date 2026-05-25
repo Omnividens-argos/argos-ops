@@ -145,6 +145,7 @@ class AdBotLive(BaseAgent):
     name = "AdBot"
     command = "/run-ad-campaign"
     breaker_name = "ad_spend_runaway"
+    ai_act_risk_class = "limited"
 
     async def run(self) -> RunResult:
         settings = get_settings()
