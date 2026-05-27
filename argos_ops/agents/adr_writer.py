@@ -166,6 +166,7 @@ class ADRWriter(BaseAgent):
     name = "ADRWriter"
     command = "/write-adr"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self, draft: ADRDraft, *, adr_dir: Path = DEFAULT_ADR_DIR

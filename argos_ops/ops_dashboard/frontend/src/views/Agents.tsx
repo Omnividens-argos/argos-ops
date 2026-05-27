@@ -119,6 +119,8 @@ const RUNNABLE_AGENTS = new Set<string>([
   "CrisisCommBot",
   "SpokespersonPrep",
   "BrandGuardBot",
+  // Documentation (P22.M) — DiagramGenerator/ADRWriter exclus (input slug requis).
+  "DocLinter",
 ]);
 
 export function Agents() {

@@ -139,6 +139,10 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "CrisisCommBot",
     "SpokespersonPrep",
     "BrandGuardBot",
+    # Documentation & Knowledge interne (P22.M)
+    "DocLinter",
+    "DiagramGenerator",
+    "ADRWriter",
 )
 
 # Agents qu'on peut déclencher manuellement via "Run now" du panel. SupportBot
@@ -254,6 +258,13 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "CrisisCommBot",
         "SpokespersonPrep",
         "BrandGuardBot",
+        # Documentation & Knowledge interne (P22.M).
+        # DocLinter audit-only sans input. DiagramGenerator + ADRWriter
+        # exigent un slug/draft passé via slash (input humain), donc
+        # exclus de RUNNABLE_AGENTS : leur "Run now" panel n'aurait pas
+        # de contexte (cf. clause "documenté pourquoi : interactif" de
+        # la checklist QA).
+        "DocLinter",
     }
 )
 
@@ -579,6 +590,10 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.brand_guard import BrandGuardBot
 
         return BrandGuardBot()
+    if name == "DocLinter":
+        from argos_ops.agents.doc_linter import DocLinter
+
+        return DocLinter()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 

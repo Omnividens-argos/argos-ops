@@ -249,6 +249,7 @@ class DocLinter(BaseAgent):
     name = "DocLinter"
     command = "/run-doc-lint"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, root: Path = DEFAULT_ROOT) -> None:
         self._root = root

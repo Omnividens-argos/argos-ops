@@ -43,6 +43,10 @@
     - argos-ops-brand-audit       : hebdo (lundi 14h30)
     - ReplyBot / PressReleaseDrafter / CrisisCommBot / SpokespersonPrep : slash only
 
+  Documentation & Knowledge interne (P22.M, 1 watcher cron + 2 reactifs) :
+    - argos-ops-doc-lint          : hebdo (lundi 15h)
+    - DiagramGenerator / ADRWriter : slash only (input slug requis)
+
   Chaque tâche est idempotente — relancer écrase l'existante.
 
 .EXAMPLE
@@ -109,6 +113,7 @@ $Tasks = @(
     @{ Name = "argos-ops-press-monitor";    Script = "run_press_monitor.py";     Trigger = "Daily:10:30";          Description = "PressMonitor quotidien (10h30)" }
     @{ Name = "argos-ops-media-list";       Script = "run_media_list_builder.py"; Trigger = "Weekly:Monday:14:00"; Description = "MediaListBuilder hebdo (lundi 14h)" }
     @{ Name = "argos-ops-brand-audit";      Script = "run_brand_guard.py";       Trigger = "Weekly:Monday:14:30";  Description = "BrandGuardBot hebdo (lundi 14h30)" }
+    @{ Name = "argos-ops-doc-lint";         Script = "run_doc_linter.py";        Trigger = "Weekly:Monday:15:00";  Description = "DocLinter hebdo (lundi 15h)" }
 )
 
 if ($Only) {

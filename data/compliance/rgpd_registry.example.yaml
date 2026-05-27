@@ -192,3 +192,10 @@ bots_sans_pii:
       - argos_ops/agents/crisis_comm.py             # templates réponse incident
       - argos_ops/agents/spokesperson_prep.py       # Q&A briefs interview
       - argos_ops/agents/brand_guard.py             # audit FS drafts sortants
+
+  - nom: "Documentation & Knowledge interne (P22.M) — bots audit / scaffold doc"
+    motif: "Audit-only et scaffold pur sur la documentation interne du repo Argos. DocLinter scanne les liens markdown dans docs/, README.md, CLAUDE.md (read-only). DiagramGenerator transforme YAML spec → Mermaid markdown (déterministe, pas de LLM). ADRWriter scaffold un Architecture Decision Record markdown depuis un draft structuré (template MADR). Aucune PII traitée — uniquement contenu technique interne."
+    paths:
+      - argos_ops/agents/doc_linter.py              # scan liens markdown docs/
+      - argos_ops/agents/diagram_generator.py       # YAML spec → Mermaid
+      - argos_ops/agents/adr_writer.py              # ADR scaffold MADR
