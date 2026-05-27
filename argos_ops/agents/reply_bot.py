@@ -134,6 +134,7 @@ class ReplyBot(BaseAgent):
     name = "ReplyBot"
     command = "/draft-replies"
     breaker_name = "ReplyBot"
+    ai_act_risk_class = "limited"
 
     async def run(self) -> RunResult:
         mentions = load_mentions()

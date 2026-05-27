@@ -135,6 +135,7 @@ class PressMonitor(BaseAgent):
     name = "PressMonitor"
     command = "/run-press-monitor"
     breaker_name = "PressMonitor"
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         mentions = load_mentions()

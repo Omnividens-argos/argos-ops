@@ -183,6 +183,18 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "AIActComplianceBot": 172.0,
     "ContractDeadlineBot": 26.0,
     "BloctelGuard": 756.0,
+    # Communication (P22.L) — cron via setup_watchers_tasks.ps1 :
+    #   - PressMonitor       : quotidien 10:30               → 26h slack
+    #   - MediaListBuilder   : lundi 14:00 (hebdo)           → 172h slack
+    #   - BrandGuardBot      : lundi 14:30 (hebdo)           → 172h slack
+    #   - ReplyBot           : reactif (slash /draft-replies) → skip
+    #   - PressReleaseDrafter: reactif (slash) → skip
+    #   - CrisisCommBot      : reactif (slash) → skip
+    #   - SpokespersonPrep   : reactif (slash) → skip
+    #   - EmailBot           : deja present (toutes 15 min, ligne 70 ci-dessus)
+    "PressMonitor": 26.0,
+    "MediaListBuilder": 172.0,
+    "BrandGuardBot": 172.0,
 }
 
 # Default thresholds

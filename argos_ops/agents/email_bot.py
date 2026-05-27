@@ -146,6 +146,7 @@ class EmailBot(BaseAgent):
     name = "EmailBot"
     command = "/run-email-bot"
     breaker_name = "EmailBot"
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         settings = get_settings()

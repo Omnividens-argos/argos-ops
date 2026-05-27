@@ -189,6 +189,7 @@ class SpokespersonPrep(BaseAgent):
     name = "SpokespersonPrep"
     command = "/prep-interview"
     breaker_name = "SpokespersonPrep"
+    ai_act_risk_class = "limited"
 
     async def run(self) -> RunResult:
         today = datetime.now(UTC).date()

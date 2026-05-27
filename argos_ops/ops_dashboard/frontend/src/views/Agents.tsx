@@ -111,6 +111,14 @@ const RUNNABLE_AGENTS = new Set<string>([
   "BloctelGuard",
   "ContractDeadlineBot",
   "IncidentLogger",
+  // Communication (P22.L) — EmailBot deja en tete (P5).
+  "ReplyBot",
+  "PressMonitor",
+  "PressReleaseDrafter",
+  "MediaListBuilder",
+  "CrisisCommBot",
+  "SpokespersonPrep",
+  "BrandGuardBot",
 ]);
 
 export function Agents() {
