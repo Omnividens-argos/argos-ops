@@ -127,6 +127,7 @@ class OnboardingBot(BaseAgent):
     name = "OnboardingBot"
     command = "/run-onboarding"
     breaker_name = "OnboardingBot"
+    ai_act_risk_class = "limited"
 
     def __init__(
         self,

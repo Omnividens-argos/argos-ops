@@ -123,6 +123,7 @@ class ChurnPredictor(BaseAgent):
     name = "ChurnPredictor"
     command = "/run-churn-predict"
     breaker_name = "ChurnPredictor"
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

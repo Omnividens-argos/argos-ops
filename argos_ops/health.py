@@ -115,6 +115,24 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "WebinarPromoter": 172.0,
     "TestimonialHunter": 26.0,
     "NewsletterBot": 756.0,
+    # Customer Success & Support (P22.G) — cron via setup_cs_tasks.ps1 :
+    #   - ChurnPredictor    : quotidien 09:30          → 26h slack
+    #   - HealthScoreBot    : quotidien 09:00          → 26h slack
+    #   - OnboardingBot     : quotidien 08:00          → 26h slack
+    #   - NPSCollector      : quotidien 09:15          → 26h slack
+    #   - UpsellSpotter     : quotidien 09:45          → 26h slack
+    #   - EscalationRouter  : quotidien 08:30          → 26h slack
+    #   - KBUpdater         : lundi 10:00 (hebdo)      → 172h slack
+    #   - ReviewBot         : 1er du mois 10:00 (mensuel) → 756h slack
+    #   - SupportBot        : réactif (slash + health-check) → skip cadence
+    "ChurnPredictor": 26.0,
+    "HealthScoreBot": 26.0,
+    "OnboardingBot": 26.0,
+    "NPSCollector": 26.0,
+    "UpsellSpotter": 26.0,
+    "EscalationRouter": 26.0,
+    "KBUpdater": 172.0,
+    "ReviewBot": 756.0,
 }
 
 # Default thresholds

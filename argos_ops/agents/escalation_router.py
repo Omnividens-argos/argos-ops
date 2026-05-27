@@ -153,6 +153,7 @@ class EscalationRouter(BaseAgent):
     name = "EscalationRouter"
     command = "/run-ticket-triage"
     breaker_name = "EscalationRouter"
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

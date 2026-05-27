@@ -135,6 +135,7 @@ class NPSCollector(BaseAgent):
     name = "NPSCollector"
     command = "/run-nps-campaign"
     breaker_name = "NPSCollector"
+    ai_act_risk_class = "limited"
 
     def __init__(
         self,

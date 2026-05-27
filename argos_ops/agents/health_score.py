@@ -133,6 +133,7 @@ class HealthScoreBot(BaseAgent):
     name = "HealthScoreBot"
     command = "/run-health-scores"
     breaker_name = "HealthScoreBot"
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

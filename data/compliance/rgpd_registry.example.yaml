@@ -65,7 +65,20 @@ traitements:
     paths:
       - argos_ops/crm/repository.py
       - argos_ops/agents/email_bot.py
+      - argos_ops/agents/support_bot.py          # P22.G : health-check KB pour /run-support-tier1
+      - argos_ops/agents/escalation_router.py    # P22.G : triage tickets P0/P1/P2 + customer_id
+      - argos_ops/agents/kb_updater.py           # P22.G : drafts KB depuis subjects tickets
     duree_conservation: 60
+    destinataires: "interne uniquement"
+
+  - nom: "Customer Success — onboarding & lifecycle (P22.G)"
+    base_legale: "exécution du contrat + intérêt légitime (rétention)"
+    finalite: "Drafting emails onboarding (J+0/J+7/J+30), demandes NPS post-onboarding/renew, demandes G2/Capterra J+30. Humain-in-the-loop strict — tous les drafts validés avant envoi via zimbra-ops."
+    paths:
+      - argos_ops/agents/onboarding_bot.py       # contact_name + contact_email + signup_date
+      - argos_ops/agents/nps_collector.py        # contact_name + contact_email post-NPS
+      - argos_ops/agents/review_bot.py           # contact_name + contact_email pour G2/Capterra
+    duree_conservation: 36
     destinataires: "interne uniquement"
 
   - nom: "Facturation Stripe"
@@ -107,3 +120,10 @@ bots_sans_pii:
       - argos_ops/agents/keyword_radar.py          # positions SERP keywords trackés
       - argos_ops/agents/landing_optimizer.py      # métriques landing pages anonymes
       - argos_ops/agents/webinar_promoter.py       # métadonnées webinars publiques
+
+  - nom: "Customer Success & Support (P22.G) — bots audit-only / scoring agrégé"
+    motif: "Scoring déterministe interne (churn risk, health bands, usage upsell). Snapshots YAML contiennent customer_id agrégé + scores, jamais envoyés à des tiers — alimentent les décisions humaines de relance."
+    paths:
+      - argos_ops/agents/churn_predictor.py        # snapshots customer_id × risk_score
+      - argos_ops/agents/health_score.py           # snapshots customer_id × health bands
+      - argos_ops/agents/upsell_spotter.py         # snapshots customer_id × usage_ratio

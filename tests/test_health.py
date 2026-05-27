@@ -175,6 +175,14 @@ async def test_freshness_green_when_all_recent() -> None:
                 "WebinarPromoter": _make_run("WebinarPromoter", hours_ago=24.0),
                 "TestimonialHunter": _make_run("TestimonialHunter", hours_ago=4.0),
                 "NewsletterBot": _make_run("NewsletterBot", hours_ago=24.0),
+                "ChurnPredictor": _make_run("ChurnPredictor", hours_ago=4.0),
+                "HealthScoreBot": _make_run("HealthScoreBot", hours_ago=4.0),
+                "OnboardingBot": _make_run("OnboardingBot", hours_ago=4.0),
+                "NPSCollector": _make_run("NPSCollector", hours_ago=4.0),
+                "UpsellSpotter": _make_run("UpsellSpotter", hours_ago=4.0),
+                "EscalationRouter": _make_run("EscalationRouter", hours_ago=4.0),
+                "KBUpdater": _make_run("KBUpdater", hours_ago=24.0),
+                "ReviewBot": _make_run("ReviewBot", hours_ago=24.0),
             }
         ),
     ):
@@ -237,6 +245,14 @@ async def test_freshness_yellow_at_80_percent_of_threshold() -> None:
                 "WebinarPromoter": _make_run("WebinarPromoter", hours_ago=24.0),
                 "TestimonialHunter": _make_run("TestimonialHunter", hours_ago=4.0),
                 "NewsletterBot": _make_run("NewsletterBot", hours_ago=24.0),
+                "ChurnPredictor": _make_run("ChurnPredictor", hours_ago=4.0),
+                "HealthScoreBot": _make_run("HealthScoreBot", hours_ago=4.0),
+                "OnboardingBot": _make_run("OnboardingBot", hours_ago=4.0),
+                "NPSCollector": _make_run("NPSCollector", hours_ago=4.0),
+                "UpsellSpotter": _make_run("UpsellSpotter", hours_ago=4.0),
+                "EscalationRouter": _make_run("EscalationRouter", hours_ago=4.0),
+                "KBUpdater": _make_run("KBUpdater", hours_ago=24.0),
+                "ReviewBot": _make_run("ReviewBot", hours_ago=24.0),
             }
         ),
     ):

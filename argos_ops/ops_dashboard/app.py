@@ -59,6 +59,50 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "FinanceBot",
     "BotHealthBot",
     "OrchestratorBot",
+    # Direction & Stratégie (P22.E)
+    "StrategyBot",
+    "OKRTracker",
+    "BoardReporter",
+    "DecisionLogger",
+    # Finance & Trésorerie (P22.F)
+    "InvoicePredictor",
+    "ExpenseAuditor",
+    "TaxBot",
+    "ReconcileBot",
+    "BurnRateMonitor",
+    "VendorContractWatcher",
+    # Sales / Commercial (P22.H)
+    "OutboundBot",
+    "LeadEnricher",
+    "ProspectMiner",
+    "IntentSignalsBot",
+    "MeetingBooker",
+    "DemoFollowupBot",
+    "ProposalBot",
+    "ContractGenerator",
+    "DealRiskScorer",
+    # Marketing & Growth (P22.I)
+    "SEOBot",
+    "ContentBot",
+    "AdBot",
+    "TrendSpotter",
+    "NewsletterBot",
+    "SocialAnalytics",
+    "BacklinkOutreach",
+    "KeywordRadar",
+    "LandingOptimizer",
+    "WebinarPromoter",
+    "TestimonialHunter",
+    "CaseStudyDrafter",
+    # Customer Success & Support (P22.G)
+    "ReviewBot",
+    "ChurnPredictor",
+    "OnboardingBot",
+    "HealthScoreBot",
+    "KBUpdater",
+    "NPSCollector",
+    "UpsellSpotter",
+    "EscalationRouter",
 )
 
 # Agents qu'on peut déclencher manuellement via "Run now" du panel. SupportBot
@@ -118,6 +162,18 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "WebinarPromoter",
         "TestimonialHunter",
         "CaseStudyDrafter",
+        # Customer Success & Support (P22.G) — bots non-interactifs.
+        # SupportBot.run() est un health-check passif (compte chunks KB).
+        # Le RAG Tier 1 interactif reste via /run-support-tier1 + skill kb-rag.
+        "SupportBot",
+        "ReviewBot",
+        "ChurnPredictor",
+        "OnboardingBot",
+        "HealthScoreBot",
+        "KBUpdater",
+        "NPSCollector",
+        "UpsellSpotter",
+        "EscalationRouter",
     }
 )
 
@@ -279,6 +335,44 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.case_study_drafter import CaseStudyDrafter
 
         return CaseStudyDrafter()
+    if name == "SupportBot":
+        # Run now = health-check passif (compte chunks KB indexés).
+        # Le RAG Tier 1 interactif passe par /run-support-tier1 + skill kb-rag.
+        from argos_ops.agents.support_bot import SupportBot
+
+        return SupportBot()
+    if name == "ReviewBot":
+        from argos_ops.agents.review_bot import ReviewBot
+
+        return ReviewBot()
+    if name == "ChurnPredictor":
+        from argos_ops.agents.churn_predictor import ChurnPredictor
+
+        return ChurnPredictor()
+    if name == "OnboardingBot":
+        from argos_ops.agents.onboarding_bot import OnboardingBot
+
+        return OnboardingBot()
+    if name == "HealthScoreBot":
+        from argos_ops.agents.health_score import HealthScoreBot
+
+        return HealthScoreBot()
+    if name == "KBUpdater":
+        from argos_ops.agents.kb_updater import KBUpdater
+
+        return KBUpdater()
+    if name == "NPSCollector":
+        from argos_ops.agents.nps_collector import NPSCollector
+
+        return NPSCollector()
+    if name == "UpsellSpotter":
+        from argos_ops.agents.upsell_spotter import UpsellSpotter
+
+        return UpsellSpotter()
+    if name == "EscalationRouter":
+        from argos_ops.agents.escalation_router import EscalationRouter
+
+        return EscalationRouter()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 

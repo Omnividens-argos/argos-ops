@@ -88,16 +88,19 @@ def test_list_agents_returns_known_agents(client: TestClient) -> None:
         response = client.get("/api/agents")
     assert response.status_code == 200
     agents = response.json()
-    assert len(agents) == 6  # KNOWN_AGENTS = Digest, Email, Support, Finance, BotHealth, Orchestrator
+    # KNOWN_AGENTS étendu post P22.E/F/G/H/I — vérifier juste la présence des 6 originaux
+    # et l'ordre canonique (ils restent en tête de la tuple).
+    assert len(agents) == len(app_module.KNOWN_AGENTS)
     names = [a["name"] for a in agents]
-    assert names == [
+    for canonical in (
         "DigestBuilder",
         "EmailBot",
         "SupportBot",
         "FinanceBot",
         "BotHealthBot",
         "OrchestratorBot",
-    ]
+    ):
+        assert canonical in names
     digest = next(a for a in agents if a["name"] == "DigestBuilder")
     assert digest["last_run_status"] == "success"
     assert digest["last_run_duration_seconds"] == pytest.approx(60.0)
@@ -405,8 +408,15 @@ def test_run_agent_now_unknown_agent_404(client: TestClient) -> None:
 
 
 def test_run_agent_now_interactive_agent_400(client: TestClient) -> None:
-    """SupportBot est interactif (slash command) — pas runnable via panel."""
-    response = client.post("/api/agents/SupportBot/runs")
+    """Vérifie le code path 400 pour un agent KNOWN mais hors RUNNABLE_AGENTS.
+
+    Depuis P22.G tous les agents KNOWN sont aussi RUNNABLE (SupportBot/SEOBot/
+    DecisionLogger ont des wrappers health-check passifs). On patche le set
+    pour simuler un agent interactif-only et vérifier que le code path reste
+    fonctionnel pour de futurs bots.
+    """
+    with patch.object(app_module, "RUNNABLE_AGENTS", frozenset()):
+        response = client.post("/api/agents/DigestBuilder/runs")
     assert response.status_code == 400
     assert "interactif" in response.json()["detail"].lower()
 
