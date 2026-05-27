@@ -118,6 +118,13 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "DNSGuard",
     "SecretRotator",
     "CIFlakeTracker",
+    # Veille & Threat Intelligence (P22.D)
+    "CompetitorWatcher",
+    "BreachWatcher",
+    "RegulatoryWatcher",
+    "CVEMonitor",
+    "DarkWebMonitor",
+    "BountyRadar",
 )
 
 # Agents qu'on peut déclencher manuellement via "Run now" du panel. SupportBot
@@ -206,6 +213,14 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "DNSGuard",
         "SecretRotator",
         "CIFlakeTracker",
+        # Veille & Threat Intelligence (P22.D) — watchers veille publique.
+        # BountyRadar est cron-only par design (command=None).
+        "CompetitorWatcher",
+        "BreachWatcher",
+        "RegulatoryWatcher",
+        "CVEMonitor",
+        "DarkWebMonitor",
+        "BountyRadar",
     }
 )
 
@@ -457,6 +472,30 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.ci_flake_tracker import CIFlakeTracker
 
         return CIFlakeTracker()
+    if name == "CompetitorWatcher":
+        from argos_ops.agents.competitor_watcher import CompetitorWatcher
+
+        return CompetitorWatcher()
+    if name == "BreachWatcher":
+        from argos_ops.agents.breach_watcher import BreachWatcher
+
+        return BreachWatcher()
+    if name == "RegulatoryWatcher":
+        from argos_ops.agents.regulatory_watcher import RegulatoryWatcher
+
+        return RegulatoryWatcher()
+    if name == "CVEMonitor":
+        from argos_ops.agents.cve_monitor import CVEMonitor
+
+        return CVEMonitor()
+    if name == "DarkWebMonitor":
+        from argos_ops.agents.dw_monitor import DarkWebMonitor
+
+        return DarkWebMonitor()
+    if name == "BountyRadar":
+        from argos_ops.agents.bounty_radar import BountyRadar
+
+        return BountyRadar()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 

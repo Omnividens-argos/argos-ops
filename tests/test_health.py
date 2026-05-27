@@ -195,6 +195,12 @@ async def test_freshness_green_when_all_recent() -> None:
                 "DNSGuard": _make_run("DNSGuard", hours_ago=4.0),
                 "SecretRotator": _make_run("SecretRotator", hours_ago=24.0),
                 "CIFlakeTracker": _make_run("CIFlakeTracker", hours_ago=4.0),
+                "CompetitorWatcher": _make_run("CompetitorWatcher", hours_ago=24.0),
+                "BreachWatcher": _make_run("BreachWatcher", hours_ago=4.0),
+                "RegulatoryWatcher": _make_run("RegulatoryWatcher", hours_ago=4.0),
+                "CVEMonitor": _make_run("CVEMonitor", hours_ago=4.0),
+                "DarkWebMonitor": _make_run("DarkWebMonitor", hours_ago=4.0),
+                "BountyRadar": _make_run("BountyRadar", hours_ago=24.0),
             }
         ),
     ):
@@ -277,6 +283,12 @@ async def test_freshness_yellow_at_80_percent_of_threshold() -> None:
                 "DNSGuard": _make_run("DNSGuard", hours_ago=4.0),
                 "SecretRotator": _make_run("SecretRotator", hours_ago=24.0),
                 "CIFlakeTracker": _make_run("CIFlakeTracker", hours_ago=4.0),
+                "CompetitorWatcher": _make_run("CompetitorWatcher", hours_ago=24.0),
+                "BreachWatcher": _make_run("BreachWatcher", hours_ago=4.0),
+                "RegulatoryWatcher": _make_run("RegulatoryWatcher", hours_ago=4.0),
+                "CVEMonitor": _make_run("CVEMonitor", hours_ago=4.0),
+                "DarkWebMonitor": _make_run("DarkWebMonitor", hours_ago=4.0),
+                "BountyRadar": _make_run("BountyRadar", hours_ago=24.0),
             }
         ),
     ):

@@ -89,6 +89,15 @@ traitements:
     duree_conservation: 120  # obligation fiscale 10 ans
     destinataires: "Stripe (sous-traitant) + cabinet comptable"
 
+  - nom: "Threat Intelligence — croisement breaches publiques (P22.D)"
+    base_legale: "intérêt légitime (sécurité, alerte clients sur compromissions)"
+    finalite: "Croisement métadonnées de breaches publiques (HIBP, CERT-FR) avec domaines clients/prospects pour alerter en cas de compromission identifiée. BreachWatcher = inbound (génère leads chauds depuis breaches). DarkWebMonitor = outbound (vérifie clients existants). Aucun email individuel stocké, uniquement compteurs agrégés par breach × domaine."
+    paths:
+      - argos_ops/agents/breach_watcher.py          # HIBP /breaches × prospects ICP
+      - argos_ops/agents/dw_monitor.py              # HIBP /breaches × domaines clients
+    duree_conservation: 12  # 1 an (rotation rapide, signaux deviennent obsolètes)
+    destinataires: "interne uniquement"
+
 # Bots exemptés (aucune donnée perso traitée) — listés ici pour la traçabilité
 # de l'audit interne RGPDAuditor. Ne déclencher AUCUNE alerte sur ces paths.
 # À mettre à jour si un de ces bots venait à toucher de la PII.
@@ -148,3 +157,11 @@ bots_sans_pii:
       - argos_ops/agents/dns_guard.py               # DNS records publics omnividens.fr
       - argos_ops/agents/secret_rotator.py          # rotation_log.yaml (dates, pas valeurs)
       - argos_ops/agents/ci_flake_tracker.py        # GitHub Actions job names + conclusions
+
+  - nom: "Veille & Threat Intelligence (P22.D) — bots veille publique pure"
+    motif: "Veille concurrentielle, réglementaire et threat intel depuis sources publiques uniquement (RSS officiels, OSV.dev, HackerOne, YesWeHack). CompetitorWatcher lit /pricing et /features publics ; RegulatoryWatcher agrège flux RSS CNIL/ANSSI/UE ; CVEMonitor croise stacks clients (déclarées publiquement) avec OSV.dev ; BountyRadar agrège programmes bounty publics. Aucune PII traitée — uniquement métadonnées publiques."
+    paths:
+      - argos_ops/agents/competitor_watcher.py      # scrape /pricing /features concurrents
+      - argos_ops/agents/regulatory_watcher.py      # RSS CNIL/ANSSI/UE filtré keywords
+      - argos_ops/agents/cve_monitor.py             # OSV.dev × stacks clients déclarés
+      - argos_ops/agents/bounty_radar.py            # HackerOne + YesWeHack programmes publics

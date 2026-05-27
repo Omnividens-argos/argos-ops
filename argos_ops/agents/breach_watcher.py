@@ -296,6 +296,7 @@ class BreachWatcher(BaseAgent):
     name = "BreachWatcher"
     command = "/run-breach-watch"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

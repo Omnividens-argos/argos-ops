@@ -98,6 +98,13 @@ const RUNNABLE_AGENTS = new Set<string>([
   "DNSGuard",
   "SecretRotator",
   "CIFlakeTracker",
+  // Veille & Threat Intelligence (P22.D).
+  "CompetitorWatcher",
+  "BreachWatcher",
+  "RegulatoryWatcher",
+  "CVEMonitor",
+  "DarkWebMonitor",
+  "BountyRadar",
 ]);
 
 export function Agents() {

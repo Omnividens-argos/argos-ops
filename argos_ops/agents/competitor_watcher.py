@@ -240,6 +240,7 @@ class CompetitorWatcher(BaseAgent):
     name = "CompetitorWatcher"
     command = "/run-competitor-watch"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

@@ -160,6 +160,19 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "DNSGuard": 26.0,
     "SecretRotator": 172.0,
     "CIFlakeTracker": 26.0,
+    # Veille & Threat Intelligence (P22.D) — cron via setup_watchers_tasks.ps1 :
+    #   - CompetitorWatcher  : lundi 12:00 (hebdo)         → 172h slack
+    #   - BreachWatcher      : quotidien 06:30             → 26h slack
+    #   - RegulatoryWatcher  : quotidien 07:00             → 26h slack
+    #   - CVEMonitor         : quotidien 07:30             → 26h slack
+    #   - DarkWebMonitor     : quotidien 12:30             → 26h slack
+    #   - BountyRadar        : 1er du mois 12:00 (mensuel) → 756h slack
+    "CompetitorWatcher": 172.0,
+    "BreachWatcher": 26.0,
+    "RegulatoryWatcher": 26.0,
+    "CVEMonitor": 26.0,
+    "DarkWebMonitor": 26.0,
+    "BountyRadar": 756.0,
 }
 
 # Default thresholds

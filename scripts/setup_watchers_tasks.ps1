@@ -22,6 +22,14 @@
     - argos-ops-dns-guard         : quotidien (13h)
     - argos-ops-ci-flake-tracker  : quotidien (21h, post-CI)
 
+  Veille & Threat Intelligence (P22.D, 6 bots) :
+    - argos-ops-competitor-watch  : hebdo (lundi 12h)
+    - argos-ops-breach-watch      : quotidien (6h30)
+    - argos-ops-regulatory-watch  : quotidien (7h)
+    - argos-ops-cve-monitor       : quotidien (7h30)
+    - argos-ops-dw-monitor        : quotidien (12h30)
+    - argos-ops-bounty-radar      : mensuel (1er du mois 12h)
+
   Chaque tâche est idempotente — relancer écrase l'existante.
 
 .EXAMPLE
@@ -75,6 +83,12 @@ $Tasks = @(
     @{ Name = "argos-ops-log-anomaly";      Script = "run_log_anomaly.py";       Trigger = "Daily:04:00";          Description = "LogAnomalyDetector quotidien (4h)" }
     @{ Name = "argos-ops-dns-guard";        Script = "run_dns_guard.py";         Trigger = "Daily:13:00";          Description = "DNSGuard quotidien (13h)" }
     @{ Name = "argos-ops-ci-flake-tracker"; Script = "run_ci_flake_tracker.py";  Trigger = "Daily:21:00";          Description = "CIFlakeTracker quotidien (21h post-CI)" }
+    @{ Name = "argos-ops-competitor-watch"; Script = "run_competitor_watcher.py"; Trigger = "Weekly:Monday:12:00"; Description = "CompetitorWatcher hebdo (lundi 12h)" }
+    @{ Name = "argos-ops-breach-watch";     Script = "run_breach_watcher.py";    Trigger = "Daily:06:30";          Description = "BreachWatcher quotidien (6h30)" }
+    @{ Name = "argos-ops-regulatory-watch"; Script = "run_regulatory_watcher.py"; Trigger = "Daily:07:00";         Description = "RegulatoryWatcher quotidien (7h)" }
+    @{ Name = "argos-ops-cve-monitor";      Script = "run_cve_monitor.py";       Trigger = "Daily:07:30";          Description = "CVEMonitor quotidien (7h30)" }
+    @{ Name = "argos-ops-dw-monitor";       Script = "run_dw_monitor.py";        Trigger = "Daily:12:30";          Description = "DarkWebMonitor quotidien (12h30)" }
+    @{ Name = "argos-ops-bounty-radar";     Script = "run_bounty_radar.py";      Trigger = "Monthly:1:12:00";      Description = "BountyRadar mensuel (1er 12h)" }
 )
 
 if ($Only) {
