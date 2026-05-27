@@ -37,6 +37,12 @@
     - argos-ops-bloctel-guard     : mensuel (1er du mois 13h)
     - IncidentLogger              : interactif (slash /log-incident, pas cron)
 
+  Communication (P22.L, 3 watchers cron + 4 reactifs slash) :
+    - argos-ops-press-monitor     : quotidien (10h30)
+    - argos-ops-media-list        : hebdo (lundi 14h)
+    - argos-ops-brand-audit       : hebdo (lundi 14h30)
+    - ReplyBot / PressReleaseDrafter / CrisisCommBot / SpokespersonPrep : slash only
+
   Chaque tâche est idempotente — relancer écrase l'existante.
 
 .EXAMPLE
@@ -100,6 +106,9 @@ $Tasks = @(
     @{ Name = "argos-ops-ai-act-audit";     Script = "run_ai_act_compliance.py"; Trigger = "Weekly:Monday:13:30";  Description = "AIActComplianceBot hebdo (lundi 13h30)" }
     @{ Name = "argos-ops-contract-deadlines"; Script = "run_contract_deadlines.py"; Trigger = "Daily:14:00";        Description = "ContractDeadlineBot quotidien (14h)" }
     @{ Name = "argos-ops-bloctel-guard";    Script = "run_bloctel_guard.py";     Trigger = "Monthly:1:13:00";      Description = "BloctelGuard mensuel (1er 13h)" }
+    @{ Name = "argos-ops-press-monitor";    Script = "run_press_monitor.py";     Trigger = "Daily:10:30";          Description = "PressMonitor quotidien (10h30)" }
+    @{ Name = "argos-ops-media-list";       Script = "run_media_list_builder.py"; Trigger = "Weekly:Monday:14:00"; Description = "MediaListBuilder hebdo (lundi 14h)" }
+    @{ Name = "argos-ops-brand-audit";      Script = "run_brand_guard.py";       Trigger = "Weekly:Monday:14:30";  Description = "BrandGuardBot hebdo (lundi 14h30)" }
 )
 
 if ($Only) {

@@ -119,6 +119,7 @@ class PressReleaseDrafter(BaseAgent):
     name = "PressReleaseDrafter"
     command = "/draft-press-release"
     breaker_name = "PressReleaseDrafter"
+    ai_act_risk_class = "limited"
 
     async def run(self) -> RunResult:
         queue = load_queue()

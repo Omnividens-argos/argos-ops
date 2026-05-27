@@ -98,6 +98,14 @@ traitements:
     duree_conservation: 12  # 1 an (rotation rapide, signaux deviennent obsolètes)
     destinataires: "interne uniquement"
 
+  - nom: "Base journalistes & médias cyber (P22.L)"
+    base_legale: "intérêt légitime (relations presse BtoB, cf. CNIL prospection BtoB)"
+    finalite: "Maintien d'une base de contacts presse cyber (nom + email professionnel + média) pour relations presse Argos. Maintenance manuelle par le fondateur via data/comm/media_list.yaml ; MediaListBuilder fait juste un audit hebdo de complétude (alerte si fiche incomplète ou DB sous seuil 10 contacts)."
+    paths:
+      - argos_ops/agents/media_list_builder.py      # audit complétude DB journalistes
+    duree_conservation: 36  # 3 ans (cf. CNIL prospection BtoB, droit d'opposition respecté)
+    destinataires: "interne uniquement"
+
 # Bots exemptés (aucune donnée perso traitée) — listés ici pour la traçabilité
 # de l'audit interne RGPDAuditor. Ne déclencher AUCUNE alerte sur ces paths.
 # À mettre à jour si un de ces bots venait à toucher de la PII.
@@ -174,3 +182,13 @@ bots_sans_pii:
       - argos_ops/agents/contract_deadline.py       # dates renouvellement (PII via Support Tier 1)
       - argos_ops/agents/bloctel_guard.py           # téléphones leads (PII via Lead BtoB outbound)
       - argos_ops/agents/incident_logger.py         # scaffold post-mortem markdown
+
+  - nom: "Communication (P22.L) — bots veille / drafting interne"
+    motif: "Veille presse + drafting de contenu marketing/communication interne (humain-validé avant envoi). PressMonitor lit mentions presse publiques (RSS). ReplyBot drafte réponses aux mentions LinkedIn/Mastodon (slugs publics). PressReleaseDrafter scaffold communiqués depuis queue.yaml interne. CrisisCommBot drafte templates de réponse incident depuis incidents.yaml interne. SpokespersonPrep drafte Q&A briefs depuis spec.yaml interne. BrandGuardBot audit cohérence ton/tagline sur drafts existants (lecture FS seule). Aucune PII traitée par ces 6 bots — MediaListBuilder est déclaré séparément sous 'Base journalistes & médias cyber'."
+    paths:
+      - argos_ops/agents/press_monitor.py           # mentions presse publiques
+      - argos_ops/agents/reply_bot.py               # drafts réponses LinkedIn/Mastodon
+      - argos_ops/agents/press_release_drafter.py   # scaffold communiqués depuis queue
+      - argos_ops/agents/crisis_comm.py             # templates réponse incident
+      - argos_ops/agents/spokesperson_prep.py       # Q&A briefs interview
+      - argos_ops/agents/brand_guard.py             # audit FS drafts sortants

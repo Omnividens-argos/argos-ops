@@ -169,6 +169,7 @@ class CrisisCommBot(BaseAgent):
     name = "CrisisCommBot"
     command = "/draft-crisis-response"
     breaker_name = "CrisisCommBot"
+    ai_act_risk_class = "limited"
 
     async def run(self) -> RunResult:
         incidents = load_incidents()

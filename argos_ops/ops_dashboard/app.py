@@ -131,6 +131,14 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "BloctelGuard",
     "ContractDeadlineBot",
     "IncidentLogger",
+    # Communication (P22.L) — EmailBot deja en tete de tuple (P5 historique)
+    "ReplyBot",
+    "PressMonitor",
+    "PressReleaseDrafter",
+    "MediaListBuilder",
+    "CrisisCommBot",
+    "SpokespersonPrep",
+    "BrandGuardBot",
 )
 
 # Agents qu'on peut déclencher manuellement via "Run now" du panel. SupportBot
@@ -236,6 +244,16 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "BloctelGuard",
         "ContractDeadlineBot",
         "IncidentLogger",
+        # Communication (P22.L) — EmailBot deja runnable depuis P5/P16.B.
+        # ReplyBot/PressReleaseDrafter/CrisisCommBot/SpokespersonPrep
+        # draftent du contenu (humain-in-the-loop).
+        "ReplyBot",
+        "PressMonitor",
+        "PressReleaseDrafter",
+        "MediaListBuilder",
+        "CrisisCommBot",
+        "SpokespersonPrep",
+        "BrandGuardBot",
     }
 )
 
@@ -533,6 +551,34 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.incident_logger import IncidentLogger
 
         return IncidentLogger()
+    if name == "ReplyBot":
+        from argos_ops.agents.reply_bot import ReplyBot
+
+        return ReplyBot()
+    if name == "PressMonitor":
+        from argos_ops.agents.press_monitor import PressMonitor
+
+        return PressMonitor()
+    if name == "PressReleaseDrafter":
+        from argos_ops.agents.press_release_drafter import PressReleaseDrafter
+
+        return PressReleaseDrafter()
+    if name == "MediaListBuilder":
+        from argos_ops.agents.media_list_builder import MediaListBuilder
+
+        return MediaListBuilder()
+    if name == "CrisisCommBot":
+        from argos_ops.agents.crisis_comm import CrisisCommBot
+
+        return CrisisCommBot()
+    if name == "SpokespersonPrep":
+        from argos_ops.agents.spokesperson_prep import SpokespersonPrep
+
+        return SpokespersonPrep()
+    if name == "BrandGuardBot":
+        from argos_ops.agents.brand_guard import BrandGuardBot
+
+        return BrandGuardBot()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 

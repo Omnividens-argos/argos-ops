@@ -172,6 +172,7 @@ class BrandGuardBot(BaseAgent):
     name = "BrandGuardBot"
     command = "/run-brand-audit"
     breaker_name = "BrandGuardBot"
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         paths = scan_targets()

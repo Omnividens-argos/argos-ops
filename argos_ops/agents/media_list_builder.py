@@ -123,6 +123,7 @@ class MediaListBuilder(BaseAgent):
     name = "MediaListBuilder"
     command = "/run-media-list-build"
     breaker_name = "MediaListBuilder"
+    ai_act_risk_class = "limited"
 
     async def run(self) -> RunResult:
         contacts = load_media_list()

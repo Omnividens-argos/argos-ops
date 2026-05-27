@@ -205,6 +205,9 @@ async def test_freshness_green_when_all_recent() -> None:
                 "AIActComplianceBot": _make_run("AIActComplianceBot", hours_ago=24.0),
                 "ContractDeadlineBot": _make_run("ContractDeadlineBot", hours_ago=4.0),
                 "BloctelGuard": _make_run("BloctelGuard", hours_ago=24.0),
+                "PressMonitor": _make_run("PressMonitor", hours_ago=4.0),
+                "MediaListBuilder": _make_run("MediaListBuilder", hours_ago=24.0),
+                "BrandGuardBot": _make_run("BrandGuardBot", hours_ago=24.0),
             }
         ),
     ):
@@ -297,6 +300,9 @@ async def test_freshness_yellow_at_80_percent_of_threshold() -> None:
                 "AIActComplianceBot": _make_run("AIActComplianceBot", hours_ago=24.0),
                 "ContractDeadlineBot": _make_run("ContractDeadlineBot", hours_ago=4.0),
                 "BloctelGuard": _make_run("BloctelGuard", hours_ago=24.0),
+                "PressMonitor": _make_run("PressMonitor", hours_ago=4.0),
+                "MediaListBuilder": _make_run("MediaListBuilder", hours_ago=24.0),
+                "BrandGuardBot": _make_run("BrandGuardBot", hours_ago=24.0),
             }
         ),
     ):
