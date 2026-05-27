@@ -171,6 +171,7 @@ class ReleaseNotesBot(BaseAgent):
     name = "ReleaseNotesBot"
     command = "/draft-release-notes"
     breaker_name = "ReleaseNotesBot"
+    ai_act_risk_class = "limited"
 
     def __init__(
         self,

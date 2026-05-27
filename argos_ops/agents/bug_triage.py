@@ -216,6 +216,7 @@ class BugTriageBot(BaseAgent):
     name = "BugTriageBot"
     command = "/run-bug-triage"
     breaker_name = "BugTriageBot"
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

@@ -146,6 +146,7 @@ class FeedbackAggregator(BaseAgent):
     name = "FeedbackAggregator"
     command = "/run-feedback-digest"
     breaker_name = "FeedbackAggregator"
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

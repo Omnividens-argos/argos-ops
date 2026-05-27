@@ -127,3 +127,12 @@ bots_sans_pii:
       - argos_ops/agents/churn_predictor.py        # snapshots customer_id × risk_score
       - argos_ops/agents/health_score.py           # snapshots customer_id × health bands
       - argos_ops/agents/upsell_spotter.py         # snapshots customer_id × usage_ratio
+
+  - nom: "Produit & R&D (P22.J) — bots interne / publication produit"
+    motif: "Drafting de contenu produit interne (changelog, release notes) ou publication de la roadmap publique épurée. Pas de PII : ChangelogBot/ReleaseNotesBot lisent git log + spec.yaml ; FeedbackAggregator agrège des thèmes (pas de customer_id exposé) ; RoadmapPublisher transforme l'Annexe D interne en page publique ; BugTriageBot lit issues GitHub publiques."
+    paths:
+      - argos_ops/agents/changelog_bot.py           # git log → changelog markdown
+      - argos_ops/agents/release_notes.py           # spec.yaml → release notes markdown
+      - argos_ops/agents/feedback_aggregator.py     # YAML feedback agrégé par thème
+      - argos_ops/agents/roadmap_publisher.py       # Annexe D interne → roadmap publique
+      - argos_ops/agents/bug_triage.py              # issues GitHub publiques → priorities

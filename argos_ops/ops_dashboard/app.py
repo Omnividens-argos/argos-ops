@@ -103,6 +103,12 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "NPSCollector",
     "UpsellSpotter",
     "EscalationRouter",
+    # Produit & R&D (P22.J)
+    "ChangelogBot",
+    "ReleaseNotesBot",
+    "FeedbackAggregator",
+    "RoadmapPublisher",
+    "BugTriageBot",
 )
 
 # Agents qu'on peut déclencher manuellement via "Run now" du panel. SupportBot
@@ -174,6 +180,12 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "NPSCollector",
         "UpsellSpotter",
         "EscalationRouter",
+        # Produit & R&D (P22.J) — bots audit-only ou drafting interne.
+        "ChangelogBot",
+        "ReleaseNotesBot",
+        "FeedbackAggregator",
+        "RoadmapPublisher",
+        "BugTriageBot",
     }
 )
 
@@ -373,6 +385,26 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.escalation_router import EscalationRouter
 
         return EscalationRouter()
+    if name == "ChangelogBot":
+        from argos_ops.agents.changelog_bot import ChangelogBot
+
+        return ChangelogBot()
+    if name == "ReleaseNotesBot":
+        from argos_ops.agents.release_notes import ReleaseNotesBot
+
+        return ReleaseNotesBot()
+    if name == "FeedbackAggregator":
+        from argos_ops.agents.feedback_aggregator import FeedbackAggregator
+
+        return FeedbackAggregator()
+    if name == "RoadmapPublisher":
+        from argos_ops.agents.roadmap_publisher import RoadmapPublisher
+
+        return RoadmapPublisher()
+    if name == "BugTriageBot":
+        from argos_ops.agents.bug_triage import BugTriageBot
+
+        return BugTriageBot()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 
