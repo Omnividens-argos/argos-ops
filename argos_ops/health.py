@@ -195,6 +195,11 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "PressMonitor": 26.0,
     "MediaListBuilder": 172.0,
     "BrandGuardBot": 172.0,
+    # Documentation & Knowledge interne (P22.M) — cron via setup_watchers_tasks.ps1 :
+    #   - DocLinter        : lundi 15:00 (hebdo)         → 172h slack
+    #   - DiagramGenerator : reactif (slash /gen-diagram <slug>) → skip
+    #   - ADRWriter        : reactif (slash /write-adr <slug>) → skip
+    "DocLinter": 172.0,
 }
 
 # Default thresholds

@@ -171,6 +171,7 @@ class DiagramGenerator(BaseAgent):
     name = "DiagramGenerator"
     command = "/gen-diagram"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,
