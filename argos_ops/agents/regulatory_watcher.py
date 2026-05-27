@@ -251,6 +251,7 @@ class RegulatoryWatcher(BaseAgent):
     name = "RegulatoryWatcher"
     command = "/run-regulatory-watch"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

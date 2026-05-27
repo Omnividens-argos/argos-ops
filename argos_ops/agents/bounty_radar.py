@@ -235,6 +235,7 @@ class BountyRadar(BaseAgent):
     name = "BountyRadar"
     command = None  # cron pur (mensuel)
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

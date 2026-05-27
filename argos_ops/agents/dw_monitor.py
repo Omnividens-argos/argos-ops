@@ -206,6 +206,7 @@ class DarkWebMonitor(BaseAgent):
     name = "DarkWebMonitor"
     command = "/run-dw-monitor"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,
