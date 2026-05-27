@@ -174,6 +174,7 @@ class KBUpdater(BaseAgent):
     name = "KBUpdater"
     command = "/draft-kb-update"
     breaker_name = "KBUpdater"
+    ai_act_risk_class = "limited"
 
     def __init__(
         self,

@@ -96,6 +96,7 @@ class UpsellSpotter(BaseAgent):
     name = "UpsellSpotter"
     command = "/run-upsell-spots"
     breaker_name = "UpsellSpotter"
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

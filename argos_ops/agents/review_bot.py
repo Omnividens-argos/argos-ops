@@ -129,6 +129,7 @@ class ReviewBot(BaseAgent):
     name = "ReviewBot"
     command = "/run-review-campaign"
     breaker_name = "ReviewBot"
+    ai_act_risk_class = "limited"
 
     def __init__(
         self,
