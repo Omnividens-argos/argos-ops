@@ -106,6 +106,142 @@ export interface ManualRunResponse {
 }
 
 // =============================================================================
+// Inbox (Phase 1) — drafts en attente de validation humaine
+// =============================================================================
+export type InboxKind =
+  | "email"
+  | "social"
+  | "proposal"
+  | "seo"
+  | "press"
+  | "doc"
+  | "other";
+
+export interface InboxDraft {
+  id: string;
+  kind: InboxKind;
+  title: string;
+  summary: string | null;
+  status: string;
+  created_at: string;
+  file_path: string;
+  agent_name: string | null;
+}
+
+export interface InboxActionPayload {
+  note?: string | null;
+  reason?: string | null;
+}
+
+export interface InboxActionResponse {
+  id: string;
+  status: string;
+  file_path: string;
+  timestamp: string;
+}
+
+export interface YamlConfigResponse {
+  agent_name: string;
+  relative_path: string;
+  exists: boolean;
+  content: string;
+  last_modified: string | null;
+}
+
+export interface CashSubBreakdown {
+  active: number;
+  trialing: number;
+  past_due: number;
+  canceled: number;
+  other: number;
+}
+
+export interface CashTicketBreakdown {
+  p0: number;
+  p1: number;
+  p2: number;
+  other: number;
+}
+
+export interface CashSnapshot {
+  mrr_eur: number;
+  arr_eur: number;
+  active_subscriptions: number;
+  subs_breakdown: CashSubBreakdown;
+  leads_last_24h: number;
+  leads_last_7d: number;
+  leads_last_30d: number;
+  open_tickets: number;
+  tickets_breakdown: CashTicketBreakdown;
+  last_refreshed_at: string;
+}
+
+export interface HealthAgentBreakdown {
+  enabled: number;
+  disabled: number;
+  paused: number;
+}
+
+export interface PipelineDeal {
+  deal_id: string;
+  company: string;
+  stage: string;
+  amount_eur: number | null;
+  last_activity_at: string | null;
+  days_since_activity: number | null;
+  owner: string | null;
+  notes: string | null;
+  risk_level: "healthy" | "stalled" | "at_risk";
+}
+
+export interface PipelineSnapshot {
+  has_data: boolean;
+  file_path: string;
+  total_deals: number;
+  total_amount_eur: number;
+  deals: PipelineDeal[];
+  last_refreshed_at: string;
+}
+
+export interface CohortRow {
+  signup_month: string;
+  cohort_size: number;
+  retained_by_month: number[];
+}
+
+export interface CohortsResponse {
+  has_data: boolean;
+  months_tracked: number;
+  rows: CohortRow[];
+  last_refreshed_at: string;
+}
+
+export interface HealthSnapshot {
+  db_ok: boolean;
+  runs_last_24h: number;
+  runs_last_7d: number;
+  failed_last_24h: number;
+  failed_last_7d: number;
+  agents_breakdown: HealthAgentBreakdown;
+  tripped_breakers: number;
+  tripped_breaker_names: string[];
+  last_refreshed_at: string;
+}
+
+export interface AgentPerfStats {
+  agent_name: string;
+  window_days: number;
+  total_runs: number;
+  success_count: number;
+  failed_count: number;
+  skipped_count: number;
+  error_rate: number;
+  avg_duration_seconds: number | null;
+  p50_duration_seconds: number | null;
+  p95_duration_seconds: number | null;
+}
+
+// =============================================================================
 // fetch helpers
 // =============================================================================
 async function getJSON<T>(path: string, signal?: AbortSignal): Promise<T> {
@@ -188,4 +324,97 @@ export function resetBreaker(name: string): Promise<BreakerInfo> {
 
 export function runAgentNow(name: string): Promise<ManualRunResponse> {
   return sendJSON<ManualRunResponse>("POST", `/api/agents/${encodeURIComponent(name)}/runs`);
+}
+
+export function fetchInboxDrafts(signal?: AbortSignal): Promise<InboxDraft[]> {
+  return getJSON<InboxDraft[]>("/api/inbox/drafts", signal);
+}
+
+export interface OutputContentResponse {
+  file_path: string;
+  content: string;
+}
+
+export function fetchAllOutputs(signal?: AbortSignal): Promise<InboxDraft[]> {
+  return getJSON<InboxDraft[]>("/api/outputs/index", signal);
+}
+
+export function fetchOutputContent(
+  path: string,
+  signal?: AbortSignal,
+): Promise<OutputContentResponse> {
+  return getJSON<OutputContentResponse>(
+    `/api/outputs/content?path=${encodeURIComponent(path)}`,
+    signal,
+  );
+}
+
+export function validateInboxDraft(
+  draftId: string,
+  payload: InboxActionPayload = {},
+): Promise<InboxActionResponse> {
+  return sendJSON<InboxActionResponse>(
+    "POST",
+    `/api/inbox/drafts/validate?draft_id=${encodeURIComponent(draftId)}`,
+    payload,
+  );
+}
+
+export function rejectInboxDraft(
+  draftId: string,
+  payload: InboxActionPayload = {},
+): Promise<InboxActionResponse> {
+  return sendJSON<InboxActionResponse>(
+    "POST",
+    `/api/inbox/drafts/reject?draft_id=${encodeURIComponent(draftId)}`,
+    payload,
+  );
+}
+
+export function fetchAgentYamlConfig(
+  name: string,
+  signal?: AbortSignal,
+): Promise<YamlConfigResponse> {
+  return getJSON<YamlConfigResponse>(
+    `/api/agents/${encodeURIComponent(name)}/config-yaml`,
+    signal,
+  );
+}
+
+export function patchAgentYamlConfig(
+  name: string,
+  content: string,
+): Promise<YamlConfigResponse> {
+  return sendJSON<YamlConfigResponse>(
+    "PATCH",
+    `/api/agents/${encodeURIComponent(name)}/config-yaml`,
+    { content },
+  );
+}
+
+export function fetchAgentPerf(
+  name: string,
+  windowDays = 7,
+  signal?: AbortSignal,
+): Promise<AgentPerfStats> {
+  return getJSON<AgentPerfStats>(
+    `/api/agents/${encodeURIComponent(name)}/perf?window_days=${windowDays}`,
+    signal,
+  );
+}
+
+export function fetchCashSnapshot(signal?: AbortSignal): Promise<CashSnapshot> {
+  return getJSON<CashSnapshot>("/api/cash/snapshot", signal);
+}
+
+export function fetchHealthSnapshot(signal?: AbortSignal): Promise<HealthSnapshot> {
+  return getJSON<HealthSnapshot>("/api/health/snapshot", signal);
+}
+
+export function fetchPipeline(signal?: AbortSignal): Promise<PipelineSnapshot> {
+  return getJSON<PipelineSnapshot>("/api/sales/pipeline", signal);
+}
+
+export function fetchCohorts(months = 6, signal?: AbortSignal): Promise<CohortsResponse> {
+  return getJSON<CohortsResponse>(`/api/cash/cohorts?months=${months}`, signal);
 }

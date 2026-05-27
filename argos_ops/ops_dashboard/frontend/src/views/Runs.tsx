@@ -1,7 +1,8 @@
-import { Search } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import type { AgentRunRow, RunStatus } from "../api";
 import { fetchRuns } from "../api";
+import { EmptyState } from "../components/EmptyState";
 import { Sparkline } from "../components/Sparkline";
 import { StatusPill } from "../components/StatusPill";
 import { Button } from "../components/ui";
@@ -163,9 +164,23 @@ export function Runs() {
       {/* Sections par jour */}
       <div className="space-y-5">
         {grouped.length === 0 && (
-          <div className="rounded-md border border-argos-border-subtle bg-argos-surface p-8 text-center font-mono text-xs text-argos-fg-tertiary">
-            Aucun run ne correspond aux filtres.
-          </div>
+          <EmptyState
+            tone={hasFilters ? "neutral" : "celebrate"}
+            icon={Sparkles}
+            title={hasFilters ? "Aucun run ne correspond" : "Pas encore de run"}
+            body={
+              hasFilters
+                ? "Élargis les filtres ou efface-les pour voir plus de runs."
+                : "La flotte n'a rien exécuté sur la fenêtre demandée. C'est normal hors créneau cron."
+            }
+            action={
+              hasFilters ? (
+                <Button size="sm" variant="ghost" onClick={clearFilters}>
+                  Effacer les filtres
+                </Button>
+              ) : undefined
+            }
+          />
         )}
         {grouped.map((group) => (
           <DaySection key={group.dayKey} group={group} compact={compact} />
