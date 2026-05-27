@@ -173,6 +173,16 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "CVEMonitor": 26.0,
     "DarkWebMonitor": 26.0,
     "BountyRadar": 756.0,
+    # Juridique & Compliance (P22.K) — cron via setup_watchers_tasks.ps1 :
+    #   - RGPDAuditor          : lundi 13:00 (hebdo)         → 172h slack
+    #   - AIActComplianceBot   : lundi 13:30 (hebdo)         → 172h slack
+    #   - ContractDeadlineBot  : quotidien 14:00             → 26h slack
+    #   - BloctelGuard         : 1er du mois 13:00 (mensuel) → 756h slack
+    #   - IncidentLogger       : interactif (slash) → skip cadence
+    "RGPDAuditor": 172.0,
+    "AIActComplianceBot": 172.0,
+    "ContractDeadlineBot": 26.0,
+    "BloctelGuard": 756.0,
 }
 
 # Default thresholds

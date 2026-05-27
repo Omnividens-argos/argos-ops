@@ -201,6 +201,10 @@ async def test_freshness_green_when_all_recent() -> None:
                 "CVEMonitor": _make_run("CVEMonitor", hours_ago=4.0),
                 "DarkWebMonitor": _make_run("DarkWebMonitor", hours_ago=4.0),
                 "BountyRadar": _make_run("BountyRadar", hours_ago=24.0),
+                "RGPDAuditor": _make_run("RGPDAuditor", hours_ago=24.0),
+                "AIActComplianceBot": _make_run("AIActComplianceBot", hours_ago=24.0),
+                "ContractDeadlineBot": _make_run("ContractDeadlineBot", hours_ago=4.0),
+                "BloctelGuard": _make_run("BloctelGuard", hours_ago=24.0),
             }
         ),
     ):
@@ -289,6 +293,10 @@ async def test_freshness_yellow_at_80_percent_of_threshold() -> None:
                 "CVEMonitor": _make_run("CVEMonitor", hours_ago=4.0),
                 "DarkWebMonitor": _make_run("DarkWebMonitor", hours_ago=4.0),
                 "BountyRadar": _make_run("BountyRadar", hours_ago=24.0),
+                "RGPDAuditor": _make_run("RGPDAuditor", hours_ago=24.0),
+                "AIActComplianceBot": _make_run("AIActComplianceBot", hours_ago=24.0),
+                "ContractDeadlineBot": _make_run("ContractDeadlineBot", hours_ago=4.0),
+                "BloctelGuard": _make_run("BloctelGuard", hours_ago=24.0),
             }
         ),
     ):
