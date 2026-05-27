@@ -30,6 +30,13 @@
     - argos-ops-dw-monitor        : quotidien (12h30)
     - argos-ops-bounty-radar      : mensuel (1er du mois 12h)
 
+  Juridique & Compliance (P22.K, 4 bots cron + 1 interactif) :
+    - argos-ops-rgpd-audit        : hebdo (lundi 13h)
+    - argos-ops-ai-act-audit      : hebdo (lundi 13h30)
+    - argos-ops-contract-deadlines : quotidien (14h)
+    - argos-ops-bloctel-guard     : mensuel (1er du mois 13h)
+    - IncidentLogger              : interactif (slash /log-incident, pas cron)
+
   Chaque tâche est idempotente — relancer écrase l'existante.
 
 .EXAMPLE
@@ -89,6 +96,10 @@ $Tasks = @(
     @{ Name = "argos-ops-cve-monitor";      Script = "run_cve_monitor.py";       Trigger = "Daily:07:30";          Description = "CVEMonitor quotidien (7h30)" }
     @{ Name = "argos-ops-dw-monitor";       Script = "run_dw_monitor.py";        Trigger = "Daily:12:30";          Description = "DarkWebMonitor quotidien (12h30)" }
     @{ Name = "argos-ops-bounty-radar";     Script = "run_bounty_radar.py";      Trigger = "Monthly:1:12:00";      Description = "BountyRadar mensuel (1er 12h)" }
+    @{ Name = "argos-ops-rgpd-audit";       Script = "run_rgpd_auditor.py";      Trigger = "Weekly:Monday:13:00";  Description = "RGPDAuditor hebdo (lundi 13h)" }
+    @{ Name = "argos-ops-ai-act-audit";     Script = "run_ai_act_compliance.py"; Trigger = "Weekly:Monday:13:30";  Description = "AIActComplianceBot hebdo (lundi 13h30)" }
+    @{ Name = "argos-ops-contract-deadlines"; Script = "run_contract_deadlines.py"; Trigger = "Daily:14:00";        Description = "ContractDeadlineBot quotidien (14h)" }
+    @{ Name = "argos-ops-bloctel-guard";    Script = "run_bloctel_guard.py";     Trigger = "Monthly:1:13:00";      Description = "BloctelGuard mensuel (1er 13h)" }
 )
 
 if ($Only) {

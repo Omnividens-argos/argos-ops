@@ -125,6 +125,12 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "CVEMonitor",
     "DarkWebMonitor",
     "BountyRadar",
+    # Juridique & Compliance (P22.K)
+    "RGPDAuditor",
+    "AIActComplianceBot",
+    "BloctelGuard",
+    "ContractDeadlineBot",
+    "IncidentLogger",
 )
 
 # Agents qu'on peut déclencher manuellement via "Run now" du panel. SupportBot
@@ -221,6 +227,15 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "CVEMonitor",
         "DarkWebMonitor",
         "BountyRadar",
+        # Juridique & Compliance (P22.K) — bots audit-only / interactif.
+        # IncidentLogger.run() est un health-check passif (l'append du
+        # post-mortem se fait via slash /log-incident).
+        # BloctelGuard est cron-only par design (command=None).
+        "RGPDAuditor",
+        "AIActComplianceBot",
+        "BloctelGuard",
+        "ContractDeadlineBot",
+        "IncidentLogger",
     }
 )
 
@@ -496,6 +511,28 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.bounty_radar import BountyRadar
 
         return BountyRadar()
+    if name == "RGPDAuditor":
+        from argos_ops.agents.rgpd_auditor import RGPDAuditor
+
+        return RGPDAuditor()
+    if name == "AIActComplianceBot":
+        from argos_ops.agents.ai_act_compliance import AIActComplianceBot
+
+        return AIActComplianceBot()
+    if name == "BloctelGuard":
+        from argos_ops.agents.bloctel_guard import BloctelGuard
+
+        return BloctelGuard()
+    if name == "ContractDeadlineBot":
+        from argos_ops.agents.contract_deadline import ContractDeadlineBot
+
+        return ContractDeadlineBot()
+    if name == "IncidentLogger":
+        # Run now = health-check passif. L'append d'un post-mortem passe
+        # par /log-incident côté slash, pas par le panel.
+        from argos_ops.agents.incident_logger import IncidentLogger
+
+        return IncidentLogger()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 

@@ -165,3 +165,12 @@ bots_sans_pii:
       - argos_ops/agents/regulatory_watcher.py      # RSS CNIL/ANSSI/UE filtré keywords
       - argos_ops/agents/cve_monitor.py             # OSV.dev × stacks clients déclarés
       - argos_ops/agents/bounty_radar.py            # HackerOne + YesWeHack programmes publics
+
+  - nom: "Juridique & Compliance (P22.K) — bots audit interne / scaffold"
+    motif: "Audit interne déterministe pour la flotte Argos elle-même : RGPDAuditor scanne le code pour PII non déclarée (compare scan vs rgpd_registry.yaml), AIActComplianceBot inspecte le tag ai_act_risk_class de chaque classe agent, ContractDeadlineBot agrège dates de renouvellement (contacts dans clients.yaml = déjà couverts par 'Support client Tier 1'), BloctelGuard vérifie liste opposition Bloctel (lit téléphones leads outbound — déjà couvert par 'Lead BtoB outbound'), IncidentLogger scaffold post-mortem incident interne (pas de PII client). Aucun bot ne crée de nouveau traitement PII — tous lisent du code/YAML pour audit."
+    paths:
+      - argos_ops/agents/rgpd_auditor.py            # scan code × registry YAML
+      - argos_ops/agents/ai_act_compliance.py       # inspect ai_act_risk_class tags
+      - argos_ops/agents/contract_deadline.py       # dates renouvellement (PII via Support Tier 1)
+      - argos_ops/agents/bloctel_guard.py           # téléphones leads (PII via Lead BtoB outbound)
+      - argos_ops/agents/incident_logger.py         # scaffold post-mortem markdown

@@ -105,6 +105,12 @@ const RUNNABLE_AGENTS = new Set<string>([
   "CVEMonitor",
   "DarkWebMonitor",
   "BountyRadar",
+  // Juridique & Compliance (P22.K).
+  "RGPDAuditor",
+  "AIActComplianceBot",
+  "BloctelGuard",
+  "ContractDeadlineBot",
+  "IncidentLogger",
 ]);
 
 export function Agents() {
