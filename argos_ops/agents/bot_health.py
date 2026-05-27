@@ -315,6 +315,7 @@ class BotHealthBot(BaseAgent):
     name = "BotHealthBot"
     command = "/run-bot-health"
     breaker_name = None  # pas de breaker dédié : c'est lui qui les observe
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

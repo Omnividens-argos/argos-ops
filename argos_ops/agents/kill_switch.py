@@ -217,6 +217,7 @@ class KillSwitchOperator(BaseAgent):
     name = "KillSwitchOperator"
     command = None  # pas de slash command
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         async with session_scope() as session:

@@ -200,6 +200,17 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     #   - DiagramGenerator : reactif (slash /gen-diagram <slug>) → skip
     #   - ADRWriter        : reactif (slash /write-adr <slug>) → skip
     "DocLinter": 172.0,
+    # Meta-Ops (P22.B/C) — cron via setup_watchers_tasks.ps1 + setup_bot_health_task.ps1 :
+    #   - BotPerfAnalyzer   : lundi 05:00 (hebdo)        → 172h slack
+    #   - ErrorTriageBot    : toutes les 6h              → 7h slack
+    #   - KillSwitchOperator: 09:00 + 17:00 (2x/jour)    → 9h slack
+    #   - BotConfigManager  : quotidien 04:00            → 26h slack
+    #   - DigestBuilder/EmailBot/BotHealthBot deja presents (P4/P5/P22.B)
+    #   - OrchestratorBot   : slash-triggered, pas de cadence cron → skip
+    "BotPerfAnalyzer": 172.0,
+    "ErrorTriageBot": 7.0,
+    "KillSwitchOperator": 9.0,
+    "BotConfigManager": 26.0,
 }
 
 # Default thresholds

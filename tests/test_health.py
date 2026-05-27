@@ -209,6 +209,10 @@ async def test_freshness_green_when_all_recent() -> None:
                 "MediaListBuilder": _make_run("MediaListBuilder", hours_ago=24.0),
                 "BrandGuardBot": _make_run("BrandGuardBot", hours_ago=24.0),
                 "DocLinter": _make_run("DocLinter", hours_ago=24.0),
+                "BotPerfAnalyzer": _make_run("BotPerfAnalyzer", hours_ago=24.0),
+                "ErrorTriageBot": _make_run("ErrorTriageBot", hours_ago=1.0),
+                "KillSwitchOperator": _make_run("KillSwitchOperator", hours_ago=1.0),
+                "BotConfigManager": _make_run("BotConfigManager", hours_ago=4.0),
             }
         ),
     ):
@@ -305,6 +309,10 @@ async def test_freshness_yellow_at_80_percent_of_threshold() -> None:
                 "MediaListBuilder": _make_run("MediaListBuilder", hours_ago=24.0),
                 "BrandGuardBot": _make_run("BrandGuardBot", hours_ago=24.0),
                 "DocLinter": _make_run("DocLinter", hours_ago=24.0),
+                "BotPerfAnalyzer": _make_run("BotPerfAnalyzer", hours_ago=24.0),
+                "ErrorTriageBot": _make_run("ErrorTriageBot", hours_ago=1.0),
+                "KillSwitchOperator": _make_run("KillSwitchOperator", hours_ago=1.0),
+                "BotConfigManager": _make_run("BotConfigManager", hours_ago=4.0),
             }
         ),
     ):

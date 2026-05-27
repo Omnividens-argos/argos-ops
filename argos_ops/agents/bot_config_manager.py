@@ -224,6 +224,7 @@ class BotConfigManager(BaseAgent):
     name = "BotConfigManager"
     command = "/run-config-drift"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, baseline_path: Path = DEFAULT_BASELINE_PATH) -> None:
         self._baseline_path = baseline_path

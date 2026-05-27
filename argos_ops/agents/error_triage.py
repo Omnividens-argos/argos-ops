@@ -223,6 +223,7 @@ class ErrorTriageBot(BaseAgent):
     name = "ErrorTriageBot"
     command = "/run-error-triage"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         async with session_scope() as session:
