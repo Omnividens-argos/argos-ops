@@ -187,6 +187,14 @@ async def test_freshness_green_when_all_recent() -> None:
                 "FeedbackAggregator": _make_run("FeedbackAggregator", hours_ago=24.0),
                 "ChangelogBot": _make_run("ChangelogBot", hours_ago=24.0),
                 "RoadmapPublisher": _make_run("RoadmapPublisher", hours_ago=24.0),
+                "UptimeMonitor": _make_run("UptimeMonitor", hours_ago=0.1),
+                "DependencyAuditor": _make_run("DependencyAuditor", hours_ago=24.0),
+                "LogAnomalyDetector": _make_run("LogAnomalyDetector", hours_ago=4.0),
+                "BackupVerifier": _make_run("BackupVerifier", hours_ago=4.0),
+                "SSLExpirer": _make_run("SSLExpirer", hours_ago=24.0),
+                "DNSGuard": _make_run("DNSGuard", hours_ago=4.0),
+                "SecretRotator": _make_run("SecretRotator", hours_ago=24.0),
+                "CIFlakeTracker": _make_run("CIFlakeTracker", hours_ago=4.0),
             }
         ),
     ):
@@ -261,6 +269,14 @@ async def test_freshness_yellow_at_80_percent_of_threshold() -> None:
                 "FeedbackAggregator": _make_run("FeedbackAggregator", hours_ago=24.0),
                 "ChangelogBot": _make_run("ChangelogBot", hours_ago=24.0),
                 "RoadmapPublisher": _make_run("RoadmapPublisher", hours_ago=24.0),
+                "UptimeMonitor": _make_run("UptimeMonitor", hours_ago=0.1),
+                "DependencyAuditor": _make_run("DependencyAuditor", hours_ago=24.0),
+                "LogAnomalyDetector": _make_run("LogAnomalyDetector", hours_ago=4.0),
+                "BackupVerifier": _make_run("BackupVerifier", hours_ago=4.0),
+                "SSLExpirer": _make_run("SSLExpirer", hours_ago=24.0),
+                "DNSGuard": _make_run("DNSGuard", hours_ago=4.0),
+                "SecretRotator": _make_run("SecretRotator", hours_ago=24.0),
+                "CIFlakeTracker": _make_run("CIFlakeTracker", hours_ago=4.0),
             }
         ),
     ):

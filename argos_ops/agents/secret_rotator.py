@@ -199,6 +199,7 @@ class SecretRotator(BaseAgent):
     name = "SecretRotator"
     command = "/run-secret-audit"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, rotation_log_path: Path = DEFAULT_ROTATION_LOG_PATH) -> None:
         self._path = rotation_log_path

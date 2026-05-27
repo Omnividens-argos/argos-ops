@@ -247,6 +247,7 @@ class SSLExpirer(BaseAgent):
     name = "SSLExpirer"
     command = None  # pas de slash command (cron mensuel)
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, endpoints_path: Path = DEFAULT_ENDPOINTS_PATH) -> None:
         self._endpoints_path = endpoints_path

@@ -109,6 +109,15 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "FeedbackAggregator",
     "RoadmapPublisher",
     "BugTriageBot",
+    # Tech / SRE / Sécurité IT (P22.C/D)
+    "UptimeMonitor",
+    "DependencyAuditor",
+    "LogAnomalyDetector",
+    "BackupVerifier",
+    "SSLExpirer",
+    "DNSGuard",
+    "SecretRotator",
+    "CIFlakeTracker",
 )
 
 # Agents qu'on peut déclencher manuellement via "Run now" du panel. SupportBot
@@ -186,6 +195,17 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "FeedbackAggregator",
         "RoadmapPublisher",
         "BugTriageBot",
+        # Tech / SRE / Sécurité IT (P22.C/D) — watchers infra read-only.
+        # BackupVerifier, SSLExpirer, DNSGuard sont cron-only par design
+        # (pas de slash) mais leur "Run now" reste utile pour debug ponctuel.
+        "UptimeMonitor",
+        "DependencyAuditor",
+        "LogAnomalyDetector",
+        "BackupVerifier",
+        "SSLExpirer",
+        "DNSGuard",
+        "SecretRotator",
+        "CIFlakeTracker",
     }
 )
 
@@ -405,6 +425,38 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.bug_triage import BugTriageBot
 
         return BugTriageBot()
+    if name == "UptimeMonitor":
+        from argos_ops.agents.uptime_monitor import UptimeMonitor
+
+        return UptimeMonitor()
+    if name == "DependencyAuditor":
+        from argos_ops.agents.dependency_auditor import DependencyAuditor
+
+        return DependencyAuditor()
+    if name == "LogAnomalyDetector":
+        from argos_ops.agents.log_anomaly import LogAnomalyDetector
+
+        return LogAnomalyDetector()
+    if name == "BackupVerifier":
+        from argos_ops.agents.backup_verifier import BackupVerifier
+
+        return BackupVerifier()
+    if name == "SSLExpirer":
+        from argos_ops.agents.ssl_expirer import SSLExpirer
+
+        return SSLExpirer()
+    if name == "DNSGuard":
+        from argos_ops.agents.dns_guard import DNSGuard
+
+        return DNSGuard()
+    if name == "SecretRotator":
+        from argos_ops.agents.secret_rotator import SecretRotator
+
+        return SecretRotator()
+    if name == "CIFlakeTracker":
+        from argos_ops.agents.ci_flake_tracker import CIFlakeTracker
+
+        return CIFlakeTracker()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 

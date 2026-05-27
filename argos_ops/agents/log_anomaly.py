@@ -188,6 +188,7 @@ class LogAnomalyDetector(BaseAgent):
     name = "LogAnomalyDetector"
     command = "/run-log-anomalies"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         now = datetime.now(UTC)

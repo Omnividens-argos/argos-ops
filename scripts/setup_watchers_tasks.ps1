@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-  Idempotent setup des Task Scheduler Windows pour les 9 watcher bots P22.C.
+  Idempotent setup des Task Scheduler Windows pour les 12 watcher bots P22.C/D.
 
 .DESCRIPTION
-  Enregistre (ou met à jour) 9 tâches planifiées pour la flotte de
+  Enregistre (ou met à jour) 12 tâches planifiées pour la flotte de
   watchers Argos Ops :
 
   Meta-Ops Sprint 2 (4 bots) :
@@ -12,12 +12,15 @@
     - argos-ops-kill-switch       : 2x/jour (9h et 17h)
     - argos-ops-config-drift      : quotidien (4h)
 
-  Tech/SRE Sprint 4 (5 bots) :
+  Tech/SRE Sprint 4 (8 bots) :
     - argos-ops-uptime            : toutes les 5 min
     - argos-ops-ssl-expirer       : mensuel (1er du mois 6h)
     - argos-ops-secret-rotator    : hebdo (lundi 6h)
     - argos-ops-dep-audit         : hebdo (lundi 7h)
     - argos-ops-backup-verifier   : quotidien (5h)
+    - argos-ops-log-anomaly       : quotidien (4h)
+    - argos-ops-dns-guard         : quotidien (13h)
+    - argos-ops-ci-flake-tracker  : quotidien (21h, post-CI)
 
   Chaque tâche est idempotente — relancer écrase l'existante.
 
@@ -46,7 +49,18 @@ $ErrorActionPreference = "Stop"
 
 $RepoRoot = "C:\Users\pauzzle\Desktop\argos-ops"
 
-# Catalogue des tâches : (Name, Script, TriggerType, TriggerArg, Description)
+# Path absolu uv.exe requis : Task Scheduler n'hérite pas du PATH utilisateur.
+$UvCommand = "$env:USERPROFILE\.local\bin\uv.exe"
+if (-not (Test-Path $UvCommand)) {
+    $UvCommand = (Get-Command uv -ErrorAction SilentlyContinue).Path
+}
+if (-not $UvCommand -or -not (Test-Path $UvCommand)) {
+    Write-Error "uv introuvable - verifie l'installation (winget install astral-sh.uv)"
+    exit 1
+}
+Write-Host "[i] uv resolu vers : $UvCommand" -ForegroundColor DarkGray
+
+# Catalogue des taches : (Name, Script, TriggerType, TriggerArg, Description)
 # TriggerType : "Every5Min" / "Hourly:N" / "Daily:HH:MM" / "Weekly:DayOfWeek:HH:MM" / "Monthly:DayOfMonth:HH:MM"
 $Tasks = @(
     @{ Name = "argos-ops-bot-perf";         Script = "run_bot_perf.py";          Trigger = "Weekly:Monday:05:00";  Description = "BotPerfAnalyzer hebdo (lundi 5h)" }
@@ -58,6 +72,9 @@ $Tasks = @(
     @{ Name = "argos-ops-secret-rotator";   Script = "run_secret_rotator.py";    Trigger = "Weekly:Monday:06:00";  Description = "SecretRotator hebdo (lundi 6h)" }
     @{ Name = "argos-ops-dep-audit";        Script = "run_dependency_auditor.py"; Trigger = "Weekly:Monday:07:00"; Description = "DependencyAuditor hebdo (lundi 7h)" }
     @{ Name = "argos-ops-backup-verifier";  Script = "run_backup_verifier.py";   Trigger = "Daily:05:00";          Description = "BackupVerifier quotidien (5h)" }
+    @{ Name = "argos-ops-log-anomaly";      Script = "run_log_anomaly.py";       Trigger = "Daily:04:00";          Description = "LogAnomalyDetector quotidien (4h)" }
+    @{ Name = "argos-ops-dns-guard";        Script = "run_dns_guard.py";         Trigger = "Daily:13:00";          Description = "DNSGuard quotidien (13h)" }
+    @{ Name = "argos-ops-ci-flake-tracker"; Script = "run_ci_flake_tracker.py";  Trigger = "Daily:21:00";          Description = "CIFlakeTracker quotidien (21h post-CI)" }
 )
 
 if ($Only) {
@@ -114,9 +131,9 @@ function New-WatcherTrigger {
     }
 }
 
-Write-Host "=== Setup 9 watcher Task Scheduler ===" -ForegroundColor Cyan
+Write-Host "=== Setup watcher Task Scheduler ===" -ForegroundColor Cyan
 Write-Host "  Repo         : $RepoRoot"
-Write-Host "  Tâches       : $($Tasks.Count)"
+Write-Host "  Taches       : $($Tasks.Count)"
 Write-Host "  DryRun       : $($DryRun.IsPresent)"
 Write-Host ""
 
@@ -126,7 +143,7 @@ foreach ($task in $Tasks) {
     $scriptPath = Join-Path $RepoRoot "scripts\$script"
 
     if (-not (Test-Path $scriptPath)) {
-        Write-Warning "[$name] Script introuvable : $scriptPath — skip"
+        Write-Warning "[$name] Script introuvable : $scriptPath - skip"
         continue
     }
 
@@ -142,11 +159,11 @@ foreach ($task in $Tasks) {
     $existing = Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue
     if ($existing) {
         Unregister-ScheduledTask -TaskName $name -Confirm:$false
-        Write-Host "  [REPLACE] tâche existante remplacée"
+        Write-Host "  [REPLACE] tache existante remplacee"
     }
 
     $action = New-ScheduledTaskAction `
-        -Execute "uv" `
+        -Execute $UvCommand `
         -Argument "run python scripts\$script" `
         -WorkingDirectory $RepoRoot
 
@@ -164,7 +181,7 @@ foreach ($task in $Tasks) {
         -Settings $settings `
         -Description $task.Description | Out-Null
 
-    Write-Host "  [OK] enregistrée" -ForegroundColor Green
+    Write-Host "  [OK] enregistree" -ForegroundColor Green
 }
 
 Write-Host ""
