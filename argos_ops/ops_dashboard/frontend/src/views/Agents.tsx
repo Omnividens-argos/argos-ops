@@ -89,6 +89,15 @@ const RUNNABLE_AGENTS = new Set<string>([
   "FeedbackAggregator",
   "RoadmapPublisher",
   "BugTriageBot",
+  // Tech / SRE / Sécurité IT (P22.C/D).
+  "UptimeMonitor",
+  "DependencyAuditor",
+  "LogAnomalyDetector",
+  "BackupVerifier",
+  "SSLExpirer",
+  "DNSGuard",
+  "SecretRotator",
+  "CIFlakeTracker",
 ]);
 
 export function Agents() {

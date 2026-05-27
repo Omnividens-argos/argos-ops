@@ -208,6 +208,7 @@ class CIFlakeTracker(BaseAgent):
     name = "CIFlakeTracker"
     command = "/run-ci-flakes"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self, *, repo: str = DEFAULT_REPO, lookback_runs: int = DEFAULT_LOOKBACK_RUNS

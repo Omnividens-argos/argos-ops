@@ -285,6 +285,7 @@ class DNSGuard(BaseAgent):
     name = "DNSGuard"
     command = None  # cron pur (pas de slash dédié, alerte rare)
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

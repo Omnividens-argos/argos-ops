@@ -136,3 +136,15 @@ bots_sans_pii:
       - argos_ops/agents/feedback_aggregator.py     # YAML feedback agrégé par thème
       - argos_ops/agents/roadmap_publisher.py       # Annexe D interne → roadmap publique
       - argos_ops/agents/bug_triage.py              # issues GitHub publiques → priorities
+
+  - nom: "Tech / SRE / Sécurité IT (P22.C/D) — watchers infra read-only"
+    motif: "Monitoring infrastructure pur : ping endpoints HTTP, scan dépendances + CVE OSV.dev, détection anomalies agent_runs, vérif backups Postgres, expiration SSL certs, drift DNS, audit rotation secrets, détection CI tests flaky. Aucune PII traitée — uniquement métadonnées techniques (URLs publiques, certs, noms tests CI, IDs commit). Le rotation_log.yaml de SecretRotator contient des noms de secrets + dates, jamais les valeurs (discipline)."
+    paths:
+      - argos_ops/agents/uptime_monitor.py          # HTTP 200/404 sur endpoints publics
+      - argos_ops/agents/dependency_auditor.py      # CVE OSV.dev (catalogue public)
+      - argos_ops/agents/log_anomaly.py             # agent_runs status counts (no PII)
+      - argos_ops/agents/backup_verifier.py         # FS scan /backups (filenames only)
+      - argos_ops/agents/ssl_expirer.py             # TLS cert metadata publique
+      - argos_ops/agents/dns_guard.py               # DNS records publics omnividens.fr
+      - argos_ops/agents/secret_rotator.py          # rotation_log.yaml (dates, pas valeurs)
+      - argos_ops/agents/ci_flake_tracker.py        # GitHub Actions job names + conclusions

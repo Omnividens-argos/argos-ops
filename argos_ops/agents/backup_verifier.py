@@ -189,6 +189,7 @@ class BackupVerifier(BaseAgent):
     name = "BackupVerifier"
     command = None  # pas de slash command (cron quotidien)
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, backups_dir: Path = DEFAULT_BACKUPS_DIR) -> None:
         self._backups_dir = backups_dir

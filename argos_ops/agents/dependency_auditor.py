@@ -306,6 +306,7 @@ class DependencyAuditor(BaseAgent):
     name = "DependencyAuditor"
     command = "/run-dep-audit"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         raw = await export_requirements()

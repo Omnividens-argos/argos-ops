@@ -274,6 +274,7 @@ class UptimeMonitor(BaseAgent):
     name = "UptimeMonitor"
     command = "/run-uptime"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, endpoints_path: Path = DEFAULT_ENDPOINTS_PATH) -> None:
         self._endpoints_path = endpoints_path

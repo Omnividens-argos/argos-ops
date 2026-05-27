@@ -143,6 +143,23 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "FeedbackAggregator": 172.0,
     "ChangelogBot": 172.0,
     "RoadmapPublisher": 756.0,
+    # Tech / SRE / Sécurité IT (P22.C/D) — cron via setup_watchers_tasks.ps1 :
+    #   - UptimeMonitor       : every 5 min                → 1h slack
+    #   - DependencyAuditor   : hebdo lundi 07:00          → 172h slack
+    #   - LogAnomalyDetector  : quotidien 04:00            → 26h slack
+    #   - BackupVerifier      : quotidien 05:00            → 26h slack
+    #   - SSLExpirer          : mensuel 1er 06:00          → 756h slack
+    #   - DNSGuard            : quotidien 13:00            → 26h slack
+    #   - SecretRotator       : hebdo lundi 06:00          → 172h slack
+    #   - CIFlakeTracker      : quotidien 21:00 (post-CI)  → 26h slack
+    "UptimeMonitor": 1.0,
+    "DependencyAuditor": 172.0,
+    "LogAnomalyDetector": 26.0,
+    "BackupVerifier": 26.0,
+    "SSLExpirer": 756.0,
+    "DNSGuard": 26.0,
+    "SecretRotator": 172.0,
+    "CIFlakeTracker": 26.0,
 }
 
 # Default thresholds
