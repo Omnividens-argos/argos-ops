@@ -183,6 +183,10 @@ async def test_freshness_green_when_all_recent() -> None:
                 "EscalationRouter": _make_run("EscalationRouter", hours_ago=4.0),
                 "KBUpdater": _make_run("KBUpdater", hours_ago=24.0),
                 "ReviewBot": _make_run("ReviewBot", hours_ago=24.0),
+                "BugTriageBot": _make_run("BugTriageBot", hours_ago=4.0),
+                "FeedbackAggregator": _make_run("FeedbackAggregator", hours_ago=24.0),
+                "ChangelogBot": _make_run("ChangelogBot", hours_ago=24.0),
+                "RoadmapPublisher": _make_run("RoadmapPublisher", hours_ago=24.0),
             }
         ),
     ):
@@ -253,6 +257,10 @@ async def test_freshness_yellow_at_80_percent_of_threshold() -> None:
                 "EscalationRouter": _make_run("EscalationRouter", hours_ago=4.0),
                 "KBUpdater": _make_run("KBUpdater", hours_ago=24.0),
                 "ReviewBot": _make_run("ReviewBot", hours_ago=24.0),
+                "BugTriageBot": _make_run("BugTriageBot", hours_ago=4.0),
+                "FeedbackAggregator": _make_run("FeedbackAggregator", hours_ago=24.0),
+                "ChangelogBot": _make_run("ChangelogBot", hours_ago=24.0),
+                "RoadmapPublisher": _make_run("RoadmapPublisher", hours_ago=24.0),
             }
         ),
     ):

@@ -126,6 +126,7 @@ class ChangelogBot(BaseAgent):
     name = "ChangelogBot"
     command = "/draft-changelog"
     breaker_name = "ChangelogBot"
+    ai_act_risk_class = "limited"
 
     def __init__(
         self,

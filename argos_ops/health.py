@@ -133,6 +133,16 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "EscalationRouter": 26.0,
     "KBUpdater": 172.0,
     "ReviewBot": 756.0,
+    # Produit & R&D (P22.J) — cron via setup_product_tasks.ps1 :
+    #   - BugTriageBot       : quotidien 10:00            → 26h slack
+    #   - FeedbackAggregator : lundi 11:00 (hebdo)        → 172h slack
+    #   - ChangelogBot       : lundi 11:30 (hebdo)        → 172h slack
+    #   - ReleaseNotesBot    : reactif (slash) → skip cadence
+    #   - RoadmapPublisher   : 1er du mois 11:00 (mensuel) → 756h slack
+    "BugTriageBot": 26.0,
+    "FeedbackAggregator": 172.0,
+    "ChangelogBot": 172.0,
+    "RoadmapPublisher": 756.0,
 }
 
 # Default thresholds

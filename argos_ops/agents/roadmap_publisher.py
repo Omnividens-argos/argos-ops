@@ -160,6 +160,7 @@ class RoadmapPublisher(BaseAgent):
     name = "RoadmapPublisher"
     command = "/publish-roadmap"
     breaker_name = "RoadmapPublisher"
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,
