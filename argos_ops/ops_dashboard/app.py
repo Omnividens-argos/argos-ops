@@ -17,7 +17,8 @@ IP allowlist côté serveur (P16.B). Ne JAMAIS exposer cette app sans Caddy.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
@@ -39,15 +40,42 @@ from argos_ops.crm.repository import (
     sum_active_mrr_eur,
     update_agent_config,
 )
+from argos_ops.ops_dashboard.cohorts import compute_cohorts
+from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
+from argos_ops.ops_dashboard.inbox_scanner import (
+    read_output_content,
+    scan_all_outputs,
+    scan_inbox_drafts,
+)
 from argos_ops.ops_dashboard.models import (
     AgentConfigPayload,
     AgentConfigResponse,
+    AgentPerfStats,
     AgentRunRow,
     AgentSummary,
     BreakerInfo,
+    CashSnapshot,
+    CashSubBreakdown,
+    CashTicketBreakdown,
+    CohortsResponse,
+    HealthAgentBreakdown,
+    HealthSnapshot,
+    InboxActionPayload,
+    InboxActionResponse,
+    InboxDraft,
     KPIsOverview,
     ManualRunResponse,
+    OutputContentResponse,
+    PipelineSnapshot,
     TripBreakerPayload,
+    YamlConfigPatch,
+    YamlConfigResponse,
+)
+from argos_ops.ops_dashboard.pipeline_reader import read_pipeline
+from argos_ops.ops_dashboard.yaml_config import (
+    ALLOWED_CONFIG_FILES,
+    read_config_file,
+    write_config_file,
 )
 
 # Agents pilotés par l'admin panel. La table peut être enrichie au fur et
@@ -894,6 +922,354 @@ async def reset_breaker_endpoint(name: str) -> BreakerInfo:
             severity=BREAKER_SEVERITY.get(name, "unknown"),
         )
     return _breaker_to_info(breaker)
+
+
+@app.get("/api/inbox/drafts", response_model=list[InboxDraft])
+async def list_inbox_drafts() -> list[InboxDraft]:
+    """File unifiée des drafts en attente de validation humaine (P16 / Phase 1 UX).
+
+    Scanne ``data/`` à la recherche des markdown drafts produits par les bots
+    (ContentBot, SEOBot, ProposalBot, etc.), lit leur frontmatter YAML et
+    filtre ceux qui sont encore en attente (status draft / pending_review /
+    drafted). Retour trié du plus récent au plus ancien.
+    """
+    return scan_inbox_drafts()
+
+
+@app.post(
+    "/api/inbox/drafts/validate",
+    response_model=InboxActionResponse,
+    status_code=200,
+)
+async def validate_inbox_draft(
+    payload: InboxActionPayload, draft_id: str
+) -> InboxActionResponse:
+    """Marque un draft comme ``validated`` + horodate dans son frontmatter.
+
+    ``draft_id`` est passé en query-param parce qu'il contient des '/' qui
+    posent problème en path-param. L'idempotence est garantie par le scanner
+    qui filtre les drafts en statut final (cf. ``inbox_scanner._FINAL_STATUSES``).
+    """
+    path = validate_draft(draft_id, note=payload.note)
+    return InboxActionResponse(
+        id=draft_id,
+        status="validated",
+        file_path=_inbox_relative(path),
+        timestamp=datetime.now(UTC),
+    )
+
+
+@app.post(
+    "/api/inbox/drafts/reject",
+    response_model=InboxActionResponse,
+    status_code=200,
+)
+async def reject_inbox_draft(
+    payload: InboxActionPayload, draft_id: str
+) -> InboxActionResponse:
+    """Marque un draft comme ``rejected`` + raison dans son frontmatter."""
+    path = reject_draft(draft_id, reason=payload.reason)
+    return InboxActionResponse(
+        id=draft_id,
+        status="rejected",
+        file_path=_inbox_relative(path),
+        timestamp=datetime.now(UTC),
+    )
+
+
+@app.get("/api/outputs/index", response_model=list[InboxDraft])
+async def list_all_outputs() -> list[InboxDraft]:
+    """Index complet des drafts produits par les bots (Phase 4 UX).
+
+    Identique à ``/api/inbox/drafts`` mais sans filtre status — renvoie aussi
+    les drafts ``validated`` / ``rejected`` / ``posted``. Source : scan
+    filesystem (cf. ``inbox_scanner.scan_all_outputs``). Le frontend filtre
+    côté UI.
+    """
+    return scan_all_outputs()
+
+
+@app.get("/api/outputs/content", response_model=OutputContentResponse)
+async def get_output_content(path: str = Query(..., min_length=1)) -> OutputContentResponse:
+    """Lit le contenu raw d'un draft markdown (read-only).
+
+    ``path`` est le chemin relatif au repo (ex.
+    ``data/content/drafts/2026-05-14-linkedin-faux-positifs-dast.md``).
+    Whitelist implicite : seuls les ``.md`` sont servis, et le path doit
+    être sous la racine du repo (anti-traversée).
+    """
+    content = read_output_content(path)
+    return OutputContentResponse(file_path=path, content=content)
+
+
+@app.get("/api/agents/{name}/config-yaml", response_model=YamlConfigResponse)
+async def get_agent_config_yaml(name: str) -> YamlConfigResponse:
+    """Lit le YAML de config externe d'un bot (whitelist côté backend).
+
+    Retourne ``exists=False`` si le fichier n'a pas encore été créé (cas
+    fréquent pour les ``.example.yaml`` non dupliqués).
+    """
+    if name not in ALLOWED_CONFIG_FILES:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Aucun fichier de config externe pour {name}",
+        )
+    rel, text, exists = read_config_file(name)
+    last_modified: datetime | None = None
+    if exists:
+        from argos_ops.ops_dashboard.yaml_config import get_allowed_path
+
+        path = get_allowed_path(name)
+        last_modified = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
+    return YamlConfigResponse(
+        agent_name=name,
+        relative_path=rel,
+        exists=exists,
+        content=text,
+        last_modified=last_modified,
+    )
+
+
+@app.patch("/api/agents/{name}/config-yaml", response_model=YamlConfigResponse)
+async def patch_agent_config_yaml(name: str, payload: YamlConfigPatch) -> YamlConfigResponse:
+    """Écrit le YAML de config externe d'un bot.
+
+    Valide la syntaxe YAML avant écriture et fait un backup ``.bak.<ts>``.
+    Refuse les .csv (read-only) et les payloads > 256 KB.
+    """
+    if name not in ALLOWED_CONFIG_FILES:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Aucun fichier de config externe pour {name}",
+        )
+    rel, text = write_config_file(name, payload.content)
+    from argos_ops.ops_dashboard.yaml_config import get_allowed_path
+
+    path = get_allowed_path(name)
+    return YamlConfigResponse(
+        agent_name=name,
+        relative_path=rel,
+        exists=True,
+        content=text,
+        last_modified=datetime.fromtimestamp(path.stat().st_mtime, tz=UTC),
+    )
+
+
+@app.get("/api/agents/{name}/perf", response_model=AgentPerfStats)
+async def get_agent_perf(name: str, window_days: int = Query(default=7, ge=1, le=90)) -> AgentPerfStats:
+    """Stats agrégées sur la fenêtre demandée (par défaut 7 j).
+
+    Utilisé par la card « État live » de BotDetail. Toutes les durées sont
+    en secondes. Pas de cache : les valeurs sont recalculées à chaque appel
+    (volume < 1000 lignes typique, requête < 10 ms).
+    """
+    if name not in KNOWN_AGENTS:
+        raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
+
+    from sqlalchemy import and_
+    from sqlmodel import col, select
+
+    from argos_ops.crm.models import AgentRun
+
+    cutoff = datetime.now(UTC) - timedelta(days=window_days)
+    async with session_scope() as session:
+        stmt = select(AgentRun).where(
+            and_(col(AgentRun.agent_name) == name, col(AgentRun.started_at) >= cutoff)
+        )
+        rows = list((await session.execute(stmt)).scalars().all())
+
+    total = len(rows)
+    success = sum(1 for r in rows if r.status == "success")
+    failed = sum(1 for r in rows if r.status == "failed")
+    skipped = sum(1 for r in rows if (r.status or "").startswith("skipped_"))
+    durations = sorted(
+        d
+        for r in rows
+        if (d := _duration_seconds(r)) is not None and r.status in {"success", "failed"}
+    )
+    error_rate = (failed / total) if total > 0 else 0.0
+    return AgentPerfStats(
+        agent_name=name,
+        window_days=window_days,
+        total_runs=total,
+        success_count=success,
+        failed_count=failed,
+        skipped_count=skipped,
+        error_rate=round(error_rate, 4),
+        avg_duration_seconds=(sum(durations) / len(durations)) if durations else None,
+        p50_duration_seconds=_percentile(durations, 0.5),
+        p95_duration_seconds=_percentile(durations, 0.95),
+    )
+
+
+def _inbox_relative(path: Path) -> str:
+    """Chemin relatif au repo, en forward-slash (cohérent cross-OS)."""
+    from argos_ops.ops_dashboard.inbox_scanner import _project_root
+
+    return str(path.resolve().relative_to(_project_root().resolve())).replace("\\", "/")
+
+
+def _percentile(sorted_values: list[float], q: float) -> float | None:
+    """Percentile sur une liste TRIÉE croissante. Renvoie ``None`` si vide."""
+    if not sorted_values:
+        return None
+    if len(sorted_values) == 1:
+        return sorted_values[0]
+    idx = max(0, min(len(sorted_values) - 1, round(q * (len(sorted_values) - 1))))
+    return sorted_values[idx]
+
+
+@app.get("/api/sales/pipeline", response_model=PipelineSnapshot)
+async def sales_pipeline() -> PipelineSnapshot:
+    """Snapshot du pipeline commercial (Phase 5 UX).
+
+    Source : ``data/sales/deals/pipe.yaml`` (maintenu manuellement par le
+    fondateur). Si le fichier est absent, retourne ``has_data=False`` —
+    l'UI affichera un empty state avec un YAML d'exemple.
+    """
+    return read_pipeline()
+
+
+@app.get("/api/cash/cohorts", response_model=CohortsResponse)
+async def cash_cohorts(months: int = Query(default=6, ge=2, le=24)) -> CohortsResponse:
+    """Table de rétention par cohorte de signup mensuelle (Phase 5 UX).
+
+    Approximation tant qu'on n'a pas d'historique d'events Stripe locaux :
+    « retained » = ``subscription_status ∈ {active, trialing}`` AUJOURD'HUI.
+    """
+    async with session_scope() as session:
+        return await compute_cohorts(session, months_tracked=months)
+
+
+@app.get("/api/cash/snapshot", response_model=CashSnapshot)
+async def cash_snapshot() -> CashSnapshot:
+    """Snapshot Cash & Customers — alimente la page éponyme (Phase 3 UX).
+
+    Lit Companies (Stripe) + Leads + Tickets en quelques requêtes scalaires.
+    Pas de cache : volume < 10 k rows, requêtes < 50 ms typique.
+    """
+    from decimal import Decimal
+
+    from sqlmodel import col, select
+
+    from argos_ops.crm.models import Company, Ticket
+
+    async with session_scope() as session:
+        mrr = await sum_active_mrr_eur(session)
+        arr = mrr * Decimal("12.0")
+
+        # Companies par subscription_status
+        companies_stmt = select(Company)
+        companies = list((await session.execute(companies_stmt)).scalars().all())
+        active = sum(1 for c in companies if c.subscription_status == "active")
+        trialing = sum(1 for c in companies if c.subscription_status == "trialing")
+        past_due = sum(1 for c in companies if c.subscription_status == "past_due")
+        canceled = sum(1 for c in companies if c.subscription_status == "canceled")
+        known_statuses = {"active", "trialing", "past_due", "canceled"}
+        other = sum(
+            1
+            for c in companies
+            if c.subscription_status not in known_statuses and c.subscription_status is not None
+        )
+
+        # Leads par fenêtre
+        leads_24h = await count_recent_leads(session, window_hours=24)
+        leads_7d = await count_recent_leads(session, window_hours=24 * 7)
+        leads_30d = await count_recent_leads(session, window_hours=24 * 30)
+
+        # Tickets par priorité (tous statuts ouverts)
+        tickets_stmt = select(Ticket).where(col(Ticket.status) == "open")
+        tickets = list((await session.execute(tickets_stmt)).scalars().all())
+        p0 = sum(1 for t in tickets if (t.priority or "").lower() in {"p0", "critical"})
+        p1 = sum(1 for t in tickets if (t.priority or "").lower() in {"p1", "high"})
+        p2 = sum(1 for t in tickets if (t.priority or "").lower() in {"p2", "medium"})
+        t_other = max(0, len(tickets) - p0 - p1 - p2)
+
+    return CashSnapshot(
+        mrr_eur=float(mrr),
+        arr_eur=float(arr),
+        active_subscriptions=active + trialing,
+        subs_breakdown=CashSubBreakdown(
+            active=active,
+            trialing=trialing,
+            past_due=past_due,
+            canceled=canceled,
+            other=other,
+        ),
+        leads_last_24h=leads_24h,
+        leads_last_7d=leads_7d,
+        leads_last_30d=leads_30d,
+        open_tickets=len(tickets),
+        tickets_breakdown=CashTicketBreakdown(p0=p0, p1=p1, p2=p2, other=t_other),
+        last_refreshed_at=datetime.now(UTC),
+    )
+
+
+@app.get("/api/health/snapshot", response_model=HealthSnapshot)
+async def health_snapshot() -> HealthSnapshot:
+    """Snapshot Health & Compliance — alimente la page éponyme (Phase 3 UX).
+
+    Source unique pour la santé de la flotte : combien de runs récents, combien
+    d'agents dans quel état config, et la liste des breakers tripped. La partie
+    compliance (AI Act / RGPD / Bloctel) est calculée client-side depuis
+    ``BOT_METADATA`` — pas besoin de la dupliquer côté backend.
+    """
+    from sqlmodel import col, select
+
+    from argos_ops.crm.models import AgentConfig as AgentConfigModel
+    from argos_ops.crm.models import AgentRun
+
+    # DB ping
+    db_ok = False
+    try:
+        async with session_scope() as session:
+            from sqlalchemy import text as sql_text
+
+            await session.execute(sql_text("SELECT 1"))
+        db_ok = True
+    except Exception:
+        db_ok = False
+
+    cutoff_24h = datetime.now(UTC) - timedelta(hours=24)
+    cutoff_7d = datetime.now(UTC) - timedelta(days=7)
+
+    async with session_scope() as session:
+        # Runs récents
+        runs_24h_stmt = select(AgentRun).where(col(AgentRun.started_at) >= cutoff_24h)
+        runs_24h = list((await session.execute(runs_24h_stmt)).scalars().all())
+        runs_7d_stmt = select(AgentRun).where(col(AgentRun.started_at) >= cutoff_7d)
+        runs_7d = list((await session.execute(runs_7d_stmt)).scalars().all())
+
+        # Agents par état config
+        cfg_stmt = select(AgentConfigModel)
+        configs = list((await session.execute(cfg_stmt)).scalars().all())
+        enabled = sum(1 for c in configs if c.enabled)
+        disabled = sum(1 for c in configs if not c.enabled)
+        now = datetime.now(UTC)
+        paused = sum(
+            1
+            for c in configs
+            if c.paused_until is not None and c.paused_until > now
+        )
+
+        # Breakers tripped
+        tripped = await list_tripped_breakers(session)
+
+    return HealthSnapshot(
+        db_ok=db_ok,
+        runs_last_24h=len(runs_24h),
+        runs_last_7d=len(runs_7d),
+        failed_last_24h=sum(1 for r in runs_24h if r.status == "failed"),
+        failed_last_7d=sum(1 for r in runs_7d if r.status == "failed"),
+        agents_breakdown=HealthAgentBreakdown(
+            enabled=enabled,
+            disabled=disabled,
+            paused=paused,
+        ),
+        tripped_breakers=len(tripped),
+        tripped_breaker_names=[b.name for b in tripped],
+        last_refreshed_at=datetime.now(UTC),
+    )
 
 
 @app.get("/api/kpis/overview", response_model=KPIsOverview)

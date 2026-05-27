@@ -72,10 +72,73 @@ html {
   background: rgb(var(--color-fg-disabled));
 }
 
+/* =============================================================================
+ * Animations subtiles (Phase C polish)
+ * - argos-toast-enter : slide-in droite + fade-in pour les notifications toast
+ * - argos-fade-in     : fade-in léger pour les cards qui apparaissent
+ * - argos-skeleton    : pulse animé pour les loading skeletons
+ * Durées <= 250 ms, easing easeOut. Toutes inhibées via prefers-reduced-motion.
+ * ========================================================================== */
+@keyframes argosToastEnter {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes argosFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes argosSkeletonPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.argos-toast-enter {
+  animation: argosToastEnter 220ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.argos-fade-in {
+  animation: argosFadeIn 240ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.argos-skeleton {
+  animation: argosSkeletonPulse 1.4s ease-in-out infinite;
+}
+
+/* Active state subtle press effect (boutons / cards cliquables). */
+.argos-press:active {
+  transform: scale(0.98);
+}
+
+.argos-press {
+  transition: transform 120ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
 /* Respect prefers-reduced-motion (WCAG). */
 @media (prefers-reduced-motion: reduce) {
   body,
   .theme-transition,
+  .argos-toast-enter,
+  .argos-fade-in,
+  .argos-skeleton,
+  .argos-press,
   *,
   *::before,
   *::after {

@@ -131,3 +131,192 @@ class ManualRunResponse(BaseModel):
     status: str
     output_summary: str | None = None
     error: str | None = None
+
+
+class PipelineDeal(BaseModel):
+    """Un deal du pipeline commercial (Phase 5 UX).
+
+    Source : ``data/sales/deals/pipe.yaml`` (maintenu manuellement par le
+    fondateur, lu par DealRiskScorer).
+    """
+
+    deal_id: str
+    company: str
+    stage: str
+    amount_eur: float | None = None
+    last_activity_at: datetime | None = None
+    days_since_activity: int | None = None
+    owner: str | None = None
+    notes: str | None = None
+    risk_level: Literal["healthy", "stalled", "at_risk"] = "healthy"
+
+
+class PipelineSnapshot(BaseModel):
+    """Snapshot du pipeline commercial — alimente la page Pipeline."""
+
+    has_data: bool
+    file_path: str
+    total_deals: int
+    total_amount_eur: float
+    deals: list[PipelineDeal]
+    last_refreshed_at: datetime
+
+
+class CohortRow(BaseModel):
+    """Une ligne de cohorte de rétention (Phase 5 UX)."""
+
+    signup_month: str  # "2026-01"
+    cohort_size: int
+    retained_by_month: list[int]  # nombre actifs à M+0, M+1, M+2…
+
+
+class CohortsResponse(BaseModel):
+    """Table de rétention par cohorte de signup (Phase 5 UX)."""
+
+    has_data: bool
+    months_tracked: int
+    rows: list[CohortRow]
+    last_refreshed_at: datetime
+
+
+class OutputContentResponse(BaseModel):
+    """Contenu raw d'un output markdown (Phase 4 UX — Outputs library)."""
+
+    file_path: str
+    content: str
+
+
+class InboxActionPayload(BaseModel):
+    """Payload pour POST /api/inbox/{id}/validate et /reject.
+
+    ``note`` (validate) ou ``reason`` (reject) — capté tel quel dans le
+    frontmatter du markdown pour audit. Limité à 280 chars côté backend.
+    """
+
+    note: str | None = None
+    reason: str | None = None
+
+
+class InboxActionResponse(BaseModel):
+    """Confirmation d'une mutation inbox — renvoie l'état nouveau du draft."""
+
+    id: str
+    status: str
+    file_path: str
+    timestamp: datetime
+
+
+class YamlConfigResponse(BaseModel):
+    """Lecture d'un YAML de config externe (Phase 2 UX bot detail)."""
+
+    agent_name: str
+    relative_path: str
+    exists: bool
+    content: str
+    last_modified: datetime | None = None
+
+
+class YamlConfigPatch(BaseModel):
+    """Payload PATCH /api/agents/{name}/config-yaml."""
+
+    content: str
+
+
+class CashSubBreakdown(BaseModel):
+    """Décomposition Stripe par statut d'abonnement."""
+
+    active: int
+    trialing: int
+    past_due: int
+    canceled: int
+    other: int
+
+
+class CashTicketBreakdown(BaseModel):
+    """Décomposition tickets par priorité (P0/P1/P2/autre)."""
+
+    p0: int
+    p1: int
+    p2: int
+    other: int
+
+
+class CashSnapshot(BaseModel):
+    """Snapshot Cash & Customers — alimente la page éponyme (Phase 3 UX).
+
+    Tout est dérivable de ``companies`` (Stripe) + ``leads`` + ``tickets``,
+    pas de table dédiée. Coût constant — quelques counts SQL.
+    """
+
+    mrr_eur: float
+    arr_eur: float
+    active_subscriptions: int
+    subs_breakdown: CashSubBreakdown
+    leads_last_24h: int
+    leads_last_7d: int
+    leads_last_30d: int
+    open_tickets: int
+    tickets_breakdown: CashTicketBreakdown
+    last_refreshed_at: datetime
+
+
+class HealthAgentBreakdown(BaseModel):
+    """Décomposition des agents par état config (Phase 3 UX page Health)."""
+
+    enabled: int
+    disabled: int
+    paused: int
+
+
+class HealthSnapshot(BaseModel):
+    """Snapshot Health & Compliance — alimente la page éponyme.
+
+    Infrastructure & flotte : DB OK ?, combien de runs, combien d'agents
+    dans quel état, breakers tripped. La partie compliance (AI Act / RGPD /
+    Bloctel) est calculée client-side depuis ``BOT_METADATA`` (lib/botMetadata.ts)
+    + la liste agents — pas besoin de la dupliquer en DB.
+    """
+
+    db_ok: bool
+    runs_last_24h: int
+    runs_last_7d: int
+    failed_last_24h: int
+    failed_last_7d: int
+    agents_breakdown: HealthAgentBreakdown
+    tripped_breakers: int
+    tripped_breaker_names: list[str]
+    last_refreshed_at: datetime
+
+
+class AgentPerfStats(BaseModel):
+    """Stats 7 jours utilisées par la card « État live » de BotDetail."""
+
+    agent_name: str
+    window_days: int
+    total_runs: int
+    success_count: int
+    failed_count: int
+    skipped_count: int
+    error_rate: float
+    avg_duration_seconds: float | None
+    p50_duration_seconds: float | None
+    p95_duration_seconds: float | None
+
+
+class InboxDraft(BaseModel):
+    """Un draft en attente de validation humaine dans l'Inbox unifiée.
+
+    Scanné depuis le filesystem (``data/<scope>/...``) — on lit le frontmatter
+    YAML de chaque .md pour extraire status / titre / date. Les drafts au
+    statut ``validated`` / ``posted`` / ``sent`` sont filtrés out (ils ne sont
+    plus en attente).
+    """
+
+    id: str
+    kind: Literal["email", "social", "proposal", "seo", "press", "doc", "other"]
+    title: str
+    summary: str | None = None
+    status: str
+    created_at: datetime
+    file_path: str
+    agent_name: str | None = None
