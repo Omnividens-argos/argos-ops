@@ -178,6 +178,7 @@ class DigestBuilder(BaseAgent):
     name = "DigestBuilder"
     command = "/morning-digest"
     breaker_name = "DigestBuilder"  # peut être désactivé via le panel admin (P16)
+    ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
         settings = get_settings()

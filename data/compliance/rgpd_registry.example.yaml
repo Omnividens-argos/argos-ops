@@ -199,3 +199,14 @@ bots_sans_pii:
       - argos_ops/agents/doc_linter.py              # scan liens markdown docs/
       - argos_ops/agents/diagram_generator.py       # YAML spec → Mermaid
       - argos_ops/agents/adr_writer.py              # ADR scaffold MADR
+
+  - nom: "Meta-Ops (P22.B/C) — orchestration interne de la flotte"
+    motif: "Orchestration et observabilité interne pure de la flotte Argos Ops elle-même. DigestBuilder agrège les KPIs J-1 (aucune PII). OrchestratorBot lit agent_config pour décider quels bots tourner. BotHealthBot/BotPerfAnalyzer surveillent agent_runs (nom + status + duration, pas de PII). ErrorTriageBot regroupe erreurs par signature. KillSwitchOperator gère les circuit breakers. BotConfigManager audit drift config baseline. Aucun bot ne touche à de la donnée client — uniquement métadonnées techniques de la flotte."
+    paths:
+      - argos_ops/agents/digest_builder.py          # agrégation KPIs J-1
+      - argos_ops/agents/orchestrator.py            # décision quels bots lancer
+      - argos_ops/agents/bot_health.py              # uptime + dernier run
+      - argos_ops/agents/bot_perf_analyzer.py       # latence + taux erreur baseline
+      - argos_ops/agents/error_triage.py            # clusters erreurs runtime
+      - argos_ops/agents/kill_switch.py             # enforce circuit breakers P15
+      - argos_ops/agents/bot_config_manager.py      # drift agent_config vs baseline

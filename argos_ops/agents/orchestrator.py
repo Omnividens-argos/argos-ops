@@ -416,6 +416,7 @@ class OrchestratorBot(BaseAgent):
     name = "OrchestratorBot"
     command = "/orchestrate"
     breaker_name = None  # pas de breaker dédié : il les observe
+    ai_act_risk_class = "minimal"
 
     def __init__(
         self,

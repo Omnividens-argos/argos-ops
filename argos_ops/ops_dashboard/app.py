@@ -143,6 +143,12 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "DocLinter",
     "DiagramGenerator",
     "ADRWriter",
+    # Meta-Ops (P22.B/C) — DigestBuilder/BotHealthBot/OrchestratorBot
+    # deja en tete de tuple (P4/P22.B historiques)
+    "BotPerfAnalyzer",
+    "ErrorTriageBot",
+    "KillSwitchOperator",
+    "BotConfigManager",
 )
 
 # Agents qu'on peut déclencher manuellement via "Run now" du panel. SupportBot
@@ -265,6 +271,13 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         # de contexte (cf. clause "documenté pourquoi : interactif" de
         # la checklist QA).
         "DocLinter",
+        # Meta-Ops (P22.B/C) — DigestBuilder/BotHealthBot/OrchestratorBot
+        # deja runnable depuis P4/P22.B. Les 4 watchers tournent en
+        # Task Scheduler mais "Run now" reste utile pour debug ponctuel.
+        "BotPerfAnalyzer",
+        "ErrorTriageBot",
+        "KillSwitchOperator",
+        "BotConfigManager",
     }
 )
 
@@ -594,6 +607,22 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.doc_linter import DocLinter
 
         return DocLinter()
+    if name == "BotPerfAnalyzer":
+        from argos_ops.agents.bot_perf_analyzer import BotPerfAnalyzer
+
+        return BotPerfAnalyzer()
+    if name == "ErrorTriageBot":
+        from argos_ops.agents.error_triage import ErrorTriageBot
+
+        return ErrorTriageBot()
+    if name == "KillSwitchOperator":
+        from argos_ops.agents.kill_switch import KillSwitchOperator
+
+        return KillSwitchOperator()
+    if name == "BotConfigManager":
+        from argos_ops.agents.bot_config_manager import BotConfigManager
+
+        return BotConfigManager()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 

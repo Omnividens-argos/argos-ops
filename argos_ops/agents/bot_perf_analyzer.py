@@ -350,6 +350,7 @@ class BotPerfAnalyzer(BaseAgent):
     name = "BotPerfAnalyzer"
     command = "/run-bot-perf"
     breaker_name = None
+    ai_act_risk_class = "minimal"
 
     def __init__(self, *, agent_names: Iterable[str] | None = None) -> None:
         self._agent_names = tuple(agent_names or MONITORED_AGENTS)
