@@ -95,7 +95,7 @@ async def test_publish_draft_shadow_mode_moves_to_published(tmp_path: Path) -> N
     published_dir = tmp_path / "published"
 
     with patch("argos_ops.social.publisher.PUBLISHED_DIR", published_dir):
-        linkedin = LinkedInClient(api_token=None, org_urn=None)
+        linkedin = LinkedInClient()
         result = await publish_draft(draft, linkedin=linkedin)
 
     assert result.status == "shadow"

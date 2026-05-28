@@ -112,6 +112,18 @@ class Settings(BaseSettings):
     outbound_daily_max: int = Field(default=30, alias="OUTBOUND_DAILY_MAX")
 
     # --- Social P11 (D-024 LinkedIn / D-025 Mastodon) ---
+    # LinkedIn App #1 — profil perso (Share on LinkedIn, scope w_member_social).
+    linkedin_personal_access_token: SecretStr | None = Field(
+        default=None, alias="LINKEDIN_PERSONAL_ACCESS_TOKEN"
+    )
+    linkedin_personal_urn: str | None = Field(default=None, alias="LINKEDIN_PERSONAL_URN")
+    # LinkedIn App #2 — Page Omnividens (Community Management API).
+    # Bloqué tant que LinkedIn n'a pas approuvé CMA (cf. memo project).
+    linkedin_page_access_token: SecretStr | None = Field(
+        default=None, alias="LINKEDIN_PAGE_ACCESS_TOKEN"
+    )
+    linkedin_page_urn: str | None = Field(default=None, alias="LINKEDIN_PAGE_URN")
+    # Legacy aliases conservés en lecture (.env anciens). Préférer Personal/Page.
     linkedin_api_token: SecretStr | None = Field(default=None, alias="LINKEDIN_API_TOKEN")
     linkedin_org_urn: str | None = Field(default=None, alias="LINKEDIN_ORG_URN")
     mastodon_instance_url: str = Field(

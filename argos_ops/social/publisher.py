@@ -141,9 +141,15 @@ def _move_to_published(
 
 def _default_linkedin() -> LinkedInClient:
     settings = get_settings()
+    # Fallback : si seul l'ancien LINKEDIN_API_TOKEN/ORG_URN est configuré
+    # dans un .env legacy, on le mappe sur Page (comportement historique).
+    page_token = settings.linkedin_page_access_token or settings.linkedin_api_token
+    page_urn = settings.linkedin_page_urn or settings.linkedin_org_urn
     return LinkedInClient(
-        api_token=settings.linkedin_api_token,
-        org_urn=settings.linkedin_org_urn,
+        personal_token=settings.linkedin_personal_access_token,
+        personal_urn=settings.linkedin_personal_urn,
+        page_token=page_token,
+        page_urn=page_urn,
     )
 
 
