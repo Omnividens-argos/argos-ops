@@ -40,6 +40,7 @@ from argos_ops.crm.repository import (
     sum_active_mrr_eur,
     update_agent_config,
 )
+from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
 from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
 from argos_ops.ops_dashboard.inbox_scanner import (
@@ -683,6 +684,11 @@ app.add_middleware(
     allow_methods=["GET"],
     allow_headers=["*"],
 )
+
+# Webhooks tiers (Stripe, …). Montés sous /api/* — accessibles publiquement
+# via Caddy (Stripe doit pouvoir nous poster), donc auth = signature HMAC
+# côté handler, pas basic auth Caddy.
+app.include_router(stripe_router)
 
 
 # =============================================================================

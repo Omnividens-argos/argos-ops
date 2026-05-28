@@ -121,8 +121,11 @@ class ContentBot(BaseAgent):
 
         webhook = settings.discord_webhook_content or settings.discord_webhook_ops_logs
         if webhook is not None:
-            live_mode = settings.linkedin_api_token is not None or (
-                settings.mastodon_access_token is not None
+            live_mode = (
+                settings.linkedin_personal_access_token is not None
+                or settings.linkedin_page_access_token is not None
+                or settings.linkedin_api_token is not None
+                or settings.mastodon_access_token is not None
             )
             try:
                 await send_embed(webhook, build_content_embed(stats, live_mode))
