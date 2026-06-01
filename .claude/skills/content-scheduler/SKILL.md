@@ -126,8 +126,9 @@ Pousser sur `DISCORD_WEBHOOK_OPS_LOGS` :
 
 ## Liens
 
-- Skill cousin : `content-writer` (qui produit le draft) +
-  `seo-brief-writer` (briefs blog longform)
+- Skills cousins (produisent le draft) : `linkedin-writer`,
+  `mastodon-writer`, `bluesky-writer` + `seo-brief-writer` (briefs blog
+  longform)
 - Drafts à scheduler : `data/content/drafts/`
 - Workflow complet : `data/content/README.md`
 - Plan P9 full : `docs/ARGOS_OPS_PLAN.md` § Partie 9

@@ -222,5 +222,5 @@ reformule si tu te surprends à produire :
 - Setup credentials : [`docs/BLUESKY-SETUP.md`](../../../docs/BLUESKY-SETUP.md)
 - Drafts produits : `data/content/drafts/`
 - Skills réutilisés : `kb-rag` (P6), `claude-judge` (P14)
-- Skills cousins (autres canaux) : `content-writer` (LinkedIn/Mastodon),
+- Skills cousins (autres canaux) : `linkedin-writer`, `mastodon-writer`,
   `seo-brief-writer` (blog longform)

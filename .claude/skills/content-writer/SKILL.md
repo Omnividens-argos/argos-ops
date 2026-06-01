@@ -1,9 +1,27 @@
 ---
 name: content-writer
-description: Génère un post pour un canal social donné (LinkedIn / Mastodon) à partir d'un topic + la KB Argos. Reddit retiré du périmètre par D-022 (2026-05-15). Mode local-draft only (P9-DRAFT, 2026-05-14) — pas de posting tant que P11 (connecteurs sociaux) n'est pas livré. Utilise ce skill quand le user demande de drafter un post, de préparer du contenu social, ou pendant /draft-content. Anti-générique IA via charge systématique du contexte KB (kb-rag P6).
+description: "[DÉPRÉCIÉ 2026-06-01] Ancien skill multi-canal, scindé en skills dédiés par canal. Ne plus utiliser pour drafter un nouveau post : préférer `linkedin-writer`, `mastodon-writer` ou `bluesky-writer` (ou les slashs /draft-linkedin, /draft-mastodon, /draft-bluesky). Conservé en référence historique uniquement."
 ---
 
-# content-writer
+# content-writer ⚠️ DÉPRÉCIÉ
+
+> **⚠️ Ce skill est déprécié depuis le 2026-06-01 (Sprint contenu).**
+>
+> Il a été **scindé en skills dédiés par canal** — un réseau a sa physique
+> propre (longueur, format, tonalité, règles communautaires), et un skill
+> mono-canal produit un meilleur contenu qu'un skill fourre-tout :
+>
+> | Canal | Skill | Slash |
+> |-------|-------|-------|
+> | LinkedIn | [`linkedin-writer`](../linkedin-writer/SKILL.md) | `/draft-linkedin` |
+> | Mastodon | [`mastodon-writer`](../mastodon-writer/SKILL.md) | `/draft-mastodon` |
+> | Bluesky | [`bluesky-writer`](../bluesky-writer/SKILL.md) | `/draft-bluesky` |
+>
+> **Ne plus invoquer ce skill pour drafter un post.** Le contenu ci-dessous
+> est conservé en référence historique (la logique commune — charge KB,
+> audit claude-judge, anti-FUD — a été reprise dans chaque skill dédié).
+
+---
 
 Skill éditorial pour produire des posts social Argos qui :
 

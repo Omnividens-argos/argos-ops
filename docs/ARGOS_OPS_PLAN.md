@@ -738,13 +738,20 @@ adapté à chaque plateforme, sujets pilotés par SEOBot (Partie 10).
 
 🧱 **Prérequis** : Parties 3, 11 (connecteurs sociaux).
 
+> **MàJ 2026-06-01** : le skill `content-writer` multi-canal a été
+> **scindé en skills dédiés par canal** — `linkedin-writer`,
+> `mastodon-writer`, `bluesky-writer` (cf. Annexe D). Lire « skill du canal »
+> partout où ce § dit « content-writer ».
+
 📦 **Livrables** :
 - `.claude/commands/run-content-bot.md`
-- Skill `content-writer` (génère le contenu adapté à un canal donné)
+- Skills par canal `linkedin-writer` / `mastodon-writer` / `bluesky-writer`
+  (génèrent le contenu adapté à leur canal ; ex-`content-writer` déprécié)
 - Skill `content-scheduler` (poste à l'heure optimale par canal)
 
 🛠️ **Skills à utiliser** :
-- `skill-creator` pour `content-writer`
+- `skill-creator` pour chaque writer de canal (`linkedin-writer`,
+  `mastodon-writer`, `bluesky-writer`)
 - `skill-creator` pour `content-scheduler`
 
 ## 9.1 Logique quotidienne
@@ -752,9 +759,10 @@ adapté à chaque plateforme, sujets pilotés par SEOBot (Partie 10).
 1. Lire le calendrier éditorial dans une nouvelle table `editorial_calendar`
    (rempli par SEOBot la veille)
 2. Pour chaque slot du jour :
-   - Choisir le canal (LinkedIn / Mastodon infosec)
-   - Générer le post via skill `content-writer` avec contraintes du canal
-     (LinkedIn 1300-2000 chars, Mastodon 300-500)
+   - Choisir le canal (LinkedIn / Mastodon infosec / Bluesky)
+   - Générer le post via le skill du canal (`linkedin-writer` /
+     `mastodon-writer` / `bluesky-writer`) avec ses contraintes
+     (LinkedIn 1300-2000 chars, Mastodon 300-500, Bluesky ≤300 graphemes)
    - Soumettre à l'agent-juge Tier 1
    - Publier via skill `content-scheduler` à l'heure optimale par canal
 3. Logger dans `interactions` avec `agent_name='ContentBot'`
