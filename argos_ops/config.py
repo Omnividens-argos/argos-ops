@@ -137,6 +137,13 @@ class Settings(BaseSettings):
     bluesky_handle: str | None = Field(default=None, alias="BLUESKY_HANDLE")
     bluesky_app_password: SecretStr | None = Field(default=None, alias="BLUESKY_APP_PASSWORD")
     bluesky_pds_url: str = Field(default="https://bsky.social", alias="BLUESKY_PDS_URL")
+    # Meta / Facebook Page (organique — Sprint contenu, persona TPE/PME).
+    # DISTINCT du connecteur Ads (META_ADS_*). Token de Page long-lived,
+    # scope pages_manage_posts (cf. docs/META-OAUTH-SETUP.md). Shadow tant
+    # que page_id OU token manque. ``graph_api_version`` overridable.
+    meta_page_id: str | None = Field(default=None, alias="META_PAGE_ID")
+    meta_page_access_token: SecretStr | None = Field(default=None, alias="META_PAGE_ACCESS_TOKEN")
+    meta_graph_api_version: str = Field(default="v21.0", alias="META_GRAPH_API_VERSION")
     content_daily_max_per_channel: int = Field(default=3, alias="CONTENT_DAILY_MAX_PER_CHANNEL")
     discord_webhook_content: SecretStr | None = Field(default=None, alias="DISCORD_WEBHOOK_CONTENT")
 

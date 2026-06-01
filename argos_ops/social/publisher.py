@@ -20,6 +20,7 @@ from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.social.bluesky import BlueskyClient
 from argos_ops.social.linkedin import LinkedInClient
 from argos_ops.social.mastodon import MastodonClient
+from argos_ops.social.meta import MetaClient
 
 DRAFTS_DIR = REPO_ROOT / "data" / "content" / "drafts"
 PUBLISHED_DIR = REPO_ROOT / "data" / "content" / "published"
@@ -91,6 +92,7 @@ async def publish_draft(
     linkedin: LinkedInClient | None = None,
     mastodon: MastodonClient | None = None,
     bluesky: BlueskyClient | None = None,
+    meta: MetaClient | None = None,
     dry_run: bool = False,
 ) -> PublishResult:
     """Publie un draft sur le canal indiqué par son frontmatter."""
@@ -111,6 +113,9 @@ async def publish_draft(
     elif channel == "bluesky":
         client_b = bluesky or _default_bluesky()
         result = await client_b.post(text, dry_run=dry_run)
+    elif channel == "meta":
+        client_meta = meta or _default_meta()
+        result = await client_meta.post(text, dry_run=dry_run)
     else:
         return PublishResult(draft_path, "failed", channel, None, f"channel inconnu : {channel}")
 
@@ -172,6 +177,15 @@ def _default_bluesky() -> BlueskyClient:
         handle=settings.bluesky_handle,
         app_password=settings.bluesky_app_password,
         pds_url=settings.bluesky_pds_url,
+    )
+
+
+def _default_meta() -> MetaClient:
+    settings = get_settings()
+    return MetaClient(
+        page_id=settings.meta_page_id,
+        page_access_token=settings.meta_page_access_token,
+        api_version=settings.meta_graph_api_version,
     )
 
 

@@ -25,11 +25,14 @@ fondateur.
 - ``rag_chunks`` (optionnel) — les chunks KB chargés par ``kb-rag``
   (au format ``[KB#N: doc.md§index]`` + contenu)
 - ``channel`` — ``email | social_linkedin | social_mastodon |
-  social_bluesky | social_x | blog | stripe_dunning`` (``social_reddit``
-  retiré — D-022 2026-05-15). Grille emoji par canal : 1 emoji technique
-  toléré sur LinkedIn ; **0-1 sur Bluesky** (audience tech, mais pas de
-  cascade) ; zéro sur Mastodon/email. Longueur Bluesky : hard limit 300
-  graphemes.
+  social_bluesky | social_meta | social_x | blog | stripe_dunning``
+  (``social_reddit`` retiré — D-022 2026-05-15). Grille emoji par canal :
+  1 emoji technique toléré sur LinkedIn ; **0-1 sur Bluesky** (audience
+  tech, mais pas de cascade) ; zéro sur Mastodon/email. **`social_meta`
+  (Facebook Page) = persona TPE/PME non-technique** : tone rassurant grand
+  public, anti-FUD STRICT (jamais « votre site va se faire pirater »),
+  zéro jargon (pas de DAST/SAST/OWASP/CVE), 1-2 emoji grand public OK,
+  CTA offre entry-level. Longueur Bluesky : hard limit 300 graphemes.
 - ``agent_name`` — ``EmailBot | SupportBot | ContentBot | OutboundBot |
   FinanceBot | SEOBot``
 

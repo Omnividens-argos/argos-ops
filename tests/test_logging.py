@@ -74,6 +74,15 @@ def test_redact_bluesky_app_password() -> None:
     assert "[REDACTED-BSKY-APPPW]" in out
 
 
+def test_redact_meta_graph_token() -> None:
+    # Token avec '_' ET '-' (forme réelle Meta) : la queue ne doit PAS fuiter.
+    token = "EAAGm0PX4ZCpsBOZBxyz1234567890ABCDqrst_uvwXYZ-abcdEFGH9876543210ZD"
+    out = _redact(f"META_PAGE_ACCESS_TOKEN={token} posting feed")
+    assert token not in out
+    assert "_uvwXYZ-abcdEFGH9876543210ZD" not in out  # la queue après le 1er '_'
+    assert "EAA[REDACTED-META]" in out
+
+
 def test_redact_idempotent_non_secret_message() -> None:
     msg = "DigestBuilder OK — leads=12 customers=1 tickets_open=4"
     out = _redact(msg)
