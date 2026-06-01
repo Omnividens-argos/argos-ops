@@ -13,9 +13,9 @@ et le marketing IA générique à dix mètres. Le post doit donc être **dense,
 technique, et honnête** — pas une pub déguisée.
 
 C'est le canal **quick win 100 % gratuit** du Sprint contenu : l'API AT
-Protocol est gratuite et illimitée (un *app password* suffit, cf.
-[`docs/BLUESKY-SETUP.md`](../../../docs/BLUESKY-SETUP.md)). Pas de quota
-payant à arbitrer comme sur X.
+Protocol est gratuite et illimitée (un *app password* gratuit depuis
+bsky.app → Settings → App Passwords suffit). Pas de quota payant à arbitrer
+comme sur X.
 
 > **Pourquoi un skill dédié et pas `content-writer` générique** : chaque
 > réseau a sa physique propre (longueur, rich text, tonalité, ce que
@@ -164,7 +164,7 @@ Dans **tous** les cas, écris `judge_score`, `judge_verdict`,
 
 Le connecteur `argos_ops/social/bluesky.py` reste en **shadow** tant que
 `BLUESKY_HANDLE` + `BLUESKY_APP_PASSWORD` ne sont pas dans `.env.local`
-(cf. `docs/BLUESKY-SETUP.md`). En attendant, deux options :
+(cf. bsky.app → Settings → App Passwords). En attendant, deux options :
 
 - **Manuel** : copier-coller le body dans https://bsky.app, puis éditer le
   frontmatter : `status: posted` + `posted_at:` + `url_posted:`.
@@ -219,7 +219,7 @@ reformule si tu te surprends à produire :
 
 - Slash command : [`/draft-bluesky`](../../commands/draft-bluesky.md)
 - Connecteur live : [`argos_ops/social/bluesky.py`](../../../argos_ops/social/bluesky.py)
-- Setup credentials : [`docs/BLUESKY-SETUP.md`](../../../docs/BLUESKY-SETUP.md)
+- Setup credentials : bsky.app → Settings → App Passwords (app password, jamais le mdp du compte)
 - Drafts produits : `data/content/drafts/`
 - Skills réutilisés : `kb-rag` (P6), `claude-judge` (P14)
 - Skills cousins (autres canaux) : `linkedin-writer`, `mastodon-writer`,

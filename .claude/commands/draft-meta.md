@@ -41,7 +41,7 @@ jargon). Cette commande en est l'enveloppe.
 6. **Posting** — manuel (copier-coller dans la Page + maj frontmatter) ou
    auto via le publisher (`status: validated` + `scheduled_for`). Connecteur
    `argos_ops/social/meta.py` shadow tant que `META_PAGE_*` absents (setup :
-   [`docs/META-OAUTH-SETUP.md`](../../docs/META-OAUTH-SETUP.md)).
+   token de Page via Meta Business Suite, scope `pages_manage_posts`).
 
 ## Garde-fous (refuser fermement)
 
@@ -61,5 +61,5 @@ conformes à `.claude/skills/meta-writer/SKILL.md` § Output.
 
 - Skill : [`.claude/skills/meta-writer/SKILL.md`](../skills/meta-writer/SKILL.md)
 - Connecteur : [`argos_ops/social/meta.py`](../../argos_ops/social/meta.py)
-- Setup : [`docs/META-OAUTH-SETUP.md`](../../docs/META-OAUTH-SETUP.md)
+- Setup : Meta Business Suite (token de Page, scope `pages_manage_posts`)
 - Script test : [`scripts/test_meta.py`](../../scripts/test_meta.py)
