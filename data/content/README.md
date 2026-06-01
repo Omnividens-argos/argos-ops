@@ -1,11 +1,13 @@
 # `data/content/`
 
-Queue locale des drafts de posts sociaux produits par le skill `content-writer`
-(P9-DRAFT, 2026-05-14).
+Queue locale des drafts de posts sociaux produits par les skills dédiés par
+canal `linkedin-writer` / `mastodon-writer` / `bluesky-writer` (Sprint
+contenu, 2026-06-01 — l'ancien `content-writer` multi-canal est déprécié).
 
 ## Workflow actuel (P9-DRAFT — mode local-draft only)
 
-1. `/draft-content <channel> <topic>` génère un fichier dans `drafts/`
+1. `/draft-linkedin`, `/draft-mastodon` ou `/draft-bluesky` (selon le canal ;
+   `/draft-content <channel>` reste un aiguillage) génère un fichier dans `drafts/`
 2. Le fondateur valide / édite manuellement le draft
 3. Le fondateur copie-colle le body dans le canal (LinkedIn / Mastodon / X)
    et publie
@@ -34,20 +36,21 @@ drafts/YYYY-MM-DD-<channel>-<slug>.md
 ```
 
 - `YYYY-MM-DD` = date de création (TZ Paris)
-- `<channel>` ∈ `{linkedin, mastodon, x}`
+- `<channel>` ∈ `{linkedin, mastodon, bluesky, x}`
 - `<slug>` = kebab-case du topic, tronqué à 50 chars
 
 ## Statuts
 
 | Status | Sens | Qui transitionne |
 |--------|------|------------------|
-| `draft` | Sortie brute du skill, peut nécessiter ajustement | skill `content-writer` (création) |
+| `draft` | Sortie brute du skill, peut nécessiter ajustement | skill du canal (`linkedin-writer` / `mastodon-writer` / `bluesky-writer`) |
 | `validated` | Le fondateur a relu, OK pour publier | fondateur (manuel) |
 | `posted` | Publié sur le canal | fondateur (manuel jusqu'à P11, ContentBot ensuite) |
 | `rejected` | Pas publié, raison dans le frontmatter ou en commentaire | fondateur (manuel) |
 
 ## Liens
 
-- Skill : `.claude/skills/content-writer/SKILL.md`
-- Slash command : `.claude/commands/draft-content.md`
+- Skills par canal : `.claude/skills/{linkedin,mastodon,bluesky}-writer/SKILL.md`
+- Slashs : `.claude/commands/draft-{linkedin,mastodon,bluesky}.md`
+  (`draft-content.md` = aiguillage)
 - Plan complet : `docs/ARGOS_OPS_PLAN.md` § Partie 9

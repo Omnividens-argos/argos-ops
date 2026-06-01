@@ -149,10 +149,15 @@ expose `should_alert: bool`, `alert_color: int`, `summary: str` (Protocol
   structuré (titre, outline H2/H3, sources, meta, internal links) à
   partir d'un keyword + KB Argos. Humain-in-the-loop. Cf.
   [`.claude/commands/generate-seo-brief.md`](.claude/commands/generate-seo-brief.md)
-- **`/draft-content`** (P9-DRAFT) — drafte un post social adapté à un
-  canal (LinkedIn / Mastodon) depuis un topic + KB Argos. Reddit retiré
+- **`/draft-linkedin`** · **`/draft-mastodon`** · **`/draft-bluesky`**
+  (Sprint contenu, 2026-06-01) — slashs dédiés par canal, un writer par
+  réseau (`linkedin-writer` 1300-2000 chars / `mastodon-writer` 300-500
+  chars infosec.exchange / `bluesky-writer` ≤300 graphemes AT Protocol).
+  Humain-in-the-loop, charge KB + audit `claude-judge`, mode local-draft.
+  Cf. [`.claude/commands/`](.claude/commands/).
+- **`/draft-content`** (déprécié → aiguillage) — route vers le slash dédié
+  selon le canal. Reddit retiré
   [D-022](docs/DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops).
-  Mode local-draft only — posting manuel jusqu'à P11. Humain-in-the-loop.
   Cf. [`.claude/commands/draft-content.md`](.claude/commands/draft-content.md)
 - **`/draft-ad`** (P12 shadow) — drafte 3 variantes d'annonce Ads
   (Google Search RSA / LinkedIn Sponsored / Meta) avec audit `claude-judge`
@@ -219,12 +224,17 @@ expose `should_alert: bool`, `alert_color: int`, `summary: str` (Protocol
   depuis un keyword + KB Argos (via `kb-rag`). Pas de SERP scraping
   (option A 2026-05-12). Réutilisé par `/generate-seo-brief` et futur
   ContentBot P9. Cf. [`.claude/skills/seo-brief-writer/`](.claude/skills/seo-brief-writer/)
-- **`content-writer`** (P9-DRAFT, 2026-05-14) — génère un post social
-  adapté au canal (LinkedIn / Mastodon) depuis un topic + KB Argos (via
-  `kb-rag`). Reddit retiré du périmètre [D-022](docs/DECISIONS.md#d-022--retrait-d%C3%A9finitif-de-reddit-du-p%C3%A9rim%C3%A8tre-argos-ops).
-  Mode local-draft only — drafts rangés dans `data/content/drafts/` en
-  attendant P11 (connecteurs sociaux). Réutilisé par `/draft-content` et
-  futur ContentBot P9 full. Cf.
+- **`linkedin-writer`** · **`mastodon-writer`** · **`bluesky-writer`**
+  (Sprint contenu, 2026-06-01) — skills éditoriaux **dédiés par canal**
+  (split de l'ancien `content-writer`). Chacun charge la KB (`kb-rag`),
+  audite via `claude-judge` avant écriture, et range le draft dans
+  `data/content/drafts/`. Connecteurs Sprint A
+  ([`argos_ops/social/`](argos_ops/social/)) : LinkedIn / Mastodon live,
+  Bluesky AT Protocol (gratuit). Anti-FUD strict. Cf.
+  [`.claude/skills/`](.claude/skills/).
+- **`content-writer`** (déprécié 2026-06-01) — ancien skill multi-canal,
+  scindé en `linkedin-writer` / `mastodon-writer` / `bluesky-writer`.
+  Conservé en référence historique uniquement, ne plus invoquer. Cf.
   [`.claude/skills/content-writer/`](.claude/skills/content-writer/)
 - **`claude-judge`** (P14, 2026-05-14) — agent-juge Tier 1. Note un
   draft sur 3 axes (factual / tone / legal, 0-100) et retourne un JSON
