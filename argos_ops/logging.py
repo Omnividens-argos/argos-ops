@@ -16,6 +16,7 @@ Patterns redactés (case-sensitive sauf mention) :
 - ``eyJ....eyJ....sig`` — JWT (couvre les access tokens AT Protocol Bluesky
   + tout Bearer LinkedIn/Mastodon qui fuiterait)
 - ``xxxx-xxxx-xxxx-xxxx`` — app password Bluesky (Settings → App Passwords)
+- ``EAA...`` — token Meta / Facebook Graph API (page/user access token)
 
 À installer **avant** tout autre import qui pourrait logger : appeler
 :func:`install_secret_filter` au tout début de ``argos_ops/__init__.py``.
@@ -65,6 +66,10 @@ _PATTERNS: Final[list[tuple[re.Pattern[str], str]]] = [
         re.compile(r"\b[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}\b"),
         "[REDACTED-BSKY-APPPW]",
     ),
+    # Tokens Meta / Facebook Graph API (préfixe EAA, page/user access token).
+    # Inclure '_' et '-' : les vrais tokens Meta en contiennent — sinon la
+    # redaction s'arrête au 1er séparateur et la queue du token fuiterait.
+    (re.compile(r"\bEAA[A-Za-z0-9_-]{20,}"), "EAA[REDACTED-META]"),
 ]
 
 

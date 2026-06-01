@@ -131,6 +131,11 @@ class ContentBot(BaseAgent):
                     settings.bluesky_handle is not None
                     and settings.bluesky_app_password is not None
                 )
+                # Meta exige page_id ET token de Page (cf. MetaClient.is_live).
+                or (
+                    settings.meta_page_id is not None
+                    and settings.meta_page_access_token is not None
+                )
             )
             try:
                 await send_embed(webhook, build_content_embed(stats, live_mode))

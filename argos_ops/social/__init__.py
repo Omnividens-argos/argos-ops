@@ -14,12 +14,14 @@ from __future__ import annotations
 from argos_ops.social.bluesky import BlueskyClient
 from argos_ops.social.linkedin import LinkedInClient
 from argos_ops.social.mastodon import MastodonClient
+from argos_ops.social.meta import MetaClient
 from argos_ops.social.publisher import PublishResult, publish_draft
 
 __all__ = [
     "BlueskyClient",
     "LinkedInClient",
     "MastodonClient",
+    "MetaClient",
     "PublishResult",
     "publish_draft",
 ]
