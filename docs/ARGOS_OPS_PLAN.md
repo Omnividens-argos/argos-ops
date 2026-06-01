@@ -2125,7 +2125,7 @@ faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
 
 ---
 
-# Annexe D — Catalogue cible : 12 services × 79 bots
+# Annexe D — Catalogue cible : 12 services × 86 bots
 
 > **Source unique de l'état d'avancement** (depuis 2026-05-23).
 > `CLAUDE.md` ne porte plus de section "État d'avancement" et
@@ -2136,8 +2136,8 @@ faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
 
 - ✅ **83 agents Python actifs** + **1 skill (ClaudeJudge)** = **84 livrés**
 - 🟡 **1 partiel** (OutboundBot — P13.A shadow + P22.H stage mode, live attend domaine secondaire D-023)
-- ⬜ **2 roadmap** (CapabilityRouter bloqué sur P21.A, MemoryCurator bloqué sur P20.A)
-- **Total cible : 79 bots** répartis sur 12 services *(dépassé via 7 upgrades skills/shadow → agent Python full lors du méta-sprint P22.D-I).*
+- ⬜ **9 roadmap** (CapabilityRouter bloqué sur P21.A, MemoryCurator bloqué sur P20.A, **6 PlatformWriters** + **EditorialBot** prévus Sprint B contenu multi-plateforme)
+- **Total cible : 86 bots** répartis sur 12 services *(dépassé via 7 upgrades skills/shadow → agent Python full lors du méta-sprint P22.D-I, étendu en 2026-06 avec la flotte writers multi-plateformes).*
 
 Légende :
 - `[x] ✅` — livré et actif (Python agent en cron OU skill réutilisable)
@@ -2193,6 +2193,13 @@ Le frontend Admin Panel range les bots par service avec status pill.
 
 - [x] ✅ **SEOBot** · SEO Strategist · Briefs blog SEO structurés depuis KB. *P10-MVP livré 2026-05-12.*
 - [x] ✅ **ContentBot** · Content Manager · 2-5 posts/jour LinkedIn / Mastodon. *P22i livré 2026-05-23 (full agent Python + connecteurs P11). Shadow tant que LinkedIn / Mastodon tokens absents (D-024 / D-025).*
+- [ ] ⬜ **LinkedInWriter** · Content Writer LinkedIn · Drafte un post LinkedIn long-form B2B technique depuis topic + KB. Ne poste pas — transmet à ContentBot via `data/content/drafts/`. *Sprint B prévu (split de `content-writer`). Skill scaffoldé via `skill-creator`.*
+- [ ] ⬜ **MastodonWriter** · Content Writer Mastodon · Drafte un toot court tone infosec community (#infosec, #bugbounty) depuis topic + KB. Ne poste pas. *Sprint B prévu (split de `content-writer`). Skill scaffoldé via `skill-creator`.*
+- [ ] ⬜ **MetaWriter** · Content Writer Facebook · Drafte un post Facebook Page pour persona TPE/PME non-technique (anti-FUD, vocab grand public, CTA tier bas Argos). Ne poste pas. *Sprint B prévu — persona à part (cf. memo project_metawriter_smb_persona). Skill scaffoldé via `skill-creator`.*
+- [ ] ⬜ **XWriter** · Content Writer X · Drafte un tweet 280 chars / hook punchy / angle viral cyber depuis topic + KB. Ne poste pas. *Sprint B prévu — connecteur Python + API cost à arbitrer ($200/mois Basic ou Free 1500/mois). Skill scaffoldé via `skill-creator`.*
+- [ ] ⬜ **BlueskyWriter** · Content Writer Bluesky · Drafte un post Bluesky 300 chars tone tech early adopters depuis topic + KB. Ne poste pas. *Sprint B prévu — quick win (API AT Protocol gratuite illimitée). Skill scaffoldé via `skill-creator`.*
+- [ ] ⬜ **TruthSocialWriter** · Content Writer Truth Social · Drafte un post Truth Social (audience US conservative, API forked Mastodon) depuis topic + KB. Ne poste pas. *Sprint B prévu — demande d'accès API à soumettre. Skill scaffoldé via `skill-creator`.*
+- [ ] ⬜ **EditorialBot** · Editor-in-Chief · Lit TrendSpotter le matin, choisit angle + canal, dispatch automatiquement au writer adapté. Orchestre uniquement, ne crée ni ne publie de contenu lui-même. *Sprint B+1 — activable après 3 sem de drafts validés (sinon orchestration dans le vide).*
 - [x] ✅ **AdBot** · Paid Acquisition · Pilotage Google / Meta / LinkedIn Ads. *P22i livré 2026-05-23 (live mode P12.B). Shadow tant que ADS_LIVE_MODE=false + budget pub validé (D-026).*
 - [x] ✅ **TrendSpotter** · Trend Analyst · Tendances cyber → SEOBot / ContentBot. *P22i livré 2026-05-23.*
 - [x] ✅ **NewsletterBot** · Email Marketing · Newsletter mensuelle depuis blog + actu cyber. *P22i livré 2026-05-23.*
