@@ -130,10 +130,15 @@ class Settings(BaseSettings):
         default="https://infosec.exchange", alias="MASTODON_INSTANCE_URL"
     )
     mastodon_access_token: SecretStr | None = Field(default=None, alias="MASTODON_ACCESS_TOKEN")
+    # Bluesky (Sprint B — AT Protocol, gratuit illimité). Auth = handle +
+    # app password (Settings → App Passwords), jamais le mot de passe du
+    # compte. Shadow tant que l'un des deux manque. ``pds_url`` = serveur PDS
+    # (par défaut bsky.social ; override si self-host AT Protocol un jour).
+    bluesky_handle: str | None = Field(default=None, alias="BLUESKY_HANDLE")
+    bluesky_app_password: SecretStr | None = Field(default=None, alias="BLUESKY_APP_PASSWORD")
+    bluesky_pds_url: str = Field(default="https://bsky.social", alias="BLUESKY_PDS_URL")
     content_daily_max_per_channel: int = Field(default=3, alias="CONTENT_DAILY_MAX_PER_CHANNEL")
-    discord_webhook_content: SecretStr | None = Field(
-        default=None, alias="DISCORD_WEBHOOK_CONTENT"
-    )
+    discord_webhook_content: SecretStr | None = Field(default=None, alias="DISCORD_WEBHOOK_CONTENT")
 
     # --- AdBot live (D-026 budget pub) ---
     ads_live_mode: bool = Field(default=False, alias="ADS_LIVE_MODE")

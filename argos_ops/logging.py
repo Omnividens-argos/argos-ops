@@ -13,6 +13,9 @@ Patterns redactés (case-sensitive sauf mention) :
 - ``whsec_...`` — secret webhook Stripe
 - ``WPL_AP1_...`` — token Discord client (legacy, conservé par sécurité)
 - ``AKIA...`` + secret 40 chars — clé AWS
+- ``eyJ....eyJ....sig`` — JWT (couvre les access tokens AT Protocol Bluesky
+  + tout Bearer LinkedIn/Mastodon qui fuiterait)
+- ``xxxx-xxxx-xxxx-xxxx`` — app password Bluesky (Settings → App Passwords)
 
 À installer **avant** tout autre import qui pourrait logger : appeler
 :func:`install_secret_filter` au tout début de ``argos_ops/__init__.py``.
@@ -51,6 +54,17 @@ _PATTERNS: Final[list[tuple[re.Pattern[str], str]]] = [
     (re.compile(r"\bWPL_AP1_[A-Za-z0-9_-]{20,}\b"), "WPL_AP1_[REDACTED]"),
     # AWS access keys (AKIA + 16 chars)
     (re.compile(r"\bAKIA[0-9A-Z]{16}\b"), "AKIA[REDACTED]"),
+    # JWT (3 segments base64url séparés par '.') — access tokens AT Protocol
+    # Bluesky + tout Bearer LinkedIn/Mastodon. Préfixe eyJ = base64 de '{"'.
+    (
+        re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"),
+        "eyJ[REDACTED-JWT]",
+    ),
+    # App password Bluesky : 4 groupes de 4 alphanum séparés par '-'.
+    (
+        re.compile(r"\b[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}\b"),
+        "[REDACTED-BSKY-APPPW]",
+    ),
 ]
 
 

@@ -55,6 +55,25 @@ def test_redact_aws_access_key() -> None:
     assert "AKIA[REDACTED]" in out
 
 
+def test_redact_jwt_access_token() -> None:
+    # JWT 3 segments — couvre les access tokens AT Protocol Bluesky + Bearer.
+    jwt = (
+        "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkaWQ6cGxjOmFiYyJ9."
+        "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+    )
+    out = _redact(f"Authorization: Bearer {jwt}")
+    assert jwt not in out
+    assert "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" not in out
+    assert "eyJ[REDACTED-JWT]" in out
+
+
+def test_redact_bluesky_app_password() -> None:
+    msg = "BLUESKY_APP_PASSWORD=abcd-efgh-ijkl-mnop posting toot"
+    out = _redact(msg)
+    assert "abcd-efgh-ijkl-mnop" not in out
+    assert "[REDACTED-BSKY-APPPW]" in out
+
+
 def test_redact_idempotent_non_secret_message() -> None:
     msg = "DigestBuilder OK — leads=12 customers=1 tickets_open=4"
     out = _redact(msg)

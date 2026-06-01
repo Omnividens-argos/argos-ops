@@ -17,6 +17,7 @@ import yaml
 from loguru import logger
 
 from argos_ops.config import REPO_ROOT, get_settings
+from argos_ops.social.bluesky import BlueskyClient
 from argos_ops.social.linkedin import LinkedInClient
 from argos_ops.social.mastodon import MastodonClient
 
@@ -89,6 +90,7 @@ async def publish_draft(
     *,
     linkedin: LinkedInClient | None = None,
     mastodon: MastodonClient | None = None,
+    bluesky: BlueskyClient | None = None,
     dry_run: bool = False,
 ) -> PublishResult:
     """Publie un draft sur le canal indiqué par son frontmatter."""
@@ -106,6 +108,9 @@ async def publish_draft(
     elif channel == "mastodon":
         client_m = mastodon or _default_mastodon()
         result = await client_m.post(text, dry_run=dry_run)
+    elif channel == "bluesky":
+        client_b = bluesky or _default_bluesky()
+        result = await client_b.post(text, dry_run=dry_run)
     else:
         return PublishResult(draft_path, "failed", channel, None, f"channel inconnu : {channel}")
 
@@ -158,6 +163,15 @@ def _default_mastodon() -> MastodonClient:
     return MastodonClient(
         instance_url=settings.mastodon_instance_url,
         access_token=settings.mastodon_access_token,
+    )
+
+
+def _default_bluesky() -> BlueskyClient:
+    settings = get_settings()
+    return BlueskyClient(
+        handle=settings.bluesky_handle,
+        app_password=settings.bluesky_app_password,
+        pds_url=settings.bluesky_pds_url,
     )
 
 
