@@ -139,7 +139,7 @@ class Settings(BaseSettings):
     bluesky_pds_url: str = Field(default="https://bsky.social", alias="BLUESKY_PDS_URL")
     # Meta / Facebook Page (organique — Sprint contenu, persona TPE/PME).
     # DISTINCT du connecteur Ads (META_ADS_*). Token de Page long-lived,
-    # scope pages_manage_posts (cf. docs/META-OAUTH-SETUP.md). Shadow tant
+    # scope pages_manage_posts (token de Page via Meta Business Suite). Shadow tant
     # que page_id OU token manque. ``graph_api_version`` overridable.
     meta_page_id: str | None = Field(default=None, alias="META_PAGE_ID")
     meta_page_access_token: SecretStr | None = Field(default=None, alias="META_PAGE_ACCESS_TOKEN")

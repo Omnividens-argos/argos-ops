@@ -2,8 +2,8 @@
 
 Publie un post texte sur une **Page Facebook** via la Graph API :
 ``POST /{page-id}/feed`` avec ``message`` + ``access_token`` (token de
-Page long-lived, scope ``pages_manage_posts``). Cf. ``docs/META-OAUTH-SETUP.md``
-pour l'obtention du token (action manuelle fondateur via Meta Business Suite).
+Page long-lived, scope ``pages_manage_posts``, obtenu via Meta Business
+Suite — action manuelle fondateur).
 
 Distinct du connecteur Ads (``META_ADS_*``) : ici c'est de l'organique
 gratuit sur la Page, pas du pilotage de campagnes payantes.

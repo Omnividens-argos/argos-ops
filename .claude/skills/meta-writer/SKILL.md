@@ -204,7 +204,8 @@ Toujours écrire `judge_score`, `judge_verdict`, `judge_rationale`.
 
 Le connecteur `argos_ops/social/meta.py` poste sur la Page via la Graph API
 dès que `META_PAGE_ID` + `META_PAGE_ACCESS_TOKEN` sont remplis
-(cf. `docs/META-OAUTH-SETUP.md`). En **shadow** sinon (draft-only).
+(token de Page via Meta Business Suite, scope `pages_manage_posts`). En
+**shadow** sinon (draft-only).
 
 - **Manuel** : copier-coller dans la Page Facebook, puis maj frontmatter
   (`status: posted` + `posted_at:` + `url_posted:`).
@@ -234,7 +235,7 @@ dès que `META_PAGE_ID` + `META_PAGE_ACCESS_TOKEN` sont remplis
 
 - Slash command : [`/draft-meta`](../../commands/draft-meta.md)
 - Connecteur live : [`argos_ops/social/meta.py`](../../../argos_ops/social/meta.py)
-- Setup credentials : [`docs/META-OAUTH-SETUP.md`](../../../docs/META-OAUTH-SETUP.md)
+- Setup credentials : Meta Business Suite (token de Page, scope `pages_manage_posts`)
 - Persona (mémoire) : `project_metawriter_smb_persona`
 - Skills réutilisés : `kb-rag` (P6), `claude-judge` (P14)
 - Skills cousins (autres canaux, persona cyber-expert) : `linkedin-writer`,

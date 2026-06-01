@@ -75,7 +75,7 @@ frontmatter, quel que soit le verdict.
 
 Le connecteur `argos_ops/social/bluesky.py` est en **shadow** tant que
 `BLUESKY_HANDLE` + `BLUESKY_APP_PASSWORD` sont absents de `.env.local`
-(setup : [`docs/BLUESKY-SETUP.md`](../../docs/BLUESKY-SETUP.md)).
+(setup : bsky.app → Settings → App Passwords).
 
 - **Manuel** : copier-coller dans https://bsky.app, puis éditer le
   frontmatter : `status: posted` + `posted_at:` + `url_posted:`.
@@ -114,6 +114,6 @@ Status initial : `draft` (ou `queued` si le juge le demande).
 
 - Skill : [`.claude/skills/bluesky-writer/SKILL.md`](../skills/bluesky-writer/SKILL.md)
 - Connecteur : [`argos_ops/social/bluesky.py`](../../argos_ops/social/bluesky.py)
-- Setup : [`docs/BLUESKY-SETUP.md`](../../docs/BLUESKY-SETUP.md)
+- Setup : bsky.app → Settings → App Passwords
 - Script test live : [`scripts/test_bluesky.py`](../../scripts/test_bluesky.py)
 - KB : `data/knowledge_base/`

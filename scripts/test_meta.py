@@ -7,7 +7,7 @@ Usage :
 
 Si META_PAGE_ID ou META_PAGE_ACCESS_TOKEN manque dans .env.local, le client
 retombe en shadow mode — utile pour valider le branchement sans rien publier.
-Setup credentials : docs/META-OAUTH-SETUP.md.
+Setup : Meta Business Suite (token de Page, scope pages_manage_posts).
 
 Sortie : URL du post publié si succès, code retour non-zéro sinon.
 """
@@ -52,7 +52,7 @@ async def run(message: str, dry_run: bool) -> int:
         print(
             "[i] Credentials Meta absents — rien posté. "
             "Remplir META_PAGE_ID + META_PAGE_ACCESS_TOKEN dans .env.local "
-            "(cf. docs/META-OAUTH-SETUP.md) pour un test live."
+            "(Meta Business Suite, token de Page) pour un test live."
         )
 
     result = await client.post(message, dry_run=dry_run)
