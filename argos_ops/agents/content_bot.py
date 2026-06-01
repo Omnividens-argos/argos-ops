@@ -126,6 +126,11 @@ class ContentBot(BaseAgent):
                 or settings.linkedin_page_access_token is not None
                 or settings.linkedin_api_token is not None
                 or settings.mastodon_access_token is not None
+                # Bluesky exige handle ET app password (cf. BlueskyClient.is_live).
+                or (
+                    settings.bluesky_handle is not None
+                    and settings.bluesky_app_password is not None
+                )
             )
             try:
                 await send_embed(webhook, build_content_embed(stats, live_mode))

@@ -24,8 +24,12 @@ fondateur.
   keyword, invoice impayée, etc.)
 - ``rag_chunks`` (optionnel) — les chunks KB chargés par ``kb-rag``
   (au format ``[KB#N: doc.md§index]`` + contenu)
-- ``channel`` — ``email | social_linkedin | social_mastodon | social_x
-  | blog | stripe_dunning`` (``social_reddit`` retiré — D-022 2026-05-15)
+- ``channel`` — ``email | social_linkedin | social_mastodon |
+  social_bluesky | social_x | blog | stripe_dunning`` (``social_reddit``
+  retiré — D-022 2026-05-15). Grille emoji par canal : 1 emoji technique
+  toléré sur LinkedIn ; **0-1 sur Bluesky** (audience tech, mais pas de
+  cascade) ; zéro sur Mastodon/email. Longueur Bluesky : hard limit 300
+  graphemes.
 - ``agent_name`` — ``EmailBot | SupportBot | ContentBot | OutboundBot |
   FinanceBot | SEOBot``
 
