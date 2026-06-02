@@ -320,3 +320,19 @@ class InboxDraft(BaseModel):
     created_at: datetime
     file_path: str
     agent_name: str | None = None
+
+
+class OpsLoginPayload(BaseModel):
+    """Corps du POST /api/auth/login (durcissement panel, P16.B/D)."""
+
+    username: str
+    password: str
+    totp_code: str | None = None  # requis seulement si TOTP est configuré
+
+
+class OpsLoginResponse(BaseModel):
+    """Réponse du login : JWT de session à présenter en Bearer."""
+
+    token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_in_minutes: int

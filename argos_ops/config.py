@@ -185,6 +185,29 @@ class Settings(BaseSettings):
     # Vide → conversions=0 (la proposition « CR < 1 % » ne se déclenche pas).
     umami_conversion_event: str | None = Field(default=None, alias="UMAMI_CONVERSION_EVENT")
 
+    # --- Admin Control Panel auth (P16.B/D — durcissement applicatif) ---
+    # Defense-in-depth en complément de Caddy. Tout est fail-open si non
+    # renseigné : le panel reste ouvert en local (et les tests passent). En
+    # prod le fondateur renseigne ces vars. Cf. docs/INFRA_OPS_PANEL.md.
+    ops_dashboard_basic_auth_user: str | None = Field(
+        default=None, alias="OPS_DASHBOARD_BASIC_AUTH_USER"
+    )
+    ops_dashboard_basic_auth_password: SecretStr | None = Field(
+        default=None, alias="OPS_DASHBOARD_BASIC_AUTH_PASSWORD"
+    )
+    # Secret de signature des JWT de session (HS256). openssl rand -hex 32.
+    ops_dashboard_jwt_secret: SecretStr | None = Field(
+        default=None, alias="OPS_DASHBOARD_JWT_SECRET"
+    )
+    # Allowlist IP/CIDR séparée par virgules, évaluée sur le peer TCP direct.
+    # Vide = pas de filtrage applicatif (le vrai filtrage IP est côté Caddy).
+    ops_dashboard_ip_allowlist: str | None = Field(default=None, alias="OPS_DASHBOARD_IP_ALLOWLIST")
+    # Secret TOTP (base32) pour la 2FA. Quand présent, le Basic seul ne suffit
+    # plus : login via /api/auth/login (basic + code) → JWT.
+    ops_dashboard_totp_secret: SecretStr | None = Field(
+        default=None, alias="OPS_DASHBOARD_TOTP_SECRET"
+    )
+
     @property
     def async_database_url(self) -> str:
         """URL adaptée à SQLAlchemy async (driver psycopg v3).
