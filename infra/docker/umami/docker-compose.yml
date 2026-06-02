@@ -18,7 +18,10 @@
 
 services:
   umami:
-    image: ghcr.io/umami-software/umami:postgresql-v2.13.3
+    # v3+ requis : le client argos_ops/integrations/umami.py cible l'API v3
+    # (type=path, stats à plat). 'latest' pour suivre les correctifs ; pinner
+    # une version précise (ex. postgresql-v3.1.0) si reproductibilité stricte.
+    image: ghcr.io/umami-software/umami:postgresql-latest
     container_name: argos-umami
     environment:
       DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
@@ -33,12 +36,9 @@ services:
       - caddy_net
       - umami_internal
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/heartbeat || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
+    # Pas de healthcheck applicatif : l'image Umami n'embarque pas curl de
+    # façon garantie, et rien ne dépend de la santé d'umami (seul l'ordre de
+    # démarrage compte, géré par depends_on sur la santé de la DB ci-dessous).
 
   umami-db:
     image: postgres:16-alpine

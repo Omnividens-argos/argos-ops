@@ -50,15 +50,27 @@ Aucun port n'est publié sur l'hôte : Umami n'est joignable que via Caddy.
 
 ### 3. Brancher Caddy
 
-Ajouter le contenu de [`infra/caddy/analytics.Caddyfile`](../infra/caddy/analytics.Caddyfile)
-au Caddyfile prod (dans le container `sechunter-caddy-1`), puis recharger :
+Le Caddyfile prod est sur l'hôte (`/home/sechunter/sechunter/Caddyfile`,
+bind-mount dans `sechunter-caddy-1`). Y **ajouter** le contenu de
+[`infra/caddy/analytics.Caddyfile`](../infra/caddy/analytics.Caddyfile)
+(`cat >> … <<'EOF'`), puis **valider** :
 
 ```bash
-docker exec sechunter-caddy-1 caddy reload --config /etc/caddy/Caddyfile
+docker exec sechunter-caddy-1 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
+> ⚠️ **Piège vécu (2026-06-02)** : ce Caddyfile est un bind-mount d'**un seul
+> fichier**. Après édition, `caddy reload` peut répondre `config is unchanged`
+> (le container garde une version figée du fichier — inode épinglé). Le fix
+> fiable est de **redémarrer** le container, qui relit le fichier au démarrage :
+>
+> ```bash
+> docker restart sechunter-caddy-1   # ~2-3 s de coupure, certs conservés (/data)
+> ```
+
 Vérifier la résolution DNS de `analytics.omnividens.fr` (A → 204.168.171.71)
-**avant** le reload pour que Let's Encrypt délivre le certificat.
+**avant** le restart pour que Let's Encrypt délivre le certificat (challenge
+TLS-ALPN-01).
 
 ### 4. Créer le compte + le site dans Umami
 
@@ -111,7 +123,7 @@ qu'en shadow (vars absentes) ou si l'instance est indisponible.
 
 ## Mapping des métriques
 
-`UmamiPageMetric` est dérivé des totaux Umami **scopés par URL** (`/stats?url=`) :
+`UmamiPageMetric` est dérivé des totaux Umami **scopés par page** (`/stats?path=`, API v3) :
 
 - `visits` = sessions (fallback pageviews si 0)
 - `bounce_rate` = `bounces / visits`
@@ -124,8 +136,9 @@ qu'en shadow (vars absentes) ou si l'instance est indisponible.
 - **Backups** : le volume `umami-db-data` (Postgres) est couvert par le
   BackupVerifier si on l'ajoute à `data/backup/manifest`. Sinon `pg_dump`
   périodique du container `argos-umami-db`.
-- **Mise à jour** : bumper le tag d'image dans le compose
-  (`ghcr.io/umami-software/umami:postgresql-vX.Y.Z`), `docker compose pull`
-  puis `up -d` (migrations DB automatiques au démarrage).
+- **Version** : le compose utilise `postgresql-latest` (Umami **v3**, requis —
+  le client cible l'API v3 : `type=path`, stats à plat). Mise à jour :
+  `docker compose pull && docker compose up -d` (migrations DB auto). Pour
+  figer une version : remplacer par `postgresql-v3.x.y`.
 - **Rotation `UMAMI_APP_SECRET`** : invalide les sessions admin en cours
   (re-login requis), sans impact sur la donnée.

@@ -7,22 +7,25 @@ héberge l'instance sur ``analytics.omnividens.fr`` (INFRA-02). Ce module
 remplace l'alimentation manuelle de ``data/analytics/landing_perf.yaml``
 par un pull direct de l'API.
 
-Flux API (Umami v2) — tout en JSON :
+Flux API (Umami v3, vérifié contre l'instance live) — tout en JSON :
 
 1. ``POST /api/auth/login`` ``{username, password}`` → ``{token: <JWT>}``.
-2. ``GET  /api/websites/{id}/metrics?type=url&startAt=&endAt=`` → top URLs
-   ``[{x: "/path", y: <pageviews>}]``.
-3. ``GET  /api/websites/{id}/stats?url=/path&startAt=&endAt=`` → totaux
-   *scopés à cette URL* : ``{pageviews, visitors, visits, bounces,
-   totaltime}`` (chaque champ = ``{value, prev}``). ``totaltime`` est en
-   secondes cumulées.
-4. (optionnel) ``GET /api/websites/{id}/metrics?type=event&url=/path`` →
+2. ``GET  /api/websites/{id}/metrics?type=path&startAt=&endAt=`` → top pages
+   ``[{x: "/path", y: <pageviews>}]``. (v2 utilisait ``type=url`` ; renommé
+   ``type=path`` en v3, ``type=url`` y renvoie 400.)
+3. ``GET  /api/websites/{id}/stats?path=/page&startAt=&endAt=`` → totaux
+   *scopés à cette page* : ``{pageviews, visitors, visits, bounces,
+   totaltime}``. En v3 les valeurs sont **à plat** (``{pageviews: 42}``),
+   en v2 elles étaient ``{value, prev}`` — :func:`_stat_value` gère les deux.
+   ``totaltime`` est en secondes cumulées. Le filtre est ``path=`` en v3
+   (``url=`` y est silencieusement ignoré → renverrait les totaux du site).
+4. (optionnel) ``GET /api/websites/{id}/metrics?type=event&path=/page`` →
    compte des events ; on retient celui nommé ``conversion_event`` comme
    conversion. Sans ``conversion_event`` configuré, ``conversions=0`` (la
    proposition « CR < 1 % » de LandingOptimizer ne se déclenche donc pas
    sur une fausse hypothèse).
 
-``startAt``/``endAt`` sont des epochs **millisecondes** (spec Umami v2).
+``startAt``/``endAt`` sont des epochs **millisecondes**.
 
 Shadow mode : tant qu'une des 4 variables (``UMAMI_BASE_URL``,
 ``UMAMI_USERNAME``, ``UMAMI_PASSWORD``, ``UMAMI_WEBSITE_ID``) manque,
@@ -181,19 +184,21 @@ class UmamiClient:
             logger.error(f"Umami GET {path} : corps de réponse non-JSON")
             return None
 
-    async def _fetch_top_urls(
+    async def _fetch_top_paths(
         self, client: httpx.AsyncClient, token: str, start_ms: int, end_ms: int, limit: int
     ) -> list[str]:
+        # Umami v3 : le breakdown des pages est ``type=path`` (la v2 utilisait
+        # ``type=url``, qui renvoie 400 en v3).
         data = await self._get_json(
             client,
             token,
             f"/api/websites/{self.website_id}/metrics",
-            {"type": "url", "startAt": start_ms, "endAt": end_ms},
+            {"type": "path", "startAt": start_ms, "endAt": end_ms},
         )
         if not isinstance(data, list):
             return []
-        urls = [str(row["x"]) for row in data if isinstance(row, dict) and row.get("x")]
-        return urls[:limit]
+        paths = [str(row["x"]) for row in data if isinstance(row, dict) and row.get("x")]
+        return paths[:limit]
 
     async def _fetch_conversions(
         self, client: httpx.AsyncClient, token: str, page: str, start_ms: int, end_ms: int
@@ -205,7 +210,7 @@ class UmamiClient:
             client,
             token,
             f"/api/websites/{self.website_id}/metrics",
-            {"type": "event", "startAt": start_ms, "endAt": end_ms, "url": page},
+            {"type": "event", "startAt": start_ms, "endAt": end_ms, "path": page},
         )
         if not isinstance(data, list):
             return 0
@@ -224,7 +229,7 @@ class UmamiClient:
             client,
             token,
             f"/api/websites/{self.website_id}/stats",
-            {"startAt": start_ms, "endAt": end_ms, "url": page},
+            {"startAt": start_ms, "endAt": end_ms, "path": page},
         )
         if not isinstance(stats, dict):
             return None
@@ -269,7 +274,7 @@ class UmamiClient:
             token = await self._login(client)
             if token is None:
                 return []
-            pages = await self._fetch_top_urls(client, token, start_ms, end_ms, limit)
+            pages = await self._fetch_top_paths(client, token, start_ms, end_ms, limit)
             metrics: list[UmamiPageMetric] = []
             for page in pages:
                 metric = await self._fetch_page_metric(client, token, page, start_ms, end_ms)
