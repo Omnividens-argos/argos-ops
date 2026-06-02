@@ -136,6 +136,8 @@ class ContentBot(BaseAgent):
                     settings.meta_page_id is not None
                     and settings.meta_page_access_token is not None
                 )
+                # X exige un access token user-context (cf. TwitterClient.is_live).
+                or settings.x_access_token is not None
             )
             try:
                 await send_embed(webhook, build_content_embed(stats, live_mode))
