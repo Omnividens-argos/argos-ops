@@ -7,9 +7,11 @@ réelle nécessaire — un fake context manager suffit.
 
 from __future__ import annotations
 
+import re
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -493,3 +495,22 @@ def test_run_now_writer_returns_400_interactive(client: TestClient) -> None:
     response = client.post("/api/agents/LinkedInWriter/runs")
     assert response.status_code == 400
     assert "interactif" in response.json()["detail"].lower()
+
+
+def test_catalog_names_match_known_agents() -> None:
+    """Garde-fou anti-régression : chaque card du catalogue frontend doit
+    porter un ``name`` présent dans KNOWN_AGENTS. C'est la clé qui joint la
+    card aux données live de /api/agents (cf. botMetadata.lookupBot). Un nom
+    orphelin (ex. l'ancien 'OutboundSender' au lieu de 'OutboundBot') casse
+    silencieusement le statut live + les métadonnées de la card, sans faire
+    échouer aucun autre test."""
+    catalog = (
+        Path(__file__).resolve().parents[1]
+        / "argos_ops/ops_dashboard/frontend/src/lib/agentCatalog.ts"
+    )
+    if not catalog.is_file():
+        pytest.skip("frontend agentCatalog.ts absent (env backend-only)")
+    names = re.findall(r'^\s*name:\s*"([^"]+)"', catalog.read_text(encoding="utf-8"), re.M)
+    assert names, "aucun name: trouvé dans agentCatalog.ts (format changé ?)"
+    orphans = sorted({n for n in names if n not in app_module.KNOWN_AGENTS})
+    assert not orphans, f"cards catalogue sans entrée KNOWN_AGENTS : {orphans}"

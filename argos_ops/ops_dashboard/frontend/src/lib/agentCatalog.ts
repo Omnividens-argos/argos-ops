@@ -153,7 +153,7 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
     description: "Ramener des clients (cible primaire + secondaire).",
     agents: [
       {
-        name: "OutboundSender",
+        name: "OutboundBot",
         displayName: "OutboundBot",
         shortLabel: "SDR Cold Email",
         description: "Drafte une séquence cold email 5 touches (D+0, D+3, D+7, D+14, D+30).",
