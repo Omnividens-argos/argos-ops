@@ -149,6 +149,16 @@ class Settings(BaseSettings):
     # Activation live reportée : le fondateur arbitrera Free vs Basic ($).
     x_access_token: SecretStr | None = Field(default=None, alias="X_ACCESS_TOKEN")
     x_api_base: str = Field(default="https://api.twitter.com", alias="X_API_BASE")
+    # Truth Social (Sprint contenu — fork Mastodon, draft-only). Même API que
+    # Mastodon (POST /api/v1/statuses + Bearer). Accès API à demander par le
+    # fondateur ; shadow tant que le token manque. Canal le plus expérimental
+    # (fit audience ~nul vs ICP Argos — cf. skill truth-social-writer).
+    truth_social_instance_url: str = Field(
+        default="https://truthsocial.com", alias="TRUTH_SOCIAL_INSTANCE_URL"
+    )
+    truth_social_access_token: SecretStr | None = Field(
+        default=None, alias="TRUTH_SOCIAL_ACCESS_TOKEN"
+    )
     content_daily_max_per_channel: int = Field(default=3, alias="CONTENT_DAILY_MAX_PER_CHANNEL")
     discord_webhook_content: SecretStr | None = Field(default=None, alias="DISCORD_WEBHOOK_CONTENT")
 

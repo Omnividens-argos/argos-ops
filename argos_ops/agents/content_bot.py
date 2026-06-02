@@ -138,6 +138,8 @@ class ContentBot(BaseAgent):
                 )
                 # X exige un access token user-context (cf. TwitterClient.is_live).
                 or settings.x_access_token is not None
+                # Truth Social (fork Mastodon) exige un access token.
+                or settings.truth_social_access_token is not None
             )
             try:
                 await send_embed(webhook, build_content_embed(stats, live_mode))
