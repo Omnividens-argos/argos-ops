@@ -144,6 +144,11 @@ class Settings(BaseSettings):
     meta_page_id: str | None = Field(default=None, alias="META_PAGE_ID")
     meta_page_access_token: SecretStr | None = Field(default=None, alias="META_PAGE_ACCESS_TOKEN")
     meta_graph_api_version: str = Field(default="v21.0", alias="META_GRAPH_API_VERSION")
+    # X / Twitter (Sprint contenu — draft-only). Token user-context OAuth 2.0
+    # (scope tweet.write), PAS l'app-only bearer. Shadow tant qu'absent.
+    # Activation live reportée : le fondateur arbitrera Free vs Basic ($).
+    x_access_token: SecretStr | None = Field(default=None, alias="X_ACCESS_TOKEN")
+    x_api_base: str = Field(default="https://api.twitter.com", alias="X_API_BASE")
     content_daily_max_per_channel: int = Field(default=3, alias="CONTENT_DAILY_MAX_PER_CHANNEL")
     discord_webhook_content: SecretStr | None = Field(default=None, alias="DISCORD_WEBHOOK_CONTENT")
 

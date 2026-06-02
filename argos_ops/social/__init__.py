@@ -16,6 +16,7 @@ from argos_ops.social.linkedin import LinkedInClient
 from argos_ops.social.mastodon import MastodonClient
 from argos_ops.social.meta import MetaClient
 from argos_ops.social.publisher import PublishResult, publish_draft
+from argos_ops.social.twitter import TwitterClient
 
 __all__ = [
     "BlueskyClient",
@@ -23,5 +24,6 @@ __all__ = [
     "MastodonClient",
     "MetaClient",
     "PublishResult",
+    "TwitterClient",
     "publish_draft",
 ]
