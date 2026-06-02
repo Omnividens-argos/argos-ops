@@ -123,6 +123,16 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "WebinarPromoter",
     "TestimonialHunter",
     "CaseStudyDrafter",
+    # Sprint contenu — writers multi-canal (skills humain-in-the-loop,
+    # invoqués via /draft-* : non-runnables) + EditorialBot (orchestrateur,
+    # runnable). Cf. argos_ops/social/ + argos_ops/agents/editorial_bot.py.
+    "LinkedInWriter",
+    "MastodonWriter",
+    "BlueskyWriter",
+    "MetaWriter",
+    "XWriter",
+    "TruthSocialWriter",
+    "EditorialBot",
     # Customer Success & Support (P22.G)
     "ReviewBot",
     "ChurnPredictor",
@@ -237,6 +247,12 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "WebinarPromoter",
         "TestimonialHunter",
         "CaseStudyDrafter",
+        # Sprint contenu — EditorialBot est runnable (lit le digest TrendSpotter
+        # et écrit une queue de recommandations). Les 6 writers (LinkedInWriter,
+        # MastodonWriter, BlueskyWriter, MetaWriter, XWriter, TruthSocialWriter)
+        # sont des SKILLS humain-in-the-loop invoqués via /draft-* : pas de
+        # subclass BaseAgent → exclus de RUNNABLE_AGENTS (Run now renvoie 400).
+        "EditorialBot",
         # Customer Success & Support (P22.G) — bots non-interactifs.
         # SupportBot.run() est un health-check passif (compte chunks KB).
         # Le RAG Tier 1 interactif reste via /run-support-tier1 + skill kb-rag.
@@ -440,6 +456,10 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.newsletter_bot import NewsletterBot
 
         return NewsletterBot()
+    if name == "EditorialBot":
+        from argos_ops.agents.editorial_bot import EditorialBot
+
+        return EditorialBot()
     if name == "SocialAnalytics":
         from argos_ops.agents.social_analytics import SocialAnalytics
 

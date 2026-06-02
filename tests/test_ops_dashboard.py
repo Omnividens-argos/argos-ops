@@ -452,3 +452,44 @@ def test_run_agent_now_reports_failed_status(client: TestClient) -> None:
     body = response.json()
     assert body["status"] == "skipped_disabled"
     assert body["error"] == "agent disabled via Admin Panel"
+
+
+# --- Sprint contenu : registration panel des 7 bots ------------------------
+
+_CONTENT_WRITERS = (
+    "LinkedInWriter",
+    "MastodonWriter",
+    "BlueskyWriter",
+    "MetaWriter",
+    "XWriter",
+    "TruthSocialWriter",
+)
+
+
+def test_content_bots_registered_in_known_agents() -> None:
+    """Les 7 bots Sprint contenu sont visibles dans le panel (KNOWN_AGENTS)."""
+    for name in (*_CONTENT_WRITERS, "EditorialBot"):
+        assert name in app_module.KNOWN_AGENTS
+
+
+def test_editorial_bot_runnable_writers_are_not() -> None:
+    """EditorialBot a un runner → runnable. Les 6 writers sont des skills
+    humain-in-the-loop (/draft-*) → exclus de RUNNABLE_AGENTS."""
+    assert "EditorialBot" in app_module.RUNNABLE_AGENTS
+    for writer in _CONTENT_WRITERS:
+        assert writer not in app_module.RUNNABLE_AGENTS
+
+
+def test_editorial_bot_is_buildable() -> None:
+    """Tout agent RUNNABLE doit être instanciable par _build_agent (sinon
+    'Run now' crashe en 404). EditorialBot ne fait pas exception."""
+    from argos_ops.agents.editorial_bot import EditorialBot
+
+    assert isinstance(app_module._build_agent("EditorialBot"), EditorialBot)
+
+
+def test_run_now_writer_returns_400_interactive(client: TestClient) -> None:
+    """Un writer (KNOWN mais non-RUNNABLE) → 400 'interactif' sur Run now."""
+    response = client.post("/api/agents/LinkedInWriter/runs")
+    assert response.status_code == 400
+    assert "interactif" in response.json()["detail"].lower()
