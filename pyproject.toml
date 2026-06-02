@@ -12,65 +12,53 @@ dependencies = [
   "pydantic-settings>=2.2",
   "python-dotenv>=1.0",
   "loguru>=0.7",
-
   # CRM / DB
   "sqlmodel>=0.0.16",
   "psycopg[binary]>=3.1",
   "pgvector>=0.2.5",
   "redis>=5.0",
   "alembic>=1.13",
-
   # Web (ops dashboard P16 + futurs webhook receivers)
   "fastapi>=0.110",
   "uvicorn[standard]>=0.29",
   "sse-starlette>=2.1",
-
   # Embeddings KB local (D-017) — fastembed via ONNX runtime, pas d'API tierce.
   # multilingual-e5-base = 768 dims natif, multilingue FR-EN, ~280 MB poids
   # téléchargés au premier run dans le cache utilisateur.
   "fastembed>=0.3",
-
   # google-genai conservé optionnel pour des cas hors Argos Ops (BYOK
   # scanner SecHunter D-011) — Argos Ops lui-même ne l'appelle plus (D-017).
   "google-genai>=1.0",
-
   # Google APIs — conservés pour Calendar éventuel (non utilisés par Argos Ops
   # actuellement). EmailBot P5 utilise IMAP/SMTP OVH Zimbra (D-018), pas Gmail.
   "google-auth>=2.29",
   "google-auth-oauthlib>=1.2",
   "google-auth-httplib2>=0.2",
   "google-api-python-client>=2.125",
-
   # Email IMAP/SMTP (P5 EmailBot — OVH Zimbra, D-018)
   # imap-tools : sync, on wrappe dans asyncio.to_thread
   # aiosmtplib : async natif
   "imap-tools>=1.6",
   "aiosmtplib>=3.0",
-
   # LinkedIn — pas de SDK officiel stable, on appelle l'API directement via httpx
   # Mastodon (remplace X, D-004 ; Reddit retiré D-022 2026-05-15)
   "Mastodon.py>=1.8",
-
   # Stripe
   "stripe>=9.5",
-
   # Auth (TOTP for ops dashboard)
   "pyotp>=2.9",
-
   # Cron parsing (validation côté backend ops dashboard)
   "croniter>=2.0",
-
   # Markdown parsing (KB chunking)
   "markdown-it-py>=3.0",
-
   # YAML — frontmatter skills + OutboundBot meta.yaml (P13)
   "pyyaml>=6.0",
-
   # DNS resolution (P22.D DNSGuard) + RSS / Atom parsing (P22.D BreachWatcher,
   # RegulatoryWatcher). dnspython est aussi consommé indirectement par
   # aiosmtplib pour les MX lookups.
   "dnspython>=2.6",
   "feedparser>=6.0",
+  "pyjwt>=2.13.0",
 ]
 
 [project.optional-dependencies]

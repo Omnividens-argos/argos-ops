@@ -1,0 +1,54 @@
+# ops.omnividens.fr — Admin Control Panel (P16). PRIVÉ : cockpit du fondateur.
+#
+# Caddy = PREMIÈRE ligne de défense. Il voit la VRAIE IP client (l'app derrière
+# ne voit que le peer = Caddy), donc le filtrage IP fiable se fait ICI. L'app
+# ajoute une defense-in-depth (Basic/JWT/TOTP + allowlist sur le peer) — cf.
+# argos_ops/ops_dashboard/auth.py + docs/INFRA_OPS_PANEL.md.
+#
+# Snippet à insérer dans le Caddyfile prod (container sechunter-caddy-1).
+# Déploiement = action manuelle du fondateur. Remplacer les valeurs en MAJUSCULES.
+
+ops.omnividens.fr {
+	# 1. Filtrage IP sur la VRAIE IP client (IP fixe bureau/maison, VPN…).
+	#    C'est la barrière IP fiable — celle de l'app n'est qu'un garde-fou
+	#    anti-exposition directe.
+	@notallowed not remote_ip 203.0.113.10 198.51.100.0/24
+	respond @notallowed "Forbidden" 403
+
+	# 2. Basic auth Caddy. Hash bcrypt généré par `caddy hash-password`
+	#    (JAMAIS le mot de passe en clair). Double rideau avec le Basic
+	#    applicatif — utiliser les mêmes identifiants, ou tout déléguer à l'app.
+	basicauth {
+		admin REMPLACER_PAR_LE_HASH_BCRYPT
+	}
+
+	encode gzip zstd
+
+	# 3. API → backend FastAPI (uvicorn). Adapter host:port au déploiement réel.
+	handle /api/* {
+		reverse_proxy ops-backend:9000
+	}
+
+	# 4. SPA (frontend buildé : `npm run build` → dist/). Fallback index.html
+	#    pour le routing client React.
+	handle {
+		root * /srv/ops-dashboard
+		try_files {path} /index.html
+		file_server
+	}
+
+	# 5. Durcissement en-têtes — le panel ne doit JAMAIS être embarqué (DENY)
+	#    ni fuiter de referrer.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

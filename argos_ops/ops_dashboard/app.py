@@ -21,12 +21,14 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from argos_ops.agents.base import BaseAgent, run_agent
 from argos_ops.breakers import reset as reset_breaker_facade
 from argos_ops.breakers import trip as trip_breaker_facade
+from argos_ops.config import get_settings
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentConfig, AgentRun, Breaker
 from argos_ops.crm.repository import (
@@ -40,6 +42,7 @@ from argos_ops.crm.repository import (
     sum_active_mrr_eur,
     update_agent_config,
 )
+from argos_ops.ops_dashboard import auth
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
 from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
@@ -66,6 +69,8 @@ from argos_ops.ops_dashboard.models import (
     InboxDraft,
     KPIsOverview,
     ManualRunResponse,
+    OpsLoginPayload,
+    OpsLoginResponse,
     OutputContentResponse,
     PipelineSnapshot,
     TripBreakerPayload,
@@ -712,6 +717,69 @@ app.include_router(stripe_router)
 
 
 # =============================================================================
+# Durcissement auth (P16.B/D) — defense-in-depth APPLICATIVE, en complément
+# de Caddy. Fail-open : si OPS_DASHBOARD_* n'est pas configuré, le panel reste
+# ouvert (dev local + tests inchangés). Cf. auth.py + docs/INFRA_OPS_PANEL.md.
+# =============================================================================
+@app.middleware("http")
+async def ops_auth_guard(request: Request, call_next: Any) -> Any:
+    # Le préflight CORS (OPTIONS) ne porte jamais de credentials → laisser
+    # passer pour que CORSMiddleware réponde correctement.
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    settings = get_settings()
+
+    # 1. IP allowlist (peer TCP direct). Garde-fou anti-exposition sans Caddy ;
+    #    le filtrage « vraie IP » se fait côté Caddy (cf. ops.Caddyfile).
+    client_ip = request.client.host if request.client is not None else None
+    if not auth.ip_is_allowed(client_ip, settings):
+        return JSONResponse(status_code=403, content={"detail": "IP non autorisée"})
+
+    # 2. Basic / JWT. Seulement si l'auth est armée et hors chemins exemptés
+    #    (health, webhook Stripe, login).
+    if (
+        auth.is_basic_auth_enabled(settings)
+        and not auth.is_path_exempt(request.url.path)
+        and not auth.request_is_authenticated(request.headers.get("Authorization"), settings)
+    ):
+        headers = {}
+        # On ne propose le challenge Basic au navigateur que si la 2FA TOTP
+        # n'est pas active (sinon le Basic seul ne passe pas → on évite une
+        # popup trompeuse, le client doit utiliser /api/auth/login).
+        if not auth.is_totp_enabled(settings):
+            headers["WWW-Authenticate"] = 'Basic realm="Argos Ops"'
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Authentification requise"},
+            headers=headers,
+        )
+
+    return await call_next(request)
+
+
+@app.post("/api/auth/login", response_model=OpsLoginResponse)
+async def ops_login(payload: OpsLoginPayload) -> OpsLoginResponse:
+    """Échange identifiants Basic (+ code TOTP si configuré) contre un JWT.
+
+    404 si l'auth applicative n'est pas armée (rien à connecter). 503 si le
+    secret JWT manque (impossible d'émettre une session). 401 si creds ou
+    code TOTP invalides.
+    """
+    settings = get_settings()
+    if not auth.is_basic_auth_enabled(settings):
+        raise HTTPException(status_code=404, detail="Auth applicative désactivée")
+    if settings.ops_dashboard_jwt_secret is None:
+        raise HTTPException(status_code=503, detail="OPS_DASHBOARD_JWT_SECRET non configuré")
+    if not auth.verify_basic_auth(payload.username, payload.password, settings):
+        raise HTTPException(status_code=401, detail="Identifiants invalides")
+    if not auth.verify_totp(payload.totp_code or "", settings):
+        raise HTTPException(status_code=401, detail="Code TOTP invalide")
+    token = auth.issue_session_token(payload.username, settings)
+    return OpsLoginResponse(token=token, expires_in_minutes=auth.DEFAULT_SESSION_TTL_MINUTES)
+
+
+# =============================================================================
 # Helpers
 # =============================================================================
 def _duration_seconds(run: AgentRun) -> float | None:
@@ -967,9 +1035,7 @@ async def list_inbox_drafts() -> list[InboxDraft]:
     response_model=InboxActionResponse,
     status_code=200,
 )
-async def validate_inbox_draft(
-    payload: InboxActionPayload, draft_id: str
-) -> InboxActionResponse:
+async def validate_inbox_draft(payload: InboxActionPayload, draft_id: str) -> InboxActionResponse:
     """Marque un draft comme ``validated`` + horodate dans son frontmatter.
 
     ``draft_id`` est passé en query-param parce qu'il contient des '/' qui
@@ -990,9 +1056,7 @@ async def validate_inbox_draft(
     response_model=InboxActionResponse,
     status_code=200,
 )
-async def reject_inbox_draft(
-    payload: InboxActionPayload, draft_id: str
-) -> InboxActionResponse:
+async def reject_inbox_draft(payload: InboxActionPayload, draft_id: str) -> InboxActionResponse:
     """Marque un draft comme ``rejected`` + raison dans son frontmatter."""
     path = reject_draft(draft_id, reason=payload.reason)
     return InboxActionResponse(
@@ -1082,7 +1146,9 @@ async def patch_agent_config_yaml(name: str, payload: YamlConfigPatch) -> YamlCo
 
 
 @app.get("/api/agents/{name}/perf", response_model=AgentPerfStats)
-async def get_agent_perf(name: str, window_days: int = Query(default=7, ge=1, le=90)) -> AgentPerfStats:
+async def get_agent_perf(
+    name: str, window_days: int = Query(default=7, ge=1, le=90)
+) -> AgentPerfStats:
     """Stats agrégées sur la fenêtre demandée (par défaut 7 j).
 
     Utilisé par la card « État live » de BotDetail. Toutes les durées sont
@@ -1272,11 +1338,7 @@ async def health_snapshot() -> HealthSnapshot:
         enabled = sum(1 for c in configs if c.enabled)
         disabled = sum(1 for c in configs if not c.enabled)
         now = datetime.now(UTC)
-        paused = sum(
-            1
-            for c in configs
-            if c.paused_until is not None and c.paused_until > now
-        )
+        paused = sum(1 for c in configs if c.paused_until is not None and c.paused_until > now)
 
         # Breakers tripped
         tripped = await list_tripped_breakers(session)
