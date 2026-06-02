@@ -45,6 +45,9 @@ export const RUNNABLE_AGENTS: ReadonlySet<string> = new Set<string>([
   "WebinarPromoter",
   "TestimonialHunter",
   "CaseStudyDrafter",
+  // Sprint contenu — EditorialBot runnable. Les 6 writers (LinkedInWriter…)
+  // sont des skills /draft-* humain-in-the-loop → NON runnables (pas ici).
+  "EditorialBot",
   // Customer Success & Support (P22.G).
   "SupportBot",
   "ReviewBot",

@@ -115,6 +115,11 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     "WebinarPromoter": 172.0,
     "TestimonialHunter": 26.0,
     "NewsletterBot": 756.0,
+    # Sprint contenu — pas de cadence cron (on-demand) → skip :
+    #   - EditorialBot                         : on-demand /run-editorial → skip
+    #   - LinkedInWriter / MastodonWriter /
+    #     BlueskyWriter / MetaWriter / XWriter /
+    #     TruthSocialWriter (skills /draft-*)  : réactif (slash) → skip cadence
     # Customer Success & Support (P22.G) — cron via setup_cs_tasks.ps1 :
     #   - ChurnPredictor    : quotidien 09:30          → 26h slack
     #   - HealthScoreBot    : quotidien 09:00          → 26h slack

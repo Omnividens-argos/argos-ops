@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-// Catalogue des agents Argos Ops — 12 services × 79 bots (révision 2026-05-23).
+// Catalogue des agents Argos Ops — 12 services × 86 bots (révision 2026-06-02).
 // Source de vérité : ARGOS_OPS_PLAN.md Annexe D.
 // Structure : 1 bot = 1 tâche atomique = 1 poste-clé d'équivalent grande entreprise.
 // Descriptions : 1 phrase courte, action verbe en tête, français simple,
@@ -306,6 +306,56 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         displayName: "CaseStudyDrafter",
         shortLabel: "Content Senior",
         description: "Drafte un case study à partir d'un compte référence accepté.",
+        status: "active",
+      },
+      {
+        name: "EditorialBot",
+        displayName: "EditorialBot",
+        shortLabel: "Rédac' chef",
+        description:
+          "Lit le digest TrendSpotter et recommande quel writer lancer sur quel sujet/canal.",
+        status: "active",
+      },
+      {
+        name: "LinkedInWriter",
+        displayName: "LinkedInWriter",
+        shortLabel: "Plume LinkedIn",
+        description: "Drafte un post LinkedIn (décideurs RSSI/CTO) via /draft-linkedin.",
+        status: "active",
+      },
+      {
+        name: "MastodonWriter",
+        displayName: "MastodonWriter",
+        shortLabel: "Plume Mastodon",
+        description: "Drafte un toot infosec.exchange (partage technique) via /draft-mastodon.",
+        status: "active",
+      },
+      {
+        name: "BlueskyWriter",
+        displayName: "BlueskyWriter",
+        shortLabel: "Plume Bluesky",
+        description: "Drafte un post Bluesky (tech early-adopters) via /draft-bluesky.",
+        status: "active",
+      },
+      {
+        name: "MetaWriter",
+        displayName: "MetaWriter",
+        shortLabel: "Plume Facebook",
+        description: "Drafte un post Facebook Page (TPE/PME, anti-FUD) via /draft-meta.",
+        status: "active",
+      },
+      {
+        name: "XWriter",
+        displayName: "XWriter",
+        shortLabel: "Plume X",
+        description: "Drafte un post X (cyber-Twitter, hook viral) via /draft-x.",
+        status: "active",
+      },
+      {
+        name: "TruthSocialWriter",
+        displayName: "TruthSocialWriter",
+        shortLabel: "Plume Truth",
+        description: "Drafte un post Truth Social (neutre, expérimental) via /draft-truth.",
         status: "active",
       },
     ],
