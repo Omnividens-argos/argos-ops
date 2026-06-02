@@ -16,6 +16,7 @@ from argos_ops.social.linkedin import LinkedInClient
 from argos_ops.social.mastodon import MastodonClient
 from argos_ops.social.meta import MetaClient
 from argos_ops.social.publisher import PublishResult, publish_draft
+from argos_ops.social.truth_social import TruthSocialClient
 from argos_ops.social.twitter import TwitterClient
 
 __all__ = [
@@ -24,6 +25,7 @@ __all__ = [
     "MastodonClient",
     "MetaClient",
     "PublishResult",
+    "TruthSocialClient",
     "TwitterClient",
     "publish_draft",
 ]

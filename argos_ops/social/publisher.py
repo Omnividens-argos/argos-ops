@@ -21,6 +21,7 @@ from argos_ops.social.bluesky import BlueskyClient
 from argos_ops.social.linkedin import LinkedInClient
 from argos_ops.social.mastodon import MastodonClient
 from argos_ops.social.meta import MetaClient
+from argos_ops.social.truth_social import TruthSocialClient
 from argos_ops.social.twitter import TwitterClient
 
 DRAFTS_DIR = REPO_ROOT / "data" / "content" / "drafts"
@@ -95,6 +96,7 @@ async def publish_draft(
     bluesky: BlueskyClient | None = None,
     meta: MetaClient | None = None,
     twitter: TwitterClient | None = None,
+    truth_social: TruthSocialClient | None = None,
     dry_run: bool = False,
 ) -> PublishResult:
     """Publie un draft sur le canal indiqué par son frontmatter."""
@@ -121,6 +123,9 @@ async def publish_draft(
     elif channel == "x":
         client_x = twitter or _default_twitter()
         result = await client_x.post(text, dry_run=dry_run)
+    elif channel == "truth":
+        client_t = truth_social or _default_truth_social()
+        result = await client_t.post(text, dry_run=dry_run)
     else:
         return PublishResult(draft_path, "failed", channel, None, f"channel inconnu : {channel}")
 
@@ -199,6 +204,14 @@ def _default_twitter() -> TwitterClient:
     return TwitterClient(
         access_token=settings.x_access_token,
         api_base=settings.x_api_base,
+    )
+
+
+def _default_truth_social() -> TruthSocialClient:
+    settings = get_settings()
+    return TruthSocialClient(
+        instance_url=settings.truth_social_instance_url,
+        access_token=settings.truth_social_access_token,
     )
 
 

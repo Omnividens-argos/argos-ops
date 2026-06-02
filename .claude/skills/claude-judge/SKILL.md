@@ -25,8 +25,11 @@ fondateur.
 - ``rag_chunks`` (optionnel) — les chunks KB chargés par ``kb-rag``
   (au format ``[KB#N: doc.md§index]`` + contenu)
 - ``channel`` — ``email | social_linkedin | social_mastodon |
-  social_bluesky | social_meta | social_x | blog | stripe_dunning``
-  (``social_reddit`` retiré — D-022 2026-05-15). Grille emoji par canal :
+  social_bluesky | social_meta | social_x | social_truth | blog |
+  stripe_dunning`` (``social_reddit`` retiré — D-022 2026-05-15).
+  ``social_truth`` (Truth Social, fork Mastodon) = canal expérimental, fit
+  audience ~nul vs ICP — juger surtout factual + anti-FUD, ne pas être plus
+  permissif que les autres. Grille emoji par canal :
   1 emoji technique toléré sur LinkedIn ; **0-1 sur Bluesky** (audience
   tech, mais pas de cascade) ; zéro sur Mastodon/email. **`social_meta`
   (Facebook Page) = persona TPE/PME non-technique** : tone rassurant grand
