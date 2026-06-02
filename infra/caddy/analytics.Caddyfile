@@ -1,0 +1,32 @@
+# analytics.omnividens.fr — Umami self-host (INFRA-02).
+#
+# Snippet à AJOUTER au Caddyfile prod (container sechunter-caddy-1). Caddy
+# obtient/renouvelle le certificat TLS automatiquement (Let's Encrypt). Le
+# container Caddy et le container `argos-umami` DOIVENT partager un réseau
+# Docker (cf. infra/docker/umami/docker-compose.yml, réseau caddy_net) pour
+# que `reverse_proxy umami:3000` résolve par nom de service.
+#
+# Si le Caddyfile prod utilise déjà une variable {$DOMAIN}, remplacer le host
+# par analytics.{$DOMAIN}. Déploiement = action manuelle (docs/INFRA_UMAMI.md).
+
+analytics.omnividens.fr {
+	encode gzip zstd
+
+	# Umami écoute sur 3000 dans son container ; `umami` = nom du service.
+	reverse_proxy umami:3000
+
+	# Durcissement : l'analytics expose des données de visiteurs, on limite la
+	# surface (clickjacking, sniffing, fuite de referrer, bannière serveur).
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

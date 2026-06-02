@@ -1,0 +1,72 @@
+# Umami self-host — analytics web open-source (INFRA-02).
+#
+# Analytics 100 % local, gratuit, sans cookie (RGPD-friendly). Conforme D-017
+# (aucun SaaS analytics tiers). Exposé via Caddy sur analytics.omnividens.fr —
+# AUCUN port publié sur l'hôte : Caddy joint le même réseau Docker et proxy
+# vers le service `umami` par son nom (cf. infra/caddy/analytics.Caddyfile).
+#
+# Déploiement = action MANUELLE du fondateur sur le serveur prod
+# (cf. docs/INFRA_UMAMI.md). Ce fichier n'est jamais lancé par la CI ni par un
+# agent. Renseigner d'abord infra/docker/umami/.env (copie de .env.example).
+#
+#   cd infra/docker/umami && docker compose up -d
+#
+# Variables attendues dans ./.env :
+#   UMAMI_DB_PASSWORD     mot de passe Postgres dédié (généré, jamais réutilisé)
+#   UMAMI_APP_SECRET      secret de signature des sessions Umami (openssl rand)
+#   UMAMI_CADDY_NETWORK   nom du réseau Docker partagé avec sechunter-caddy-1
+
+services:
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-v2.13.3
+    container_name: argos-umami
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${UMAMI_APP_SECRET}
+      # Désactive le check de version sortant (pas de phone-home).
+      DISABLE_TELEMETRY: "1"
+    depends_on:
+      umami-db:
+        condition: service_healthy
+    networks:
+      - caddy_net
+      - umami_internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/heartbeat || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  umami-db:
+    image: postgres:16-alpine
+    container_name: argos-umami-db
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD}
+    volumes:
+      - umami-db-data:/var/lib/postgresql/data
+    networks:
+      - umami_internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami -d umami"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  umami-db-data:
+
+networks:
+  # Réseau partagé avec le container Caddy prod (sechunter-caddy-1) pour que
+  # Caddy résolve `umami:3000`. Créé hors de ce stack — d'où external: true.
+  caddy_net:
+    external: true
+    name: ${UMAMI_CADDY_NETWORK:-sechunter_default}
+  # Réseau privé umami <-> postgres, isolé du reste.
+  umami_internal:
+    driver: bridge

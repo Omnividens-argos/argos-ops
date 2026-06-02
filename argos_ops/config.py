@@ -171,6 +171,20 @@ class Settings(BaseSettings):
     linkedin_ads_account_id: str | None = Field(default=None, alias="LINKEDIN_ADS_ACCOUNT_ID")
     meta_ads_access_token: SecretStr | None = Field(default=None, alias="META_ADS_ACCESS_TOKEN")
 
+    # --- Analytics Umami (INFRA-02 — self-host analytics.omnividens.fr) ---
+    # Source des métriques landing pour LandingOptimizer. Umami est un
+    # analytics open-source self-hosté (Docker, gratuit, sans cookie) : 100 %
+    # local, conforme D-017 (aucune API SaaS tierce). Tant qu'une des 4 vars
+    # manque, le client est en shadow et LandingOptimizer retombe sur le YAML
+    # manuel data/analytics/landing_perf.yaml.
+    umami_base_url: str | None = Field(default=None, alias="UMAMI_BASE_URL")
+    umami_username: str | None = Field(default=None, alias="UMAMI_USERNAME")
+    umami_password: SecretStr | None = Field(default=None, alias="UMAMI_PASSWORD")
+    umami_website_id: str | None = Field(default=None, alias="UMAMI_WEBSITE_ID")
+    # Nom de l'event Umami compté comme conversion (ex : "demande-demo").
+    # Vide → conversions=0 (la proposition « CR < 1 % » ne se déclenche pas).
+    umami_conversion_event: str | None = Field(default=None, alias="UMAMI_CONVERSION_EVENT")
+
     @property
     def async_database_url(self) -> str:
         """URL adaptée à SQLAlchemy async (driver psycopg v3).
