@@ -47,6 +47,8 @@ data/_fetcher_cache/*
 # Outputs StrategyBot / BoardReporter (P22.E) — regénérés à chaque run
 data/strategy/digest-*.md
 data/strategy/board-*.md
+# Outputs EditorialBot (Sprint contenu) — queue regénérée à chaque run
+data/editorial/queue-*.yaml
 logs/
 *.db
 *.sqlite
