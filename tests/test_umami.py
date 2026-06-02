@@ -86,20 +86,10 @@ def _live_client(conversion_event: str | None = None) -> UmamiClient:
     )
 
 
-# Stats canoniques par page (format Umami v2 : {value, prev}).
+# Stats canoniques par page (format Umami v3 : valeurs à plat).
 _STATS = {
-    "/": {
-        "pageviews": {"value": 500},
-        "visits": {"value": 400},
-        "bounces": {"value": 120},
-        "totaltime": {"value": 8000},
-    },
-    "/pricing": {
-        "pageviews": {"value": 200},
-        "visits": {"value": 150},
-        "bounces": {"value": 130},
-        "totaltime": {"value": 1500},
-    },
+    "/": {"pageviews": 500, "visits": 400, "bounces": 120, "totaltime": 8000},
+    "/pricing": {"pageviews": 200, "visits": 150, "bounces": 130, "totaltime": 1500},
 }
 
 
@@ -109,14 +99,14 @@ def _nominal_handler(
     if url.endswith("/api/auth/login"):
         return _FakeResponse(200, {"token": "JWT-XYZ"})
     p = params or {}
-    if url.endswith("/metrics") and p.get("type") == "url":
+    if url.endswith("/metrics") and p.get("type") == "path":
         return _FakeResponse(200, [{"x": "/", "y": 500}, {"x": "/pricing", "y": 200}])
     if url.endswith("/metrics") and p.get("type") == "event":
-        page = p.get("url")
+        page = p.get("path")
         events = {"/": [{"x": "demande-demo", "y": 8}], "/pricing": [{"x": "demande-demo", "y": 3}]}
         return _FakeResponse(200, events.get(page, []))
     if url.endswith("/stats"):
-        return _FakeResponse(200, _STATS[str(p.get("url"))])
+        return _FakeResponse(200, _STATS[str(p.get("path"))])
     raise AssertionError(f"requête inattendue {method} {url} params={params}")
 
 
@@ -240,9 +230,9 @@ async def test_fetch_skips_page_when_stats_unavailable(monkeypatch: pytest.Monke
         p = params or {}
         if url.endswith("/api/auth/login"):
             return _FakeResponse(200, {"token": "T"})
-        if url.endswith("/metrics") and p.get("type") == "url":
+        if url.endswith("/metrics") and p.get("type") == "path":
             return _FakeResponse(200, [{"x": "/", "y": 10}, {"x": "/down", "y": 5}])
-        if url.endswith("/stats") and p.get("url") == "/down":
+        if url.endswith("/stats") and p.get("path") == "/down":
             return _FakeResponse(500, {}, text="boom")  # cette page échoue
         if url.endswith("/stats"):
             return _FakeResponse(200, _STATS["/"])
@@ -282,9 +272,9 @@ async def test_fetch_skips_page_when_stats_non_json(monkeypatch: pytest.MonkeyPa
         p = params or {}
         if url.endswith("/api/auth/login"):
             return _FakeResponse(200, {"token": "T"})
-        if url.endswith("/metrics") and p.get("type") == "url":
+        if url.endswith("/metrics") and p.get("type") == "path":
             return _FakeResponse(200, [{"x": "/", "y": 10}, {"x": "/bad", "y": 5}])
-        if url.endswith("/stats") and p.get("url") == "/bad":
+        if url.endswith("/stats") and p.get("path") == "/bad":
             return _FakeResponse(200, raise_json=True, text="<html>oops</html>")
         if url.endswith("/stats"):
             return _FakeResponse(200, _STATS["/"])
