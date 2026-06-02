@@ -1,8 +1,9 @@
 """LandingOptimizer — propose des variantes A/B pour les landing.
 
-Mode shadow strict : pas d'heatmap scraper (Umami self-host arrivera en
-INFRA-02). Le bot lit ``data/analytics/landing_perf.yaml`` (alimenté
-manuellement depuis Umami / Plausible) et propose 3 hypothèses A/B
+Source des métriques (cf. :func:`collect_metrics`) : l'API Umami self-host
+(INFRA-02) dès que les variables ``UMAMI_*`` sont configurées, sinon le YAML
+manuel ``data/analytics/landing_perf.yaml`` en fallback (shadow mode ou
+instance Umami indisponible). Le bot propose ensuite 3 hypothèses A/B
 chiffrées dans ``data/analytics/landing_proposals-<date>.md``.
 
 Critères canoniques :
@@ -22,6 +23,7 @@ from loguru import logger
 
 from argos_ops.agents.base import BaseAgent, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
+from argos_ops.integrations.umami import UmamiClient, UmamiPageMetric
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
 
 PERF_PATH = REPO_ROOT / "data" / "analytics" / "landing_perf.yaml"
@@ -91,6 +93,39 @@ def load_metrics(path: Path | None = None) -> list[LandingMetric]:
     return out
 
 
+def _metric_from_umami(u: UmamiPageMetric) -> LandingMetric:
+    """Convertit le DTO intégration en DTO agent (champs alignés 1:1)."""
+    return LandingMetric(
+        page=u.page,
+        visits=u.visits,
+        conversions=u.conversions,
+        bounce_rate=u.bounce_rate,
+        avg_time_seconds=u.avg_time_seconds,
+    )
+
+
+async def collect_metrics(client: UmamiClient | None = None) -> list[LandingMetric]:
+    """Source des métriques landing : Umami si configuré, sinon YAML manuel.
+
+    Umami (INFRA-02) devient la source canonique dès que les 4 variables
+    ``UMAMI_*`` sont présentes. Le YAML ``landing_perf.yaml`` reste un
+    fallback : actif en shadow mode, et filet de sécurité si l'instance
+    Umami est indisponible — un bot best-effort ne doit pas échouer sur une
+    dépendance réseau optionnelle.
+    """
+    client = client or UmamiClient.from_settings(get_settings())
+    if client.is_configured:
+        try:
+            umami_metrics = await client.fetch_landing_metrics()
+        except Exception as exc:  # défensif : fetch ne lève pas, mais on blinde
+            logger.warning(f"LandingOptimizer — Umami indisponible ({exc}), fallback YAML")
+            umami_metrics = []
+        if umami_metrics:
+            return [_metric_from_umami(m) for m in umami_metrics]
+        logger.info("LandingOptimizer — Umami configuré mais 0 page, fallback YAML")
+    return load_metrics()
+
+
 def derive_proposals(metrics: list[LandingMetric]) -> list[Proposal]:
     out: list[Proposal] = []
     for m in metrics:
@@ -121,9 +156,7 @@ def derive_proposals(metrics: list[LandingMetric]) -> list[Proposal]:
     return out
 
 
-def write_proposals_digest(
-    report: OptimizationReport, *, now: datetime | None = None
-) -> Path:
+def write_proposals_digest(report: OptimizationReport, *, now: datetime | None = None) -> Path:
     now = now or datetime.now(UTC)
     PROPOSALS_DIR.mkdir(parents=True, exist_ok=True)
     path = PROPOSALS_DIR / f"landing_proposals-{now.date().isoformat()}.md"
@@ -165,7 +198,7 @@ class LandingOptimizer(BaseAgent):
     ai_act_risk_class = "minimal"
 
     async def run(self) -> RunResult:
-        metrics = load_metrics()
+        metrics = await collect_metrics()
         proposals = derive_proposals(metrics)
         report = OptimizationReport(metrics=metrics, proposals=proposals)
 
@@ -191,6 +224,7 @@ __all__ = [
     "OptimizationReport",
     "Proposal",
     "build_optimizer_embed",
+    "collect_metrics",
     "derive_proposals",
     "load_metrics",
     "write_proposals_digest",
