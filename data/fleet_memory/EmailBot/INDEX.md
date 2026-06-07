@@ -1,0 +1,6 @@
+# EmailBot — index mémoire
+
+> 2 fait(s) actif(s) · maj 2026-06-07T17:04:32.298080+00:00
+
+- [`10e6ea895a28`](facts/10e6ea895a28.md) — lead-signal · Acme Corp (RSSI Marc D.) a demandé un devis pour ~50 scans/mois, budget annoncé ~8 k€/an.…
+- [`b14ca3a5ef26`](facts/b14ca3a5ef26.md) — objection · Objection récurrente côté PME : l'offre Pro est perçue comme chère sans option de paiemen…
