@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal, cast
@@ -254,6 +254,33 @@ async def append_fact(
     return fact
 
 
+async def archive_fact(
+    bot: str,
+    fact_id: str,
+    *,
+    archived_at: datetime | None = None,
+    root: Path = FLEET_MEMORY_DIR,
+) -> Fact | None:
+    """Archive un fait (soft delete) : ``status=archived`` + ``archived_at``.
+
+    Le fichier reste sur disque (suppression dure réservée à MemoryCurator
+    P20). Retourne le fait archivé, ``None`` s'il n'existe pas, ou le fait
+    inchangé s'il était déjà archivé (idempotent).
+    """
+    path = _fact_path(bot, fact_id, root)
+    if not path.exists():
+        logger.warning(f"fleet_memory: archive impossible — {bot}/{fact_id} introuvable")
+        return None
+    fact = _fact_from_markdown(path.read_text(encoding="utf-8"), bot=bot)
+    if fact.status == "archived":
+        return fact
+    archived = replace(fact, status="archived", archived_at=archived_at or _utcnow())
+    path.write_text(_fact_to_markdown(archived), encoding="utf-8")
+    await _regenerate_bot_index(bot, root=root)
+    logger.info(f"fleet_memory: fait {bot}/{fact_id} archivé")
+    return archived
+
+
 def _hook(body: str, limit: int = 90) -> str:
     flat = " ".join(body.split())
     return flat if len(flat) <= limit else flat[: limit - 1].rstrip() + "…"
@@ -357,6 +384,7 @@ __all__ = [
     "Fact",
     "FactStatus",
     "append_fact",
+    "archive_fact",
     "compute_fact_id",
     "load_access_graph",
     "read_memory",

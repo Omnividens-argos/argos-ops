@@ -336,3 +336,55 @@ class OpsLoginResponse(BaseModel):
     token: str
     token_type: Literal["bearer"] = "bearer"
     expires_in_minutes: int
+
+
+# =============================================================================
+# Mémoire de flotte — Cockpit Console (LOT 2)
+# =============================================================================
+class FactRow(BaseModel):
+    """Un fait de mémoire de flotte sérialisé pour l'API (cf. fleet_memory.Fact)."""
+
+    id: str
+    bot: str
+    kind: str
+    body: str
+    source: str | None
+    confidence: str
+    status: str
+    ttl_days: int | None
+    created_at: datetime
+    archived_at: datetime | None
+    tags: list[str]
+
+
+class VisibleBotMemory(BaseModel):
+    """Mémoire d'un autre bot que celui-ci a le droit de lire (graphe d'accès)."""
+
+    bot: str
+    facts: list[FactRow]
+
+
+class BotMemoryView(BaseModel):
+    """Le « IN mémoire » assemblé d'un bot pour la Console Cockpit.
+
+    - ``own`` : faits extraits par le bot lui-même.
+    - ``visible`` : mémoire des bots qu'il a le droit de lire (graphe).
+    - ``reads`` / ``read_by`` : arêtes du graphe d'accès (sortantes / entrantes).
+    """
+
+    bot: str
+    own: list[FactRow]
+    visible: list[VisibleBotMemory]
+    reads: list[str]
+    read_by: list[str]
+
+
+class FactCreatePayload(BaseModel):
+    """Corps du POST d'ajout manuel d'un fait depuis la Console."""
+
+    body: str
+    kind: str = "note"
+    source: str | None = None
+    confidence: Literal["low", "medium", "high"] = "medium"
+    tags: list[str] = []
+    ttl_days: int | None = None
