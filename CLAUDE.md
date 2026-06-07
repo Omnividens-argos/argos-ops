@@ -200,6 +200,12 @@ expose `should_alert: bool`, `alert_color: int`, `summary: str` (Protocol
   `_consume_memory()` / `_consume_capabilities()` placeholders
   (branchés P20.A / P21). Cf.
   [`.claude/commands/orchestrate.md`](.claude/commands/orchestrate.md)
+- **`/run-memory-curator`** (P20, [D-028](docs/DECISIONS.md#d-028--m%C3%A9moire-de-flotte-100--fichiers-locale-remplace-le-design-db-de-la-partie-20)) —
+  lance `MemoryCurator`, concierge de la mémoire de flotte
+  (`data/fleet_memory/`). Archive le périmé (TTL) + le stale, purge le très
+  vieux déjà archivé (hard delete), protège les faits `pinned`. Seul bot
+  autorisé à supprimer un fait. Silence Discord si rien à nettoyer. Cf.
+  [`.claude/commands/run-memory-curator.md`](.claude/commands/run-memory-curator.md)
 
 ---
 

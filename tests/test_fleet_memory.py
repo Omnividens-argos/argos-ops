@@ -12,6 +12,8 @@ from argos_ops.fleet_memory import (
     append_fact,
     archive_fact,
     compute_fact_id,
+    delete_fact,
+    list_bots,
     load_access_graph,
     read_memory,
     remember,
@@ -198,6 +200,32 @@ async def test_archive_is_idempotent(tmp_path: Path) -> None:
     second = await archive_fact("EmailBot", fact.id, root=tmp_path)
     assert first is not None and second is not None
     assert first.archived_at == second.archived_at
+
+
+# =============================================================================
+# Suppression dure + pinned + list_bots
+# =============================================================================
+@pytest.mark.asyncio
+async def test_delete_fact(tmp_path: Path) -> None:
+    fact = await append_fact("EmailBot", "à supprimer", kind="note", root=tmp_path)
+    assert await delete_fact("EmailBot", fact.id, root=tmp_path) is True
+    assert (await read_memory("EmailBot", root=tmp_path)).facts == []
+    # Re-supprimer = no-op False.
+    assert await delete_fact("EmailBot", fact.id, root=tmp_path) is False
+
+
+@pytest.mark.asyncio
+async def test_pinned_roundtrip(tmp_path: Path) -> None:
+    await append_fact("EmailBot", "fait important", kind="note", pinned=True, root=tmp_path)
+    fact = (await read_memory("EmailBot", root=tmp_path)).facts[0]
+    assert fact.pinned is True
+
+
+@pytest.mark.asyncio
+async def test_list_bots(tmp_path: Path) -> None:
+    await append_fact("EmailBot", "a", kind="note", root=tmp_path)
+    await append_fact("TrendSpotter", "b", kind="note", root=tmp_path)
+    assert list_bots(root=tmp_path) == ["EmailBot", "TrendSpotter"]
 
 
 # =============================================================================

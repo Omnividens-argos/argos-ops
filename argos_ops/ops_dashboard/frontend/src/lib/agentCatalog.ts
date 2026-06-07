@@ -780,12 +780,13 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         roadmapRef: "P21 · spec en cours",
       },
       {
-        name: null,
+        name: "MemoryCurator",
         displayName: "MemoryCurator",
         shortLabel: "Memory Steward",
-        description: "Nettoie et déduplique la mémoire partagée Argos Memory (P20).",
-        status: "roadmap",
-        roadmapRef: "P20 · spec en cours",
+        description:
+          "Nettoie la mémoire de flotte : archive le périmé (TTL), purge le très vieux, protège l'important.",
+        status: "active",
+        roadmapRef: "P20 livré 2026-06-07",
       },
       {
         name: "ErrorTriageBot",
