@@ -9,6 +9,7 @@ import { Topbar } from "./components/Topbar";
 import { usePolling } from "./hooks/usePolling";
 import { RUNNABLE_AGENTS } from "./lib/runnableAgents";
 import { Agents } from "./views/Agents";
+import { Atelier } from "./views/Atelier";
 import { BotDetail } from "./views/BotDetail";
 import { CashCustomers } from "./views/CashCustomers";
 import { HealthCompliance } from "./views/HealthCompliance";
@@ -31,6 +32,7 @@ export type View =
   | "health"
   | "runs"
   | "outputs"
+  | "atelier"
   | "help";
 
 export function App() {
@@ -141,7 +143,8 @@ export function App() {
       if (e.key === "5") navigate("health");
       if (e.key === "6") navigate("runs");
       if (e.key === "7") navigate("outputs");
-      if (e.key === "8") navigate("help");
+      if (e.key === "8") navigate("atelier");
+      if (e.key === "9") navigate("help");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -190,6 +193,7 @@ export function App() {
               {view === "health" && <HealthCompliance />}
               {view === "runs" && <Runs />}
               {view === "outputs" && <Outputs />}
+              {view === "atelier" && <Atelier />}
               {view === "pipeline" && <Pipeline onBack={() => navigate("cash")} />}
               {view === "help" && (
                 <Help

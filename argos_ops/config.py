@@ -208,6 +208,13 @@ class Settings(BaseSettings):
         default=None, alias="OPS_DASHBOARD_TOTP_SECRET"
     )
 
+    # --- Atelier libre embarqué (Cockpit) ---
+    # Claude Code embarqué dans le panel. OFF par défaut : RCE par conception
+    # (Claude avec accès repo). À activer UNIQUEMENT en local (D-017), jamais
+    # exposé à distance. Le binaire CLI doit être loggué sur l'abonnement Pro/Max.
+    ops_atelier_enabled: bool = Field(default=False, alias="OPS_ATELIER_ENABLED")
+    ops_atelier_claude_bin: str = Field(default="claude", alias="OPS_ATELIER_CLAUDE_BIN")
+
     @property
     def async_database_url(self) -> str:
         """URL adaptée à SQLAlchemy async (driver psycopg v3).

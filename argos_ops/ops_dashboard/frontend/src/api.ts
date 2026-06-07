@@ -366,6 +366,13 @@ export function runAgentNow(name: string): Promise<ManualRunResponse> {
 }
 
 // =============================================================================
+// Atelier libre embarqué (Cockpit)
+// =============================================================================
+export function fetchAtelierStatus(signal?: AbortSignal): Promise<{ enabled: boolean }> {
+  return getJSON<{ enabled: boolean }>("/api/atelier/status", signal);
+}
+
+// =============================================================================
 // Mémoire de flotte — Cockpit Console (LOT 2)
 // =============================================================================
 export function fetchAgentMemory(
