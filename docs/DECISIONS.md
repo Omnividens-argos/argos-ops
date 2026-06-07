@@ -1438,6 +1438,46 @@ rollback nécessaire pour P22.D-I (déjà consolidé).
 
 ---
 
+## D-029 — Atelier libre embarqué = CLI claude headless (pas le Agent SDK), WebSocket, local-only
+
+**Date :** 2026-06-07
+**Partie :** Cockpit — Atelier libre embarqué
+
+**Décision :** L'atelier libre (Claude Code piloté depuis le panel web) est
+implémenté en lançant le **CLI `claude` local en mode headless**
+(`claude -p --output-format stream-json`) côté backend FastAPI, streamé vers
+React via **WebSocket** full-duplex. Activé par le flag `OPS_ATELIER_ENABLED`
+(OFF par défaut), **local-only**, jamais routé à distance. Permission par
+défaut = lecture seule (`plan`), bascule `acceptEdits` sur action humaine.
+
+**Pourquoi :** Le **Claude Agent SDK exige `ANTHROPIC_API_KEY`** (facturation à
+l'usage = API tierce) → incompatible **D-017**. Le CLI headless hérite du token
+OAuth de l'abonnement Pro/Max dans `~/.claude` → 0 € d'API tierce. Conséquence :
+le backend doit tourner **en local sous le compte du fondateur** (cohérent avec
+« Argos Ops = outil local »). Le terminal PTY (xterm + shell) écarté : surface
+d'attaque trop large pour un panel potentiellement exposé.
+
+**Implication technique :**
+
+- `argos_ops/ops_dashboard/atelier.py` : `build_claude_argv`, `normalize_event`
+  (stream-json → schéma front), `ws_authorized` (le middleware HTTP ne couvre
+  pas les WS), `AtelierSession` (1 process/tour, `--resume` pour le multi-tour,
+  `interrupt()` = terminate).
+- Endpoint `GET /api/atelier/status` + WebSocket `/api/atelier/ws` dans `app.py`.
+- Vue `Atelier.tsx` (8ᵉ entrée nav), transport WS, états read/edit.
+- ⚠️ Sur Windows, l'asyncio subprocess requiert le ProactorEventLoop côté
+  serveur uvicorn (à vérifier au lancement local).
+
+**Annule :** la partie « process agent via SDK » jamais actée — note d'archi only.
+
+**Action de suivi :**
+
+- [ ] Founder : `OPS_ATELIER_ENABLED=true` en local + vérifier le rendu live.
+- [ ] (optionnel) approbation par-outil dans l'UI (callback de permission) si on
+  veut un grain plus fin que read/acceptEdits.
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown

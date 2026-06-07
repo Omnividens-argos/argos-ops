@@ -11,6 +11,7 @@ import {
   Keyboard,
   Layers,
   LayoutDashboard,
+  Terminal,
   Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -87,6 +88,14 @@ const ITEMS: NavItem[] = [
     icon: Archive,
     tooltip:
       "Bibliothèque consultable de tout ce que les bots ont produit (drafts en cours + validés + rejetés + posted). Recherche fulltext.",
+  },
+  {
+    id: "atelier",
+    label: "Atelier libre",
+    shortcut: "8",
+    icon: Terminal,
+    tooltip:
+      "Claude Code embarqué : pilote un agent avec accès au repo depuis le cockpit. Local-only, opt-in (OPS_ATELIER_ENABLED).",
   },
 ];
 
@@ -188,7 +197,7 @@ export function Sidebar({
               Aide & glossaire
             </span>
             <kbd className="font-mono text-[10px] text-argos-fg-tertiary border border-argos-border-subtle rounded px-1.5 py-0.5">
-              8
+              9
             </kbd>
           </button>
           <button

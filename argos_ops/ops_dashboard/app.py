@@ -17,13 +17,16 @@ IP allowlist côté serveur (P16.B). Ne JAMAIS exposer cette app sans Caddy.
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from loguru import logger
 
 from argos_ops import fleet_memory
 from argos_ops.agents.base import BaseAgent, run_agent
@@ -43,7 +46,7 @@ from argos_ops.crm.repository import (
     sum_active_mrr_eur,
     update_agent_config,
 )
-from argos_ops.ops_dashboard import auth
+from argos_ops.ops_dashboard import atelier, auth
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
 from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
@@ -1058,6 +1061,82 @@ async def archive_agent_memory(name: str, fact_id: str) -> FactRow:
     if fact is None:
         raise HTTPException(status_code=404, detail=f"Fait introuvable : {fact_id}")
     return _fact_to_row(fact)
+
+
+# =============================================================================
+# Atelier libre embarqué — Claude Code piloté depuis le panel (Cockpit)
+# =============================================================================
+@app.get("/api/atelier/status")
+async def atelier_status() -> dict[str, bool]:
+    """Indique si l'atelier est activé (flag local OPS_ATELIER_ENABLED)."""
+    return {"enabled": get_settings().ops_atelier_enabled}
+
+
+async def _stream_atelier_turn(
+    websocket: WebSocket,
+    session: atelier.AtelierSession,
+    text: str,
+    permission_mode: atelier.PermissionMode,
+) -> None:
+    """Streame un tour Claude vers le WS (tâche de fond, ne lève jamais)."""
+    try:
+        async for event in session.send(text, permission_mode=permission_mode):
+            await websocket.send_json({"type": "event", "event": event})
+        await websocket.send_json({"type": "turn_complete", "session_id": session.session_id})
+    except WebSocketDisconnect:
+        session.interrupt()
+    except Exception as exc:  # un tour qui crashe ne doit pas tuer la session
+        logger.warning(f"Atelier — tour en erreur : {exc}")
+        with contextlib.suppress(Exception):
+            await websocket.send_json(
+                {"type": "event", "event": {"kind": "error", "message": str(exc)}}
+            )
+
+
+@app.websocket("/api/atelier/ws")
+async def atelier_ws(websocket: WebSocket) -> None:
+    """WebSocket full-duplex de l'atelier. Auth re-vérifiée ici (le middleware
+    HTTP ne couvre pas les WS). Local-only + flag opt-in."""
+    settings = get_settings()
+    client_ip = websocket.client.host if websocket.client is not None else None
+    if not atelier.ws_authorized(
+        client_ip=client_ip,
+        authorization=websocket.headers.get("authorization"),
+        token=websocket.query_params.get("token"),
+        settings=settings,
+    ):
+        await websocket.close(code=4403)
+        return
+
+    await websocket.accept()
+    if not settings.ops_atelier_enabled:
+        await websocket.send_json({"type": "disabled"})
+        await websocket.close()
+        return
+
+    session = atelier.AtelierSession(claude_bin=settings.ops_atelier_claude_bin)
+    await websocket.send_json({"type": "ready"})
+    current_turn: asyncio.Task[None] | None = None
+
+    try:
+        while True:
+            msg = await websocket.receive_json()
+            mtype = msg.get("type")
+            if mtype == "interrupt":
+                session.interrupt()
+            elif mtype == "user" and (current_turn is None or current_turn.done()):
+                text = str(msg.get("text", "")).strip()
+                mode = msg.get("permission_mode", "read")
+                if mode not in ("read", "edit"):
+                    mode = "read"
+                if text:
+                    current_turn = asyncio.create_task(
+                        _stream_atelier_turn(websocket, session, text, mode)
+                    )
+    except WebSocketDisconnect:
+        session.interrupt()
+        if current_turn is not None:
+            current_turn.cancel()
 
 
 @app.post("/api/agents/{name}/runs", response_model=ManualRunResponse, status_code=202)

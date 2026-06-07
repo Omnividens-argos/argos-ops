@@ -114,6 +114,7 @@ Le Caddyfile en prod est dans le container `sechunter-caddy-1` sur le serveur
   - **D-018** : stack email = OVH Zimbra IMAP/SMTP `ssl0.ovh.net:993/465`, boîte canonique `contact@omnividens.fr`.
 - **Sécurité loguru** : `argos_ops/logging.py` installe un filtre anti-fuite sur les patterns secrets (webhooks Discord, `sk-`, `AIza`, `gh_`, `xox_`, `whsec_`, `AKIA`). Auto-installé via `argos_ops/__init__.py`.
 - **Setup local requis** : container Docker `argos-postgres-local` doit tourner (`docker ps | grep argos-postgres-local`). Si arrêté, `docker start argos-postgres-local`.
+- **Atelier libre embarqué** ([D-029](docs/DECISIONS.md)) : Claude Code piloté depuis le panel via CLI headless + WebSocket (`argos_ops/ops_dashboard/atelier.py`). OFF par défaut, **local-only**, flag `OPS_ATELIER_ENABLED=true`. RCE par conception — jamais exposé à distance. Moteur = CLI `claude` (abonnement Pro/Max, pas le SDK qui exige une API key).
 
 ## Convention watcher (P22.C)
 
