@@ -658,6 +658,14 @@ export const BOT_METADATA: Record<string, BotMetadata> = {
     slashCommand: "run-config-drift",
     schedule: "Quotidien 8h00",
   },
+  MemoryCurator: {
+    sprintRef: "P20 livré 2026-06-07",
+    aiActRisk: "minimal",
+    handlesPII: false,
+    pythonModule: "argos_ops/agents/memory_curator.py",
+    slashCommand: "run-memory-curator",
+    schedule: "Hebdo dimanche 4h00",
+  },
   // ===== Sprint contenu — writers multi-canal (skills) + EditorialBot =====
   LinkedInWriter: {
     sprintRef: "Sprint contenu 2026-06-02",

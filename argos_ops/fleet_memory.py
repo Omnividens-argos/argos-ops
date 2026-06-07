@@ -62,6 +62,7 @@ class FactDraft(TypedDict, total=False):
     tags: list[str]
     ttl_days: int | None
     source: str | None
+    pinned: bool
 
 
 _FACT_ID_LEN = 12
@@ -90,6 +91,7 @@ class Fact:
     created_at: datetime = field(default_factory=_utcnow)
     archived_at: datetime | None = None  # prise MemoryCurator (P20).
     tags: tuple[str, ...] = ()
+    pinned: bool = False  # « jugé important » : jamais nettoyé/supprimé par le curator.
 
 
 @dataclass
@@ -164,6 +166,7 @@ def _fact_to_markdown(fact: Fact) -> str:
         "created_at": fact.created_at.isoformat(),
         "archived_at": fact.archived_at.isoformat() if fact.archived_at else None,
         "tags": list(fact.tags),
+        "pinned": fact.pinned,
     }
     return _join_frontmatter(fm, fact.body)
 
@@ -193,6 +196,7 @@ def _fact_from_markdown(content: str, *, bot: str) -> Fact:
         created_at=created,
         archived_at=_parse_dt(fm.get("archived_at")),
         tags=tags,
+        pinned=bool(fm.get("pinned", False)),
     )
 
 
@@ -235,6 +239,7 @@ async def append_fact(
     confidence: Confidence = "medium",
     tags: tuple[str, ...] = (),
     ttl_days: int | None = None,
+    pinned: bool = False,
     created_at: datetime | None = None,
     root: Path = FLEET_MEMORY_DIR,
 ) -> Fact:
@@ -263,6 +268,7 @@ async def append_fact(
         confidence=confidence,
         tags=tags,
         ttl_days=ttl_days,
+        pinned=pinned,
         created_at=created_at or _utcnow(),
     )
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -301,6 +307,7 @@ async def remember(
             confidence=draft.get("confidence", "medium"),
             tags=tuple(str(t) for t in raw_tags),
             ttl_days=draft.get("ttl_days"),
+            pinned=bool(draft.get("pinned", False)),
             root=root,
         )
         stored.append(fact)
@@ -332,6 +339,27 @@ async def archive_fact(
     await _regenerate_bot_index(bot, root=root)
     logger.info(f"fleet_memory: fait {bot}/{fact_id} archivé")
     return archived
+
+
+async def delete_fact(bot: str, fact_id: str, *, root: Path = FLEET_MEMORY_DIR) -> bool:
+    """Supprime définitivement un fait (hard delete). Réservé à MemoryCurator (P20).
+
+    Retourne ``True`` si le fichier existait et a été supprimé, ``False`` sinon.
+    Régénère l'``INDEX.md`` du bot. Irréversible — le curator ne l'applique
+    qu'aux faits archivés depuis longtemps et jamais aux faits ``pinned``.
+    """
+    path = _fact_path(bot, fact_id, root)
+    if not path.exists():
+        return False
+    path.unlink()
+    await _regenerate_bot_index(bot, root=root)
+    logger.info(f"fleet_memory: fait {bot}/{fact_id} supprimé (hard delete)")
+    return True
+
+
+def list_bots(*, root: Path = FLEET_MEMORY_DIR) -> list[str]:
+    """Liste les bots ayant un dossier mémoire sur disque (triés)."""
+    return _existing_bots(root)
 
 
 def _hook(body: str, limit: int = 90) -> str:
@@ -440,6 +468,8 @@ __all__ = [
     "append_fact",
     "archive_fact",
     "compute_fact_id",
+    "delete_fact",
+    "list_bots",
     "load_access_graph",
     "read_memory",
     "remember",

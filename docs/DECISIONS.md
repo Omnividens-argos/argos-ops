@@ -1391,6 +1391,48 @@ de consolidation.
 - [ ] (optionnel) ajouter un check pre-commit qui détecte un working
   tree partagé entre branches `feat/*` actives — backlog Sprint 14.
 
+## D-028 — Mémoire de flotte 100 % fichiers locale (remplace le design DB de la Partie 20)
+
+**Date :** 2026-06-07
+**Partie :** P20 (Argos Memory) — révision d'architecture
+
+**Décision :** La mémoire de flotte (Cockpit) est implémentée **100 % en
+fichiers texte locaux** sous `data/fleet_memory/` (1 dossier par bot, 1 fait =
+1 fichier markdown + frontmatter, graphe d'accès dans `MEMORY.md`), via le
+helper `argos_ops/fleet_memory.py`. Ceci **remplace** le design lourd décrit
+dans la Partie 20 du plan (tables Postgres `memory_items` + `memory_chunks`,
+embeddings, recherche sémantique RAG, arborescence `data/memory/raw/...json`).
+
+**Pourquoi :**
+
+- Argos Ops est un **outil local** qui pilote le SaaS en prod — il n'est pas
+  lui-même destiné à tourner sur un serveur. La mémoire = le **disque du poste
+  du fondateur**, sans dépendance DB/serveur supplémentaire.
+- Cohérent avec **D-017** (local-first, aucune API tierce) : pas d'embeddings
+  ni de RAG sur la mémoire pour l'instant — un bot lit des fichiers, point.
+- Versionnable git, lisible à l'œil, zéro infra en plus. Modèle « cerveau » :
+  chaque bot a sa mémoire, accessible seulement aux bots qui en ont l'utilité
+  (graphe d'accès).
+
+**Implication technique :**
+
+- Livré en 3 lots : substrat (#71), Console bot (#72), réflexe « se souvenir »
+  (#73), puis **MemoryCurator** (ce sprint) — concierge déterministe : archive
+  le périmé (TTL) / le stale, purge le très vieux déjà archivé, protège les
+  faits `pinned`. Seul bot autorisé à supprimer (`fleet_memory.delete_fact`).
+- La Partie 20 du plan (migration `0007_memory.sql`, skills `argos-memory` /
+  `memory-auditor`, `/memory-gc`, breaker `memory_storage_full`) est
+  **abandonnée en l'état**. Une couche recherche sémantique pourra être
+  rouverte plus tard SI un besoin réel de requête par sens émerge.
+
+**Annule :** le design DB + RAG de la Partie 20 du plan (`docs/ARGOS_OPS_PLAN.md`).
+
+**Action de suivi :**
+
+- [x] Implémenter le modèle fichiers + MemoryCurator (livré).
+- [ ] Founder : marquer la Partie 20 du plan comme « révisée par D-028 ».
+- [ ] (optionnel) faire se souvenir d'autres bots que TrendSpotter au fil de l'eau.
+
 **Réversibilité :** la règle s'applique aux futurs méta-sprints. Aucun
 rollback nécessaire pour P22.D-I (déjà consolidé).
 
