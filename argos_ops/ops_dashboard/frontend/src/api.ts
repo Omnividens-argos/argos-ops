@@ -242,6 +242,45 @@ export interface AgentPerfStats {
 }
 
 // =============================================================================
+// Mémoire de flotte — Cockpit Console (LOT 2)
+// =============================================================================
+export interface FactRow {
+  id: string;
+  bot: string;
+  kind: string;
+  body: string;
+  source: string | null;
+  confidence: string;
+  status: string;
+  ttl_days: number | null;
+  created_at: string;
+  archived_at: string | null;
+  tags: string[];
+}
+
+export interface VisibleBotMemory {
+  bot: string;
+  facts: FactRow[];
+}
+
+export interface BotMemoryView {
+  bot: string;
+  own: FactRow[];
+  visible: VisibleBotMemory[];
+  reads: string[];
+  read_by: string[];
+}
+
+export interface FactCreatePayload {
+  body: string;
+  kind?: string;
+  source?: string | null;
+  confidence?: "low" | "medium" | "high";
+  tags?: string[];
+  ttl_days?: number | null;
+}
+
+// =============================================================================
 // fetch helpers
 // =============================================================================
 async function getJSON<T>(path: string, signal?: AbortSignal): Promise<T> {
@@ -324,6 +363,27 @@ export function resetBreaker(name: string): Promise<BreakerInfo> {
 
 export function runAgentNow(name: string): Promise<ManualRunResponse> {
   return sendJSON<ManualRunResponse>("POST", `/api/agents/${encodeURIComponent(name)}/runs`);
+}
+
+// =============================================================================
+// Mémoire de flotte — Cockpit Console (LOT 2)
+// =============================================================================
+export function fetchAgentMemory(
+  name: string,
+  signal?: AbortSignal,
+): Promise<BotMemoryView> {
+  return getJSON<BotMemoryView>(`/api/agents/${encodeURIComponent(name)}/memory`, signal);
+}
+
+export function appendAgentFact(name: string, payload: FactCreatePayload): Promise<FactRow> {
+  return sendJSON<FactRow>("POST", `/api/agents/${encodeURIComponent(name)}/memory`, payload);
+}
+
+export function archiveAgentFact(name: string, factId: string): Promise<FactRow> {
+  return sendJSON<FactRow>(
+    "POST",
+    `/api/agents/${encodeURIComponent(name)}/memory/${encodeURIComponent(factId)}/archive`,
+  );
 }
 
 export function fetchInboxDrafts(signal?: AbortSignal): Promise<InboxDraft[]> {

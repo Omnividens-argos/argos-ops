@@ -10,6 +10,7 @@ import pytest
 from argos_ops.fleet_memory import (
     BotMemory,
     append_fact,
+    archive_fact,
     compute_fact_id,
     load_access_graph,
     read_memory,
@@ -126,6 +127,35 @@ async def test_archived_excluded_unless_requested(tmp_path: Path) -> None:
     )
     assert (await read_memory("EmailBot", root=tmp_path)).facts == []
     assert len((await read_memory("EmailBot", root=tmp_path, include_archived=True)).facts) == 1
+
+
+# =============================================================================
+# Archivage (soft delete)
+# =============================================================================
+@pytest.mark.asyncio
+async def test_archive_fact(tmp_path: Path) -> None:
+    fact = await append_fact("EmailBot", "fait à archiver", kind="note", root=tmp_path)
+    archived = await archive_fact("EmailBot", fact.id, root=tmp_path)
+    assert archived is not None
+    assert archived.status == "archived"
+    assert archived.archived_at is not None
+    # Exclu de la lecture active, présent avec include_archived.
+    assert (await read_memory("EmailBot", root=tmp_path)).facts == []
+    assert len((await read_memory("EmailBot", root=tmp_path, include_archived=True)).facts) == 1
+
+
+@pytest.mark.asyncio
+async def test_archive_missing_fact_returns_none(tmp_path: Path) -> None:
+    assert await archive_fact("EmailBot", "deadbeef0000", root=tmp_path) is None
+
+
+@pytest.mark.asyncio
+async def test_archive_is_idempotent(tmp_path: Path) -> None:
+    fact = await append_fact("EmailBot", "déjà archivé", kind="note", root=tmp_path)
+    first = await archive_fact("EmailBot", fact.id, root=tmp_path)
+    second = await archive_fact("EmailBot", fact.id, root=tmp_path)
+    assert first is not None and second is not None
+    assert first.archived_at == second.archived_at
 
 
 # =============================================================================

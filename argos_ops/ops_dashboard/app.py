@@ -25,6 +25,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from argos_ops import fleet_memory
 from argos_ops.agents.base import BaseAgent, run_agent
 from argos_ops.breakers import reset as reset_breaker_facade
 from argos_ops.breakers import trip as trip_breaker_facade
@@ -57,11 +58,14 @@ from argos_ops.ops_dashboard.models import (
     AgentPerfStats,
     AgentRunRow,
     AgentSummary,
+    BotMemoryView,
     BreakerInfo,
     CashSnapshot,
     CashSubBreakdown,
     CashTicketBreakdown,
     CohortsResponse,
+    FactCreatePayload,
+    FactRow,
     HealthAgentBreakdown,
     HealthSnapshot,
     InboxActionPayload,
@@ -74,6 +78,7 @@ from argos_ops.ops_dashboard.models import (
     OutputContentResponse,
     PipelineSnapshot,
     TripBreakerPayload,
+    VisibleBotMemory,
     YamlConfigPatch,
     YamlConfigResponse,
 )
@@ -194,6 +199,10 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "KillSwitchOperator",
     "BotConfigManager",
 )
+
+# Racine de la mémoire de flotte (Cockpit LOT 2). Module-level pour que les
+# tests puissent la patcher vers un tmp_path.
+FLEET_MEMORY_ROOT = fleet_memory.FLEET_MEMORY_DIR
 
 # Agents qu'on peut déclencher manuellement via "Run now" du panel. SupportBot
 # et SEOBot sont interactifs (slash commands) — pas de BaseAgent subclass à
@@ -950,6 +959,99 @@ async def patch_agent_config(name: str, payload: AgentConfigPayload) -> AgentCon
         # référence ouverte sinon).
         snapshot = _config_to_response(config)
     return snapshot
+
+
+# =============================================================================
+# Mémoire de flotte — Cockpit Console (LOT 2)
+# =============================================================================
+def _fact_to_row(fact: fleet_memory.Fact) -> FactRow:
+    return FactRow(
+        id=fact.id,
+        bot=fact.bot,
+        kind=fact.kind,
+        body=fact.body,
+        source=fact.source,
+        confidence=fact.confidence,
+        status=fact.status,
+        ttl_days=fact.ttl_days,
+        created_at=fact.created_at,
+        archived_at=fact.archived_at,
+        tags=list(fact.tags),
+    )
+
+
+@app.get("/api/agents/{name}/memory", response_model=BotMemoryView)
+async def get_agent_memory(
+    name: str,
+    include_archived: bool = Query(default=False),
+) -> BotMemoryView:
+    """Assemble le « IN mémoire » d'un bot : sa mémoire + celle qu'il peut lire.
+
+    ``reads`` = bots dont ``name`` lit la mémoire (graphe sortant) ;
+    ``read_by`` = bots qui lisent celle de ``name`` (graphe entrant, ``"*"``
+    inclus). Respecte strictement le graphe d'accès de ``MEMORY.md``.
+    """
+    if name not in KNOWN_AGENTS:
+        raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
+
+    own = await fleet_memory.read_memory(
+        name, root=FLEET_MEMORY_ROOT, include_archived=include_archived
+    )
+    visible_map = await fleet_memory.visible_memory(name, root=FLEET_MEMORY_ROOT)
+    graph = await fleet_memory.load_access_graph(root=FLEET_MEMORY_ROOT)
+
+    reads = sorted(b for b in visible_map if b != name)
+    read_by = sorted(
+        other
+        for other, targets in graph.items()
+        if other != name and (name in targets or fleet_memory.GRAPH_WILDCARD in targets)
+    )
+    visible = [
+        VisibleBotMemory(bot=b, facts=[_fact_to_row(f) for f in mem.facts])
+        for b, mem in sorted(visible_map.items())
+        if b != name
+    ]
+    return BotMemoryView(
+        bot=name,
+        own=[_fact_to_row(f) for f in own.facts],
+        visible=visible,
+        reads=reads,
+        read_by=read_by,
+    )
+
+
+@app.post("/api/agents/{name}/memory", response_model=FactRow, status_code=201)
+async def append_agent_memory(name: str, payload: FactCreatePayload) -> FactRow:
+    """Ajoute manuellement un fait à la mémoire d'un bot depuis la Console.
+
+    Idempotent par corps (même contenu = même ``fact_id``, pas de doublon).
+    """
+    if name not in KNOWN_AGENTS:
+        raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
+    if not payload.body.strip():
+        raise HTTPException(status_code=400, detail="Le corps du fait est vide")
+    fact = await fleet_memory.append_fact(
+        name,
+        payload.body,
+        kind=payload.kind,
+        source=payload.source or "admin_panel",
+        confidence=payload.confidence,
+        tags=tuple(payload.tags),
+        ttl_days=payload.ttl_days,
+        root=FLEET_MEMORY_ROOT,
+    )
+    return _fact_to_row(fact)
+
+
+@app.post("/api/agents/{name}/memory/{fact_id}/archive", response_model=FactRow)
+async def archive_agent_memory(name: str, fact_id: str) -> FactRow:
+    """Archive un fait (soft delete). Suppression dure = MemoryCurator (P20)."""
+    if name not in KNOWN_AGENTS:
+        raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
+    fact = await fleet_memory.archive_fact(name, fact_id, root=FLEET_MEMORY_ROOT)
+    if fact is None:
+        raise HTTPException(status_code=404, detail=f"Fait introuvable : {fact_id}")
+    return _fact_to_row(fact)
 
 
 @app.post("/api/agents/{name}/runs", response_model=ManualRunResponse, status_code=202)

@@ -1,15 +1,19 @@
 import {
+  Archive,
   ArrowLeft,
   ArrowUpRight,
   BookOpen,
+  Brain,
   CheckCircle2,
   ExternalLink,
   FileCode,
   FileText,
   History,
   Inbox as InboxIcon,
+  Network,
   PauseCircle,
   Play,
+  Plus,
   Puzzle,
   Settings,
   Shield,
@@ -22,11 +26,16 @@ import type {
   AgentPerfStats,
   AgentRunRow,
   AgentSummary,
+  BotMemoryView,
+  FactRow,
   InboxDraft,
   YamlConfigResponse,
 } from "../api";
 import {
+  appendAgentFact,
+  archiveAgentFact,
   fetchAgentConfig,
+  fetchAgentMemory,
   fetchAgentPerf,
   fetchAgentRuns,
   fetchAgentYamlConfig,
@@ -242,6 +251,9 @@ export function BotDetail({
 
       {/* === 5. Skills & dépendances === */}
       <SkillsSection meta={meta} />
+
+      {/* === 5b. Mémoire (IN) === */}
+      <MemorySection botName={botName} />
 
       {/* === 6. Conformité === */}
       <ComplianceSection meta={meta} />
@@ -845,6 +857,255 @@ function SkillsSection({ meta }: { meta: BotMetadata }) {
         </div>
       </div>
     </section>
+  );
+}
+
+// =============================================================================
+// 5b. Mémoire (IN) — fenêtre de contexte mémoire du bot (Cockpit LOT 2)
+// =============================================================================
+function MemorySection({ botName }: { botName: string }) {
+  const [data, setData] = useState<BotMemoryView | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const toast = useToast();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setData(null);
+    setError(null);
+    fetchAgentMemory(botName, controller.signal)
+      .then(setData)
+      .catch((e) => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setError((e as Error).message);
+      });
+    return () => controller.abort();
+  }, [botName, reloadKey]);
+
+  const reload = () => setReloadKey((k) => k + 1);
+
+  const handleAdd = async (body: string, kind: string) => {
+    try {
+      await appendAgentFact(botName, { body, kind: kind || "note" });
+      toast.success("Fait ajouté à la mémoire");
+      reload();
+    } catch (e) {
+      toast.error(`Ajout : ${(e as Error).message}`);
+      throw e; // garde le texte dans le formulaire
+    }
+  };
+
+  const handleArchive = async (factId: string) => {
+    try {
+      await archiveAgentFact(botName, factId);
+      toast.success("Fait archivé");
+      reload();
+    } catch (e) {
+      toast.error(`Archivage : ${(e as Error).message}`);
+    }
+  };
+
+  return (
+    <section className="rounded-md border border-argos-border-subtle bg-argos-surface p-5">
+      <SectionHeader
+        title="Mémoire (IN)"
+        subtitle="Ce que le bot retient + ce qu'il lit chez les autres (graphe d'accès)"
+        icon={Brain}
+      />
+      {error && <Flash variant="error" message={`Mémoire : ${error}`} />}
+      {data === null && error === null && <SkeletonList count={2} />}
+      {data && (
+        <div className="space-y-5">
+          <AccessGraphRow reads={data.reads} readBy={data.read_by} />
+
+          {/* Mémoire propre — éditable */}
+          <div>
+            <h3 className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary mb-2">
+              Mémoire propre · {data.own.length} fait{data.own.length > 1 ? "s" : ""}
+            </h3>
+            <AddFactForm onAdd={handleAdd} />
+            {data.own.length === 0 ? (
+              <div className="mt-2 font-mono text-[11px] text-argos-fg-tertiary">
+                Ce bot n'a encore rien extrait.
+              </div>
+            ) : (
+              <ul className="mt-2 space-y-1.5">
+                {data.own.map((f) => (
+                  <FactCard key={f.id} fact={f} onArchive={() => handleArchive(f.id)} />
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Mémoire accessible — lecture seule */}
+          {data.visible.length > 0 && (
+            <div>
+              <h3 className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary mb-2">
+                Mémoire accessible (lecture seule) · {data.visible.length} bot
+                {data.visible.length > 1 ? "s" : ""}
+              </h3>
+              <div className="space-y-3">
+                {data.visible.map((vis) => (
+                  <div key={vis.bot}>
+                    <div className="font-mono text-[11px] text-argos-fg-secondary mb-1 flex items-center gap-1.5">
+                      <ArrowUpRight size={11} strokeWidth={2} className="text-argos-fg-tertiary" />
+                      {vis.bot}
+                      <span className="text-argos-fg-tertiary">
+                        · {vis.facts.length} fait{vis.facts.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    {vis.facts.length === 0 ? (
+                      <div className="font-mono text-[10px] text-argos-fg-tertiary pl-4">
+                        (vide)
+                      </div>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {vis.facts.map((f) => (
+                          <FactCard key={`${vis.bot}-${f.id}`} fact={f} />
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AccessGraphRow({ reads, readBy }: { reads: string[]; readBy: string[] }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="rounded-md border border-argos-border-subtle bg-argos-bg/40 px-3 py-2">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary flex items-center gap-1 mb-1.5">
+          <Network size={11} strokeWidth={2} />
+          Lit la mémoire de
+        </div>
+        {reads.length === 0 ? (
+          <span className="font-mono text-[11px] text-argos-fg-tertiary">aucun autre bot</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {reads.map((b) => (
+              <Badge key={b} tone="info">
+                {b}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="rounded-md border border-argos-border-subtle bg-argos-bg/40 px-3 py-2">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary flex items-center gap-1 mb-1.5">
+          <Network size={11} strokeWidth={2} />
+          Lu par
+        </div>
+        {readBy.length === 0 ? (
+          <span className="font-mono text-[11px] text-argos-fg-tertiary">aucun autre bot</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {readBy.map((b) => (
+              <Badge key={b} tone="neutral">
+                {b}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FactCard({ fact, onArchive }: { fact: FactRow; onArchive?: () => void }) {
+  const confTone: Record<string, "healthy" | "info" | "neutral"> = {
+    high: "healthy",
+    medium: "info",
+    low: "neutral",
+  };
+  return (
+    <li className="rounded-md border border-argos-border-subtle bg-argos-bg/40 px-3 py-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+            <Badge tone="neutral">{fact.kind}</Badge>
+            <Badge tone={confTone[fact.confidence] ?? "neutral"}>{fact.confidence}</Badge>
+            {fact.tags.map((t) => (
+              <span key={t} className="font-mono text-[10px] text-argos-fg-tertiary">
+                #{t}
+              </span>
+            ))}
+          </div>
+          <p className="text-xs text-argos-fg-secondary leading-relaxed break-words">{fact.body}</p>
+          <div className="mt-1 font-mono text-[10px] text-argos-fg-tertiary truncate">
+            {fact.id}
+            {fact.source ? ` · ${fact.source}` : ""} · {formatRelativeTime(fact.created_at)}
+            {fact.ttl_days !== null ? ` · TTL ${fact.ttl_days}j` : ""}
+          </div>
+        </div>
+        {onArchive && (
+          <button
+            type="button"
+            onClick={onArchive}
+            title="Archiver ce fait (soft delete)"
+            className="shrink-0 inline-flex items-center gap-1 font-mono text-[10px] text-argos-fg-tertiary hover:text-argos-warning transition-colors"
+          >
+            <Archive size={11} strokeWidth={2} />
+            archiver
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function AddFactForm({
+  onAdd,
+}: {
+  onAdd: (body: string, kind: string) => Promise<void>;
+}) {
+  const [body, setBody] = useState("");
+  const [kind, setKind] = useState("note");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    if (!body.trim()) return;
+    setSaving(true);
+    try {
+      await onAdd(body.trim(), kind.trim());
+      setBody("");
+      setKind("note");
+    } catch {
+      // toast affiché par le parent ; on garde le texte saisi
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-argos-border-subtle bg-argos-bg/40 p-3 space-y-2">
+      <textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={2}
+        placeholder="Ajouter un fait que ce bot doit retenir (ex. objection client récurrente, heuristique validée…)"
+        className="w-full bg-argos-bg border border-argos-border-subtle rounded-md px-2.5 py-1.5 font-mono text-xs text-argos-fg placeholder:text-argos-fg-disabled focus:outline-none focus:border-argos-info/60 resize-y"
+      />
+      <div className="flex items-center gap-2 flex-wrap">
+        <input
+          value={kind}
+          onChange={(e) => setKind(e.target.value)}
+          placeholder="kind (ex. note)"
+          className="w-40 bg-argos-bg border border-argos-border-subtle rounded-md px-2.5 py-1.5 font-mono text-xs text-argos-fg placeholder:text-argos-fg-disabled focus:outline-none focus:border-argos-info/60"
+        />
+        <Button variant="primary" size="sm" onClick={submit} disabled={saving || !body.trim()}>
+          <span className="inline-flex items-center gap-1.5">
+            <Plus size={11} strokeWidth={2} />
+            {saving ? "Ajout…" : "Ajouter un fait"}
+          </span>
+        </Button>
+      </div>
+    </div>
   );
 }
 
