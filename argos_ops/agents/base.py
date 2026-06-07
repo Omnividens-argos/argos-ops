@@ -19,6 +19,7 @@ from typing import Literal
 
 from loguru import logger
 
+from argos_ops import fleet_memory
 from argos_ops.agent_runtime import check_runtime_state
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.repository import complete_agent_run, start_agent_run
@@ -108,8 +109,33 @@ async def run_agent(agent: BaseAgent) -> RunResult:
             output_summary=result.output_summary,
             error=result.error,
         )
+    if result.status == "success":
+        await _remember_run_facts(agent, result)
     logger.success(f"Agent {agent.name} — {result.status}")
     return result
+
+
+async def _remember_run_facts(agent: BaseAgent, result: RunResult) -> None:
+    """Conserve dans la mémoire de flotte ce que le bot a décidé de retenir.
+
+    Le bot expose ses souvenirs via ``RunResult.extras["fleet_facts"]`` (liste
+    de :class:`argos_ops.fleet_memory.FactDraft`). La mémoire ne doit JAMAIS
+    faire échouer un run : toute erreur est logguée puis avalée.
+    """
+    raw = result.extras.get("fleet_facts")
+    if not raw:
+        return
+    if not isinstance(raw, list):
+        logger.warning(f"Agent {agent.name} — extras['fleet_facts'] n'est pas une liste, ignoré")
+        return
+    try:
+        stored = await fleet_memory.remember(
+            agent.name, raw, default_source=agent.command or agent.name
+        )
+        if stored:
+            logger.info(f"Agent {agent.name} — {len(stored)} fait(s) mémorisé(s)")
+    except Exception as exc:  # la mémoire ne doit jamais faire échouer un run
+        logger.warning(f"Agent {agent.name} — conservation mémoire échouée : {exc}")
 
 
 __all__ = ["BaseAgent", "RunResult", "RunStatus", "run_agent"]

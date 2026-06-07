@@ -96,7 +96,25 @@ class TrendSpotter(BaseAgent):
             except Exception as exc:
                 logger.warning(f"TrendSpotter — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=digest.summary())
+        # « Se souvenir » (fleet memory) : chaque sujet chaud devient un fait
+        # conservé, lisible par ContentBot / EditorialBot / les writers / SEOBot
+        # (cf. graphe d'accès data/fleet_memory/MEMORY.md). TTL 21j = un sujet
+        # chaud se périme. Idempotent : un sujet re-détecté ne se duplique pas.
+        fleet_facts = [
+            {
+                "body": f"Sujet cyber chaud (fenêtre 14j) : {title}",
+                "kind": "trend",
+                "confidence": "high" if rank < 3 else "medium",
+                "ttl_days": 21,
+                "tags": ["trend", "cyber"],
+            }
+            for rank, title in enumerate(top_titles)
+        ]
+        return RunResult(
+            status="success",
+            output_summary=digest.summary(),
+            extras={"fleet_facts": fleet_facts},
+        )
 
 
 __all__ = ["TrendDigest", "TrendSpotter", "build_trend_embed", "write_digest"]

@@ -23,10 +23,11 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal, TypedDict, cast
 
 import yaml
 from loguru import logger
@@ -45,6 +46,23 @@ GRAPH_WILDCARD = "*"  # « lit toute la flotte » (orchestrateur / curator).
 
 Confidence = Literal["low", "medium", "high"]
 FactStatus = Literal["active", "archived"]
+
+
+class FactDraft(TypedDict, total=False):
+    """Fait brut qu'un bot demande à conserver en fin de run.
+
+    Seul ``body`` est requis. Convention : un bot remplit
+    ``RunResult.extras["fleet_facts"]`` avec une liste de ``FactDraft`` ;
+    :func:`argos_ops.agents.base.run_agent` les conserve via :func:`remember`.
+    """
+
+    body: str
+    kind: str
+    confidence: Confidence
+    tags: list[str]
+    ttl_days: int | None
+    source: str | None
+
 
 _FACT_ID_LEN = 12
 
@@ -254,6 +272,41 @@ async def append_fact(
     return fact
 
 
+async def remember(
+    bot: str,
+    drafts: Iterable[FactDraft],
+    *,
+    default_source: str | None = None,
+    root: Path = FLEET_MEMORY_DIR,
+) -> list[Fact]:
+    """Conserve une série de faits qu'un bot a décidé de retenir (« se souvenir »).
+
+    Appelée par :func:`argos_ops.agents.base.run_agent` après un run réussi, à
+    partir de ``RunResult.extras["fleet_facts"]``. Chaque draft sans ``body``
+    non vide est ignoré (logué) sans interrompre les autres. Idempotent par
+    corps (cf. :func:`append_fact`) : un même souvenir ne se duplique pas.
+    """
+    stored: list[Fact] = []
+    for draft in drafts:
+        body = str(draft.get("body", "")).strip()
+        if not body:
+            logger.warning(f"fleet_memory.remember: draft sans body ignoré ({bot})")
+            continue
+        raw_tags = draft.get("tags") or []
+        fact = await append_fact(
+            bot,
+            body,
+            kind=str(draft.get("kind", "note")),
+            source=draft.get("source") or default_source,
+            confidence=draft.get("confidence", "medium"),
+            tags=tuple(str(t) for t in raw_tags),
+            ttl_days=draft.get("ttl_days"),
+            root=root,
+        )
+        stored.append(fact)
+    return stored
+
+
 async def archive_fact(
     bot: str,
     fact_id: str,
@@ -382,12 +435,14 @@ __all__ = [
     "BotMemory",
     "Confidence",
     "Fact",
+    "FactDraft",
     "FactStatus",
     "append_fact",
     "archive_fact",
     "compute_fact_id",
     "load_access_graph",
     "read_memory",
+    "remember",
     "resolve_visible_bots",
     "visible_memory",
 ]

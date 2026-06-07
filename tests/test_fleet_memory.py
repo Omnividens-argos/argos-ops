@@ -14,6 +14,7 @@ from argos_ops.fleet_memory import (
     compute_fact_id,
     load_access_graph,
     read_memory,
+    remember,
     resolve_visible_bots,
     visible_memory,
 )
@@ -127,6 +128,47 @@ async def test_archived_excluded_unless_requested(tmp_path: Path) -> None:
     )
     assert (await read_memory("EmailBot", root=tmp_path)).facts == []
     assert len((await read_memory("EmailBot", root=tmp_path, include_archived=True)).facts) == 1
+
+
+# =============================================================================
+# Se souvenir (remember — batch depuis un run)
+# =============================================================================
+@pytest.mark.asyncio
+async def test_remember_persists_drafts(tmp_path: Path) -> None:
+    stored = await remember(
+        "TrendSpotter",
+        [
+            {"body": "Sujet chaud : faille VPN", "kind": "trend", "ttl_days": 21},
+            {"body": "Sujet chaud : ransomware santé", "kind": "trend"},
+        ],
+        default_source="/run-trend-spot",
+        root=tmp_path,
+    )
+    assert len(stored) == 2
+    assert stored[0].source == "/run-trend-spot"
+    assert stored[0].ttl_days == 21
+    mem = await read_memory("TrendSpotter", root=tmp_path)
+    assert len(mem.facts) == 2
+
+
+@pytest.mark.asyncio
+async def test_remember_skips_empty_body(tmp_path: Path) -> None:
+    stored = await remember(
+        "TrendSpotter",
+        [{"body": "  "}, {"body": "vrai fait"}],
+        root=tmp_path,
+    )
+    assert len(stored) == 1
+    assert stored[0].body == "vrai fait"
+
+
+@pytest.mark.asyncio
+async def test_remember_is_idempotent(tmp_path: Path) -> None:
+    draft = {"body": "fait répété", "kind": "trend"}
+    await remember("TrendSpotter", [draft], root=tmp_path)
+    await remember("TrendSpotter", [draft], root=tmp_path)
+    mem = await read_memory("TrendSpotter", root=tmp_path)
+    assert len(mem.facts) == 1
 
 
 # =============================================================================
