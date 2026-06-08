@@ -33,15 +33,37 @@ from loguru import logger
 from argos_ops.config import REPO_ROOT, Settings
 from argos_ops.ops_dashboard import auth
 
-PermissionMode = Literal["read", "edit"]
+PermissionMode = Literal["read", "fleet"]
 
-# Mapping UI → flag CLI ``--permission-mode``. ``read`` = plan (lecture seule,
-# aucune écriture) ; ``edit`` = acceptEdits (édits auto, shell non approuvé
-# reste refusé en headless faute de prompt).
-_PERMISSION_CLI: dict[PermissionMode, str] = {
-    "read": "plan",
-    "edit": "acceptEdits",
-}
+# Config MCP du serveur de pilotage flotte (cf. argos_ops/mcp/fleet_server.py),
+# lancé en stdio par le CLI claude. cwd = racine repo → `uv run` résout le projet.
+_FLEET_MCP_CONFIG = json.dumps(
+    {
+        "mcpServers": {
+            "fleet": {
+                "command": "uv",
+                "args": ["run", "python", "-m", "argos_ops.mcp.fleet_server"],
+            }
+        }
+    }
+)
+
+# Outils autorisés en mode pilotage flotte : lecture du repo + outils MCP flotte.
+# Write/Edit explicitement interdits → l'atelier ne modifie JAMAIS le repo.
+_FLEET_ALLOWED_TOOLS = "Read,Glob,Grep,mcp__fleet__list_bots,mcp__fleet__run_bot,mcp__fleet__read_bot_memory,mcp__fleet__bot_in_memory"
+_FLEET_DISALLOWED_TOOLS = "Write,Edit,NotebookEdit"
+
+_FLEET_SYSTEM_PROMPT = (
+    "Tu es le chef d'orchestre de la flotte Argos Ops (mode « pilotage flotte »). "
+    "Tu NE modifies JAMAIS le repo (Write/Edit interdits). Tu peux : lire le repo, "
+    "lire la mémoire des bots (mcp__fleet__read_bot_memory / mcp__fleet__bot_in_memory) "
+    "et LANCER des bots (mcp__fleet__run_bot) après les avoir listés via "
+    "mcp__fleet__list_bots. Méthode : comprends l'intention → propose un plan court → "
+    "lance les bots utiles → agrège leurs résultats → présente clairement à "
+    "l'utilisateur. Les bots qui publient/envoient ne partent en réel que si leur flag "
+    "live est déjà activé (sinon ils restent en brouillon shadow). En cas de doute sur "
+    "une action externe (post, email), demande avant de lancer."
+)
 
 
 # =============================================================================
@@ -56,9 +78,12 @@ def build_claude_argv(
 ) -> list[str]:
     """Construit l'argv du CLI ``claude`` headless pour un tour.
 
+    - ``read`` : ``--permission-mode plan`` (lecture seule, aucune écriture).
+    - ``fleet`` : serveur MCP flotte branché + outils flotte/lecture autorisés,
+      Write/Edit interdits, prompt système « chef d'orchestre ».
+
     Premier tour : pas de ``--resume`` (claude crée la session, l'``session_id``
-    est capté dans l'event ``system/init``). Tours suivants : ``--resume`` pour
-    conserver le contexte.
+    est capté dans l'event ``system/init``). Tours suivants : ``--resume``.
     """
     argv = [
         claude_bin,
@@ -68,9 +93,22 @@ def build_claude_argv(
         "stream-json",
         "--verbose",
         "--include-partial-messages",
-        "--permission-mode",
-        _PERMISSION_CLI.get(permission_mode, "plan"),
     ]
+    if permission_mode == "fleet":
+        argv += [
+            "--permission-mode",
+            "default",
+            "--mcp-config",
+            _FLEET_MCP_CONFIG,
+            "--allowedTools",
+            _FLEET_ALLOWED_TOOLS,
+            "--disallowedTools",
+            _FLEET_DISALLOWED_TOOLS,
+            "--append-system-prompt",
+            _FLEET_SYSTEM_PROMPT,
+        ]
+    else:
+        argv += ["--permission-mode", "plan"]
     if session_id:
         argv += ["--resume", session_id]
     return argv

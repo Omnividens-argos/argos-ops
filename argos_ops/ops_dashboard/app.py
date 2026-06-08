@@ -1127,7 +1127,7 @@ async def atelier_ws(websocket: WebSocket) -> None:
             elif mtype == "user" and (current_turn is None or current_turn.done()):
                 text = str(msg.get("text", "")).strip()
                 mode = msg.get("permission_mode", "read")
-                if mode not in ("read", "edit"):
+                if mode not in ("read", "fleet"):
                     mode = "read"
                 if text:
                     current_turn = asyncio.create_task(

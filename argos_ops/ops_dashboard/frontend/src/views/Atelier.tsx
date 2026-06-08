@@ -1,7 +1,7 @@
 import {
   AlertTriangle,
+  Cpu,
   Eye,
-  Pencil,
   Plus,
   Send,
   Square,
@@ -26,7 +26,7 @@ type SessionStatus =
   | "stopped" // WS fermé / erreur transport
   | "error";
 
-type PermissionMode = "read" | "edit";
+type PermissionMode = "read" | "fleet";
 
 interface TranscriptItem {
   id: number;
@@ -192,7 +192,7 @@ export function Atelier() {
       <AtelierBar
         status={status}
         mode={mode}
-        onToggleMode={() => setMode((m) => (m === "read" ? "edit" : "read"))}
+        onToggleMode={() => setMode((m) => (m === "read" ? "fleet" : "read"))}
         onNewSession={newSession}
         onInterrupt={interrupt}
       />
@@ -204,10 +204,11 @@ export function Atelier() {
       >
         {items.length === 0 && (
           <div className="text-argos-fg-tertiary text-center mt-10">
-            Session prête. Pose une question ou demande une tâche sur le repo.
+            Session prête. Pose une question, ou demande une action à orchestrer
+            sur la flotte.
             <br />
             <span className="text-[11px]">
-              Mode {mode === "read" ? "lecture seule" : "écriture (acceptEdits)"} actif.
+              Mode {mode === "read" ? "lecture seule" : "pilotage flotte (lancer des bots)"} actif.
             </span>
           </div>
         )}
@@ -273,15 +274,15 @@ function AtelierBar({
           type="button"
           onClick={onToggleMode}
           disabled={status === "running"}
-          title="Bascule lecture seule ↔ écriture"
+          title="Bascule lecture seule ↔ pilotage flotte (lancer des bots, lire leur mémoire)"
           className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-[11px] transition-colors disabled:opacity-50 ${
-            mode === "edit"
+            mode === "fleet"
               ? "border-argos-warning/40 bg-argos-warning/10 text-argos-warning"
               : "border-argos-border-subtle bg-argos-surface text-argos-fg-secondary"
           }`}
         >
-          {mode === "edit" ? <Pencil size={11} strokeWidth={2} /> : <Eye size={11} strokeWidth={2} />}
-          {mode === "edit" ? "acceptEdits" : "lecture seule"}
+          {mode === "fleet" ? <Cpu size={11} strokeWidth={2} /> : <Eye size={11} strokeWidth={2} />}
+          {mode === "fleet" ? "pilotage flotte" : "lecture seule"}
         </button>
         {status === "running" && (
           <Button size="sm" onClick={onInterrupt}>

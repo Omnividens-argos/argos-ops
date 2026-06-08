@@ -1447,8 +1447,12 @@ rollback nécessaire pour P22.D-I (déjà consolidé).
 implémenté en lançant le **CLI `claude` local en mode headless**
 (`claude -p --output-format stream-json`) côté backend FastAPI, streamé vers
 React via **WebSocket** full-duplex. Activé par le flag `OPS_ATELIER_ENABLED`
-(OFF par défaut), **local-only**, jamais routé à distance. Permission par
-défaut = lecture seule (`plan`), bascule `acceptEdits` sur action humaine.
+(OFF par défaut), **local-only**, jamais routé à distance. Deux modes :
+**lecture seule** (`plan`) et **pilotage flotte** (l'atelier devient chef
+d'orchestre : il lit la mémoire des bots et les lance via un serveur MCP
+`argos-fleet`, mais **ne modifie jamais le repo** — Write/Edit interdits). Le
+mode édition de code (`acceptEdits`) a été **retiré** : le fondateur édite le
+repo via Claude Code direct, pas via l'atelier (décision 2026-06-07).
 
 **Pourquoi :** Le **Claude Agent SDK exige `ANTHROPIC_API_KEY`** (facturation à
 l'usage = API tierce) → incompatible **D-017**. Le CLI headless hérite du token
@@ -1464,17 +1468,24 @@ d'attaque trop large pour un panel potentiellement exposé.
   pas les WS), `AtelierSession` (1 process/tour, `--resume` pour le multi-tour,
   `interrupt()` = terminate).
 - Endpoint `GET /api/atelier/status` + WebSocket `/api/atelier/ws` dans `app.py`.
-- Vue `Atelier.tsx` (8ᵉ entrée nav), transport WS, états read/edit.
-- ⚠️ Sur Windows, l'asyncio subprocess requiert le ProactorEventLoop côté
-  serveur uvicorn (à vérifier au lancement local).
+- Vue `Atelier.tsx` (8ᵉ entrée nav), transport WS, modes read/fleet.
+- **Pilotage flotte** : serveur MCP `argos_ops/mcp/fleet_server.py` (FastMCP,
+  stdio) exposant `list_bots` / `run_bot` / `read_bot_memory` / `bot_in_memory`,
+  branché via `claude --mcp-config`. `run_bot` exécute l'agent dans un event loop
+  dédié (SelectorEventLoop, psycopg) isolé de la boucle stdio MCP. Les bots qui
+  publient/envoient ne partent en réel que si leur flag live est ON (sinon
+  shadow). Dépendance ajoutée : `mcp`.
+- ⚠️ Windows : le sous-process `claude` ET le serveur MCP tournent en thread/loop
+  isolé pour éviter le conflit Selector (psycopg) vs Proactor (subprocess asyncio).
+  Cf. PR fix dédiée.
 
 **Annule :** la partie « process agent via SDK » jamais actée — note d'archi only.
+Retire le mode `acceptEdits` (remplacé par `pilotage flotte`).
 
 **Action de suivi :**
 
-- [ ] Founder : `OPS_ATELIER_ENABLED=true` en local + vérifier le rendu live.
-- [ ] (optionnel) approbation par-outil dans l'UI (callback de permission) si on
-  veut un grain plus fin que read/acceptEdits.
+- [ ] Founder : `OPS_ATELIER_ENABLED=true` en local + tester le pilotage flotte
+  (ex. « lance TrendSpotter et résume-moi les sujets chauds »).
 
 ---
 

@@ -38,9 +38,25 @@ def test_argv_resume_when_session() -> None:
     assert argv[argv.index("--resume") + 1] == "sess-123"
 
 
-def test_argv_edit_maps_to_accept_edits() -> None:
-    argv = build_claude_argv("écris", permission_mode="edit")
-    assert argv[argv.index("--permission-mode") + 1] == "acceptEdits"
+def test_argv_fleet_mode_wires_mcp_and_forbids_edits() -> None:
+    argv = build_claude_argv("lance TrendSpotter", permission_mode="fleet")
+    # Serveur MCP flotte branché + outils flotte autorisés.
+    assert "--mcp-config" in argv
+    assert "argos_ops.mcp.fleet_server" in argv[argv.index("--mcp-config") + 1]
+    allowed = argv[argv.index("--allowedTools") + 1]
+    assert "mcp__fleet__run_bot" in allowed
+    # Write/Edit explicitement interdits → jamais de modif du repo.
+    disallowed = argv[argv.index("--disallowedTools") + 1]
+    assert "Write" in disallowed and "Edit" in disallowed
+    # Prompt orchestrateur présent, et PAS le mode plan (qui est read-only).
+    assert "--append-system-prompt" in argv
+    assert "plan" not in argv
+
+
+def test_argv_read_is_plan() -> None:
+    argv = build_claude_argv("question", permission_mode="read")
+    assert argv[argv.index("--permission-mode") + 1] == "plan"
+    assert "--mcp-config" not in argv
 
 
 def test_argv_custom_bin() -> None:
