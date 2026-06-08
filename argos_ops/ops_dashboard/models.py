@@ -432,3 +432,29 @@ class ConsoleInResponse(BaseModel):
     bot: str
     sources: list[InSourceRow]
     context_chars: int
+
+
+class ConsoleStatusResponse(BaseModel):
+    """État de la console d'un bot : moteur dispo + SHADOW/LIVE + runnable."""
+
+    engine_enabled: bool  # OPS_ATELIER_ENABLED — la génération live est dispo
+    live: bool  # AGIR déclencherait une action réelle (vs brouillon shadow)
+    runnable: bool  # le bot peut être déclenché (« act »)
+
+
+class ConsoleActPayload(BaseModel):
+    """Corps du POST act : verdict de la génération + approbation humaine."""
+
+    verdict: Literal["auto_send", "queued", "killed"]
+    approved: bool = False
+
+
+class ConsoleActResponse(BaseModel):
+    """Résultat d'un AGIR depuis la console."""
+
+    acted: bool  # l'action a-t-elle été déclenchée
+    live: bool  # en réel (vs shadow)
+    status: str | None = None  # status du run si acted
+    output_summary: str | None = None
+    error: str | None = None
+    reason: str | None = None  # si refusé (gâchette)

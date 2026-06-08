@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
+from argos_ops.config import Settings
 from argos_ops.fleet_memory import append_fact
 from argos_ops.ops_dashboard import app as app_module
 from argos_ops.ops_dashboard.app import app
@@ -18,8 +20,13 @@ from argos_ops.ops_dashboard.console import (
     build_generate_prompt,
     can_act,
     compose_in,
+    is_bot_live,
     parse_generation,
 )
+
+
+def _settings(**kw: object) -> Settings:
+    return Settings(_env_file=None, **kw)  # type: ignore[call-arg]
 
 
 # =============================================================================
@@ -146,3 +153,56 @@ def test_console_in_endpoint(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
 def test_console_in_unknown_agent_404(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(app_module, "FLEET_MEMORY_ROOT", tmp_path)
     assert TestClient(app).get("/api/agents/NopeBot/console/in").status_code == 404
+
+
+# =============================================================================
+# is_bot_live + SHADOW/LIVE
+# =============================================================================
+def test_is_bot_live_flag_armed() -> None:
+    assert is_bot_live("OutboundBot", _settings(OUTBOUND_LIVE_MODE=True)) is True
+    assert is_bot_live("AdBot", _settings(ADS_LIVE_MODE=True)) is True
+
+
+def test_is_bot_live_default_shadow() -> None:
+    s = _settings()
+    assert is_bot_live("OutboundBot", s) is False  # flag off
+    assert is_bot_live("EmailBot", s) is False  # bot hors table → shadow
+    assert is_bot_live("InconnuBot", s) is False
+
+
+# =============================================================================
+# Endpoint act — la gâchette
+# =============================================================================
+def test_console_act_killed_blocked() -> None:
+    client = TestClient(app)
+    r = client.post(
+        "/api/agents/EmailBot/console/act", json={"verdict": "killed", "approved": True}
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["acted"] is False
+    assert "killed" in (body["reason"] or "")
+
+
+def test_console_act_requires_approval() -> None:
+    client = TestClient(app)
+    r = client.post(
+        "/api/agents/EmailBot/console/act", json={"verdict": "queued", "approved": False}
+    )
+    assert r.json()["acted"] is False
+
+
+def test_console_act_runs_when_approved() -> None:
+    # auto_send + approuvé sur un bot lançable → déclenche run_agent (mocké).
+    fake_result = MagicMock(status="success", output_summary="ok", error=None)
+    with (
+        patch.object(app_module, "run_agent", AsyncMock(return_value=fake_result)) as run,
+        patch.object(app_module, "_build_agent", MagicMock()),
+    ):
+        r = TestClient(app).post(
+            "/api/agents/EmailBot/console/act", json={"verdict": "auto_send", "approved": True}
+        )
+    body = r.json()
+    assert body["acted"] is True
+    assert body["status"] == "success"
+    run.assert_awaited_once()
