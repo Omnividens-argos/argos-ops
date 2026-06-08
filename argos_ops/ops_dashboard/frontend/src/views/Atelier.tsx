@@ -5,6 +5,8 @@ import {
   Cpu,
   Eye,
   History,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Send,
   Square,
@@ -65,6 +67,7 @@ export function Atelier() {
   const [mode, setMode] = useState<PermissionMode>("read");
   const [sessions, setSessions] = useState<AtelierSessionMeta[]>([]);
   const [activeSession, setActiveSession] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const wsRef = useRef<WebSocket | null>(null);
   const idRef = useRef(0);
@@ -219,17 +222,22 @@ export function Atelier() {
 
   return (
     <div className="flex h-full">
-      <SessionsSidebar
-        sessions={sessions}
-        activeSession={activeSession}
-        onOpen={openSession}
-        onNew={newSession}
-      />
+      {sidebarOpen && (
+        <SessionsSidebar
+          sessions={sessions}
+          activeSession={activeSession}
+          onOpen={openSession}
+          onNew={newSession}
+          onCollapse={() => setSidebarOpen(false)}
+        />
+      )}
 
       <div className="flex flex-col flex-1 min-w-0">
         <AtelierBar
           status={status}
           mode={mode}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen((v) => !v)}
           onToggleMode={() => setMode((m) => (m === "read" ? "fleet" : "read"))}
           onNewSession={newSession}
           onInterrupt={interrupt}
@@ -280,28 +288,40 @@ function SessionsSidebar({
   activeSession,
   onOpen,
   onNew,
+  onCollapse,
 }: {
   sessions: AtelierSessionMeta[];
   activeSession: string | null;
   onOpen: (id: string) => void;
   onNew: () => void;
+  onCollapse: () => void;
 }) {
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-argos-border-subtle bg-argos-surface">
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-argos-border-subtle">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-argos-fg-tertiary">
-          <History size={12} strokeWidth={2} />
+      <div className="flex items-center justify-between gap-1 px-3 py-2.5 border-b border-argos-border-subtle">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-argos-fg-tertiary min-w-0">
+          <History size={12} strokeWidth={2} className="shrink-0" />
           Conversations
         </span>
-        <button
-          type="button"
-          onClick={onNew}
-          title="Nouvelle conversation"
-          className="inline-flex items-center gap-1 rounded-md border border-argos-border-subtle px-1.5 py-0.5 font-mono text-[10px] text-argos-fg-secondary hover:text-argos-fg hover:border-argos-border transition-colors"
-        >
-          <Plus size={10} strokeWidth={2} />
-          neuve
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={onNew}
+            title="Nouvelle conversation"
+            className="inline-flex items-center gap-1 rounded-md border border-argos-border-subtle px-1.5 py-0.5 font-mono text-[10px] text-argos-fg-secondary hover:text-argos-fg hover:border-argos-border transition-colors"
+          >
+            <Plus size={10} strokeWidth={2} />
+            neuve
+          </button>
+          <button
+            type="button"
+            onClick={onCollapse}
+            title="Replier l'historique"
+            className="inline-flex items-center justify-center rounded-md border border-argos-border-subtle p-1 text-argos-fg-tertiary hover:text-argos-fg hover:border-argos-border transition-colors"
+          >
+            <PanelLeftClose size={12} strokeWidth={2} />
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
         {sessions.length === 0 ? (
@@ -348,12 +368,16 @@ const STATUS_META: Record<SessionStatus, { label: string; dot: string }> = {
 function AtelierBar({
   status,
   mode,
+  sidebarOpen,
+  onToggleSidebar,
   onToggleMode,
   onNewSession,
   onInterrupt,
 }: {
   status: SessionStatus;
   mode: PermissionMode;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
   onToggleMode: () => void;
   onNewSession: () => void;
   onInterrupt: () => void;
@@ -362,6 +386,18 @@ function AtelierBar({
   return (
     <header className="flex items-center justify-between gap-3 border-b border-argos-border-subtle bg-argos-surface px-4 py-2.5 flex-wrap">
       <div className="flex items-center gap-2 min-w-0">
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          title={sidebarOpen ? "Replier l'historique" : "Afficher l'historique"}
+          className="hidden md:inline-flex items-center justify-center rounded-md border border-argos-border-subtle p-1 text-argos-fg-tertiary hover:text-argos-fg hover:border-argos-border transition-colors"
+        >
+          {sidebarOpen ? (
+            <PanelLeftClose size={14} strokeWidth={2} />
+          ) : (
+            <PanelLeftOpen size={14} strokeWidth={2} />
+          )}
+        </button>
         <Terminal size={15} strokeWidth={2} className="text-argos-fg-tertiary shrink-0" />
         <h1 className="text-sm font-semibold text-argos-fg">Atelier libre</h1>
         <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-argos-fg-tertiary">
