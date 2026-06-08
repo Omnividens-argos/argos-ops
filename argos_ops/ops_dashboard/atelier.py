@@ -48,20 +48,26 @@ _FLEET_MCP_CONFIG = json.dumps(
     }
 )
 
-# Outils autorisés en mode pilotage flotte : lecture du repo + outils MCP flotte.
-# Write/Edit explicitement interdits → l'atelier ne modifie JAMAIS le repo.
-_FLEET_ALLOWED_TOOLS = "Read,Glob,Grep,mcp__fleet__list_bots,mcp__fleet__run_bot,mcp__fleet__read_bot_memory,mcp__fleet__bot_in_memory"
-_FLEET_DISALLOWED_TOOLS = "Write,Edit,NotebookEdit"
+# Outils autorisés en mode pilotage flotte : lecture du repo + outils MCP flotte
+# + écriture SCOPÉE à data/ (brouillons, contenus). L'écriture hors data/ (le
+# code : argos_ops/, scripts/, etc.) n'est PAS dans l'allowlist → refusée par
+# défaut en headless. C'est l'allowlist qui garantit l'inviolabilité du code.
+_FLEET_ALLOWED_TOOLS = (
+    "Read,Glob,Grep,Write(data/**),Edit(data/**),"
+    "mcp__fleet__list_bots,mcp__fleet__run_bot,mcp__fleet__read_bot_memory,mcp__fleet__bot_in_memory"
+)
 
 _FLEET_SYSTEM_PROMPT = (
     "Tu es le chef d'orchestre de la flotte Argos Ops (mode « pilotage flotte »). "
-    "Tu NE modifies JAMAIS le repo (Write/Edit interdits). Tu peux : lire le repo, "
-    "lire la mémoire des bots (mcp__fleet__read_bot_memory / mcp__fleet__bot_in_memory) "
-    "et LANCER des bots (mcp__fleet__run_bot) après les avoir listés via "
-    "mcp__fleet__list_bots. Méthode : comprends l'intention → propose un plan court → "
-    "lance les bots utiles → agrège leurs résultats → présente clairement à "
-    "l'utilisateur. Les bots qui publient/envoient ne partent en réel que si leur flag "
-    "live est déjà activé (sinon ils restent en brouillon shadow). En cas de doute sur "
+    "Tu ne modifies JAMAIS le CODE du repo (argos_ops/, scripts/, .claude/, etc. — "
+    "Write/Edit y sont refusés). Tu PEUX en revanche créer/éditer des brouillons et "
+    "artefacts dans data/ (ex. data/content/drafts/) pour préparer du contenu. "
+    "Tu peux aussi lire le repo, lire la mémoire des bots (mcp__fleet__read_bot_memory "
+    "/ mcp__fleet__bot_in_memory) et LANCER des bots (mcp__fleet__run_bot) après les "
+    "avoir listés via mcp__fleet__list_bots. Méthode : comprends l'intention → propose "
+    "un plan court → crée les brouillons nécessaires dans data/ → lance les bots utiles "
+    "→ agrège → présente clairement. Les bots qui publient/envoient ne partent en réel "
+    "que si leur flag live est déjà activé (sinon brouillon shadow). En cas de doute sur "
     "une action externe (post, email), demande avant de lancer."
 )
 
@@ -79,8 +85,9 @@ def build_claude_argv(
     """Construit l'argv du CLI ``claude`` headless pour un tour.
 
     - ``read`` : ``--permission-mode plan`` (lecture seule, aucune écriture).
-    - ``fleet`` : serveur MCP flotte branché + outils flotte/lecture autorisés,
-      Write/Edit interdits, prompt système « chef d'orchestre ».
+    - ``fleet`` : serveur MCP flotte branché + outils flotte/lecture autorisés
+      + écriture scopée à ``data/`` (le code reste hors allowlist → refusé),
+      prompt système « chef d'orchestre ».
 
     Premier tour : pas de ``--resume`` (claude crée la session, l'``session_id``
     est capté dans l'event ``system/init``). Tours suivants : ``--resume``.
@@ -102,8 +109,6 @@ def build_claude_argv(
             _FLEET_MCP_CONFIG,
             "--allowedTools",
             _FLEET_ALLOWED_TOOLS,
-            "--disallowedTools",
-            _FLEET_DISALLOWED_TOOLS,
             "--append-system-prompt",
             _FLEET_SYSTEM_PROMPT,
         ]

@@ -253,7 +253,7 @@ export function Atelier() {
               Session prête. Pose une question, ou demande une action à orchestrer sur la flotte.
               <br />
               <span className="text-[11px]">
-                Mode {mode === "read" ? "lecture seule" : "pilotage flotte (lancer des bots)"} actif.
+                Mode {mode === "read" ? "lecture seule" : "pilotage flotte (lancer des bots, brouillons data/)"} actif.
               </span>
             </div>
           )}
@@ -410,7 +410,7 @@ function AtelierBar({
           type="button"
           onClick={onToggleMode}
           disabled={status === "running"}
-          title="Bascule lecture seule ↔ pilotage flotte (lancer des bots, lire leur mémoire)"
+          title="Bascule lecture seule ↔ pilotage flotte (lancer des bots, lire leur mémoire, créer des brouillons dans data/)"
           className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-[11px] transition-colors disabled:opacity-50 ${
             mode === "fleet"
               ? "border-argos-warning/40 bg-argos-warning/10 text-argos-warning"
