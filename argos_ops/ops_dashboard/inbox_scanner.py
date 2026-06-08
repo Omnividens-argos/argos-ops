@@ -342,4 +342,53 @@ def read_output_content(file_path: str) -> str:
         raise HTTPException(status_code=500, detail=f"Lecture échouée : {exc}") from exc
 
 
-__all__ = ["read_output_content", "scan_all_outputs", "scan_inbox_drafts"]
+# Extensions lisibles depuis la modale « voir la donnée » des cards IN/OUT
+# (onglet Travail). Read-only, texte uniquement.
+PEEKABLE_SUFFIXES: frozenset[str] = frozenset(
+    {".md", ".yaml", ".yml", ".csv", ".txt", ".json", ".toml", ".log"}
+)
+
+
+def read_peek_file(file_path: str, *, max_bytes: int = 200_000) -> tuple[str, bool]:
+    """Lit le contenu raw d'un fichier source sous le repo (read-only).
+
+    Sert la modale contextuelle des cards IN/OUT du cockpit. Plus permissif
+    que :func:`read_output_content` (pas que du markdown) mais borné par une
+    whitelist d'extensions texte + un plafond de taille. Retourne
+    ``(contenu, tronqué)``.
+
+    Sécurité : refuse ``..``, tout chemin hors repo, et toute extension hors
+    :data:`PEEKABLE_SUFFIXES`.
+    """
+    from fastapi import HTTPException
+
+    if ".." in file_path:
+        raise HTTPException(status_code=400, detail="Chemin invalide")
+    root = _project_root().resolve()
+    target = (root / file_path).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Chemin hors repo") from exc
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail="Fichier introuvable")
+    if target.suffix.lower() not in PEEKABLE_SUFFIXES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Extension {target.suffix} non lisible depuis le panel.",
+        )
+    try:
+        raw = target.read_bytes()
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"Lecture échouée : {exc}") from exc
+    truncated = len(raw) > max_bytes
+    return raw[:max_bytes].decode("utf-8", errors="replace"), truncated
+
+
+__all__ = [
+    "PEEKABLE_SUFFIXES",
+    "read_output_content",
+    "read_peek_file",
+    "scan_all_outputs",
+    "scan_inbox_drafts",
+]

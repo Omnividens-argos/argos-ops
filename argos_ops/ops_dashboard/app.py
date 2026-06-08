@@ -52,6 +52,7 @@ from argos_ops.ops_dashboard.cohorts import compute_cohorts
 from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
 from argos_ops.ops_dashboard.inbox_scanner import (
     read_output_content,
+    read_peek_file,
     scan_all_outputs,
     scan_inbox_drafts,
 )
@@ -69,6 +70,7 @@ from argos_ops.ops_dashboard.models import (
     CohortsResponse,
     FactCreatePayload,
     FactRow,
+    FilePeekResponse,
     HealthAgentBreakdown,
     HealthSnapshot,
     InboxActionPayload,
@@ -1302,6 +1304,23 @@ async def get_output_content(path: str = Query(..., min_length=1)) -> OutputCont
     """
     content = read_output_content(path)
     return OutputContentResponse(file_path=path, content=content)
+
+
+@app.get("/api/files/peek", response_model=FilePeekResponse)
+async def peek_file(path: str = Query(..., min_length=1)) -> FilePeekResponse:
+    """Lit le contenu raw d'un fichier source pour la modale des cards IN/OUT.
+
+    ``path`` est relatif au repo (ex. ``data/uptime/endpoints.yaml``).
+    Whitelist d'extensions texte + plafond de taille côté
+    ``inbox_scanner.read_peek_file`` (anti-traversée).
+    """
+    content, truncated = read_peek_file(path)
+    return FilePeekResponse(
+        file_path=path,
+        content=content,
+        truncated=truncated,
+        suffix=Path(path).suffix.lower(),
+    )
 
 
 @app.get("/api/agents/{name}/config-yaml", response_model=YamlConfigResponse)

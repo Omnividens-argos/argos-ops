@@ -200,6 +200,16 @@ class OutputContentResponse(BaseModel):
     content: str
 
 
+class FilePeekResponse(BaseModel):
+    """Contenu raw d'un fichier source (modale « voir la donnée » des cards
+    IN/OUT de l'onglet Travail). Read-only, texte, whitelist d'extensions."""
+
+    file_path: str
+    content: str
+    truncated: bool = False
+    suffix: str
+
+
 class InboxActionPayload(BaseModel):
     """Payload pour POST /api/inbox/{id}/validate et /reject.
 

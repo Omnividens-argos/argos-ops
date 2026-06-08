@@ -31,6 +31,7 @@ import {
   statusBgColor,
   statusColor,
 } from "../../lib/format";
+import { IODetailModal } from "./IODetailModal";
 import { SectionHeader } from "./shared";
 
 // Icône par kind d'IOItem.
@@ -56,10 +57,13 @@ interface TravailTabProps {
   onOpenInbox: () => void;
 }
 
+type PeekTarget = { item: RunIOItem; direction: "IN" | "OUT" };
+
 export function TravailTab({ runs, perf, drafts, meta, onOpenInbox }: TravailTabProps) {
   const [statusFilter, setStatusFilter] = useState<
     "all" | "success" | "failed" | "skipped"
   >("all");
+  const [peek, setPeek] = useState<PeekTarget | null>(null);
 
   const filtered = useMemo(() => {
     if (!runs) return [];
@@ -189,15 +193,31 @@ export function TravailTab({ runs, perf, drafts, meta, onOpenInbox }: TravailTab
         )}
         <div className="space-y-3">
           {filtered.map((run) => (
-            <RunIOCard key={run.id} run={run} meta={meta} />
+            <RunIOCard key={run.id} run={run} meta={meta} onPeek={setPeek} />
           ))}
         </div>
       </section>
+
+      {peek && (
+        <IODetailModal
+          item={peek.item}
+          direction={peek.direction}
+          onClose={() => setPeek(null)}
+        />
+      )}
     </div>
   );
 }
 
-function RunIOCard({ run, meta }: { run: AgentRunRow; meta: BotMetadata }) {
+function RunIOCard({
+  run,
+  meta,
+  onPeek,
+}: {
+  run: AgentRunRow;
+  meta: BotMetadata;
+  onPeek: (t: PeekTarget) => void;
+}) {
   const hasRealIO =
     (run.inputs && run.inputs.length > 0) || (run.outputs && run.outputs.length > 0);
 
@@ -224,7 +244,13 @@ function RunIOCard({ run, meta }: { run: AgentRunRow; meta: BotMetadata }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-stretch">
-        <IOColumn title="IN" tone="info" items={derivedInputs} emptyHint="aucune source identifiée" />
+        <IOColumn
+          title="IN"
+          tone="info"
+          items={derivedInputs}
+          emptyHint="aucune source identifiée"
+          onPeek={(item) => onPeek({ item, direction: "IN" })}
+        />
         <div className="hidden md:flex items-center justify-center text-argos-fg-tertiary">
           <ArrowRight size={16} strokeWidth={2} />
         </div>
@@ -233,6 +259,7 @@ function RunIOCard({ run, meta }: { run: AgentRunRow; meta: BotMetadata }) {
           tone="healthy"
           items={derivedOutputs}
           emptyHint="rien produit"
+          onPeek={(item) => onPeek({ item, direction: "OUT" })}
           extra={
             run.error ? (
               <div className="mt-1.5 font-mono text-[11px] text-argos-danger break-words whitespace-pre-wrap">
@@ -251,12 +278,14 @@ function IOColumn({
   tone,
   items,
   emptyHint,
+  onPeek,
   extra,
 }: {
   title: string;
   tone: "info" | "healthy";
   items: RunIOItem[];
   emptyHint: string;
+  onPeek: (item: RunIOItem) => void;
   extra?: React.ReactNode;
 }) {
   const accent = tone === "info" ? "text-argos-info" : "text-argos-healthy";
@@ -272,7 +301,7 @@ function IOColumn({
       ) : (
         <ul className="space-y-1.5">
           {items.map((it, i) => (
-            <IORow key={`${it.label}-${i}`} item={it} />
+            <IORow key={`${it.label}-${i}`} item={it} onPeek={() => onPeek(it)} />
           ))}
         </ul>
       )}
@@ -281,33 +310,35 @@ function IOColumn({
   );
 }
 
-function IORow({ item }: { item: RunIOItem }) {
+function IORow({ item, onPeek }: { item: RunIOItem; onPeek: () => void }) {
   const Icon = KIND_ICON[item.kind] ?? KIND_ICON.other;
   return (
-    <li className="flex items-start gap-2">
-      <Icon size={13} strokeWidth={2} className="text-argos-fg-tertiary shrink-0 mt-0.5" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs text-argos-fg break-words">{item.label}</span>
-          {item.count !== null && <Badge tone="neutral">{item.count}</Badge>}
-        </div>
-        {item.detail && (
-          <div className="font-mono text-[10px] text-argos-fg-tertiary break-words">
-            {item.ref && item.ref.startsWith("http") ? (
-              <a
-                href={item.ref}
-                target="_blank"
-                rel="noreferrer"
-                className="text-argos-info hover:underline"
-              >
-                {item.detail}
-              </a>
-            ) : (
-              item.detail
-            )}
+    <li>
+      <button
+        type="button"
+        onClick={onPeek}
+        className="w-full text-left flex items-start gap-2 rounded px-1 -mx-1 py-0.5 hover:bg-argos-info/5 transition-colors group"
+        title="Voir la donnée"
+      >
+        <Icon
+          size={13}
+          strokeWidth={2}
+          className="text-argos-fg-tertiary group-hover:text-argos-info shrink-0 mt-0.5"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-argos-fg break-words group-hover:text-argos-info">
+              {item.label}
+            </span>
+            {item.count !== null && <Badge tone="neutral">{item.count}</Badge>}
           </div>
-        )}
-      </div>
+          {item.detail && (
+            <div className="font-mono text-[10px] text-argos-fg-tertiary break-words line-clamp-2">
+              {item.detail}
+            </div>
+          )}
+        </div>
+      </button>
     </li>
   );
 }
