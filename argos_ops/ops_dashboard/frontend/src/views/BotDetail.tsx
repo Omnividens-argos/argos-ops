@@ -14,6 +14,7 @@ import {
   Puzzle,
   Settings,
   Shield,
+  Sparkles,
   TimerReset,
   Workflow,
 } from "lucide-react";
@@ -60,6 +61,7 @@ import {
   statusColor,
 } from "../lib/format";
 import { KpiCard, SectionHeader } from "./bot/shared";
+import { ConsoleTab } from "./bot/ConsoleTab";
 import { MemoryTab } from "./bot/MemoryTab";
 import { TravailTab } from "./bot/TravailTab";
 
@@ -72,10 +74,11 @@ import { TravailTab } from "./bot/TravailTab";
 //   • Mémoire — mémoire de flotte rangée par date + code couleur fraîcheur.
 //   • Historique — tous les runs.
 
-type BotTab = "overview" | "travail" | "memory" | "history";
+type BotTab = "overview" | "console" | "travail" | "memory" | "history";
 
 const TABS: { key: BotTab; label: string; icon: typeof LayoutGrid }[] = [
   { key: "overview", label: "Vue d'ensemble", icon: LayoutGrid },
+  { key: "console", label: "Console", icon: Sparkles },
   { key: "travail", label: "Travail (IN → OUT)", icon: ArrowRightLeft },
   { key: "memory", label: "Mémoire", icon: Brain },
   { key: "history", label: "Historique", icon: History },
@@ -263,6 +266,8 @@ export function BotDetail({
           <DocSection botName={botName} meta={meta} />
         </div>
       )}
+
+      {tab === "console" && <ConsoleTab botName={botName} meta={meta} />}
 
       {tab === "travail" && (
         <TravailTab

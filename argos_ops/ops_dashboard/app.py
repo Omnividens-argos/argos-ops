@@ -68,7 +68,10 @@ from argos_ops.ops_dashboard.models import (
     CashSubBreakdown,
     CashTicketBreakdown,
     CohortsResponse,
+    ConsoleActPayload,
+    ConsoleActResponse,
     ConsoleInResponse,
+    ConsoleStatusResponse,
     FactCreatePayload,
     FactRow,
     FilePeekResponse,
@@ -1101,6 +1104,128 @@ async def get_console_in(
             for s in comp.sources
         ],
         context_chars=len(comp.context_text),
+    )
+
+
+@app.get("/api/agents/{name}/console/status", response_model=ConsoleStatusResponse)
+async def get_console_status(name: str) -> ConsoleStatusResponse:
+    """État de la console : moteur génération dispo + SHADOW/LIVE + runnable."""
+    if name not in KNOWN_AGENTS:
+        raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
+    settings = get_settings()
+    return ConsoleStatusResponse(
+        engine_enabled=settings.ops_atelier_enabled,
+        live=console.is_bot_live(name, settings),
+        runnable=name in RUNNABLE_AGENTS,
+    )
+
+
+@app.websocket("/api/agents/{name}/console/generate")
+async def console_generate_ws(websocket: WebSocket, name: str) -> None:
+    """GÉNÈRE (réversible) : compose le IN → moteur atelier headless → draft +
+    auto-jugement → verdict. Ne déclenche AUCUNE action. Auth + flag identiques
+    à l'atelier (même moteur Claude Code local)."""
+    settings = get_settings()
+    client_ip = websocket.client.host if websocket.client is not None else None
+    if name not in KNOWN_AGENTS or not atelier.ws_authorized(
+        client_ip=client_ip,
+        authorization=websocket.headers.get("authorization"),
+        token=websocket.query_params.get("token"),
+        settings=settings,
+    ):
+        await websocket.close(code=4403)
+        return
+    await websocket.accept()
+    if not settings.ops_atelier_enabled:
+        await websocket.send_json({"type": "disabled"})
+        await websocket.close()
+        return
+
+    session = atelier.AtelierSession(claude_bin=settings.ops_atelier_claude_bin)
+    await websocket.send_json({"type": "ready"})
+    try:
+        while True:
+            msg = await websocket.receive_json()
+            if msg.get("type") != "generate":
+                continue
+            task = str(msg.get("task", "")).strip()
+            if not task:
+                continue
+            comp = await console.compose_in(
+                name,
+                include_own_memory=bool(msg.get("own", True)),
+                include_accessible_memory=bool(msg.get("accessible", True)),
+                include_skills=bool(msg.get("skills_on", True)),
+                include_data=bool(msg.get("data_on", True)),
+                skills=tuple(str(s) for s in (msg.get("skills") or [])),
+                data_summary=str(msg.get("data_summary", "")),
+                root=FLEET_MEMORY_ROOT,
+            )
+            prompt = console.build_generate_prompt(name, task, comp)
+            buffer: list[str] = []
+            async for event in session.send(prompt, permission_mode="read"):
+                if event.get("kind") == "text":
+                    buffer.append(str(event.get("text", "")))
+                    await websocket.send_json({"type": "delta", "text": event["text"]})
+                elif event.get("kind") == "error":
+                    await websocket.send_json(
+                        {"type": "error", "message": event.get("message", "")}
+                    )
+            raw = "".join(buffer)
+            try:
+                result = console.parse_generation(raw)
+                await websocket.send_json(
+                    {
+                        "type": "verdict",
+                        "draft": result.draft,
+                        "verdict": result.verdict,
+                        "scores": {
+                            "factual": result.report.factual_score,
+                            "tone": result.report.tone_score,
+                            "legal": result.report.legal_score,
+                            "global": result.report.global_score,
+                        },
+                        "rationale": result.report.rationale,
+                    }
+                )
+            except ValueError as exc:
+                # Parsing raté : on rend quand même le brut, sans verdict.
+                await websocket.send_json({"type": "parse_error", "message": str(exc), "raw": raw})
+    except WebSocketDisconnect:
+        session.interrupt()
+
+
+@app.post("/api/agents/{name}/console/act", response_model=ConsoleActResponse)
+async def console_act(name: str, payload: ConsoleActPayload) -> ConsoleActResponse:
+    """AGIR (irréversible) : déclenche le bot APRÈS validation. Gâchette stricte.
+
+    ``killed`` → jamais. Sinon → approbation humaine obligatoire. L'action réelle
+    vs shadow dépend du flag live propre au bot (cf. ``is_bot_live``)."""
+    if name not in KNOWN_AGENTS:
+        raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
+    settings = get_settings()
+    live = console.is_bot_live(name, settings)
+
+    if not console.can_act(payload.verdict, human_approved=payload.approved):
+        reason = (
+            "verdict killed — action bloquée"
+            if payload.verdict == "killed"
+            else "approbation humaine requise"
+        )
+        return ConsoleActResponse(acted=False, live=live, reason=reason)
+
+    if name not in RUNNABLE_AGENTS:
+        return ConsoleActResponse(
+            acted=False, live=live, reason=f"{name} non lançable (interactif / watcher)"
+        )
+
+    result = await run_agent(_build_agent(name))
+    return ConsoleActResponse(
+        acted=True,
+        live=live,
+        status=result.status,
+        output_summary=result.output_summary,
+        error=result.error,
     )
 
 

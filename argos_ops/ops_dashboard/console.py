@@ -23,8 +23,18 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from argos_ops import fleet_memory
+from argos_ops.config import Settings
 from argos_ops.fleet_memory import Fact
 from argos_ops.judge import JudgeReport, JudgeVerdict, apply_thresholds, parse_judge_json
+
+# Bots dont une action est réellement "live" si leur flag dédié est armé.
+# Tout bot absent de cette table est considéré SHADOW par défaut (conservateur :
+# le badge n'affiche jamais LIVE par erreur).
+_LIVE_FLAG_BY_BOT: dict[str, str] = {
+    "OutboundBot": "outbound_live_mode",
+    "OutboundSender": "outbound_live_mode",
+    "AdBot": "ads_live_mode",
+}
 
 # Marqueurs que le prompt demande à Claude d'émettre, pour séparer proprement le
 # brouillon du bloc verdict dans la sortie.
@@ -201,6 +211,16 @@ def can_act(verdict: JudgeVerdict, *, human_approved: bool) -> bool:
     return human_approved
 
 
+def is_bot_live(name: str, settings: Settings) -> bool:
+    """Vrai si AGIR déclencherait une action réelle (vs brouillon shadow).
+
+    Conservateur : un bot inconnu de la table → SHADOW (``False``). Sert au badge
+    SHADOW/LIVE de la console (« ne jamais agir en croyant être en dry-run »).
+    """
+    attr = _LIVE_FLAG_BY_BOT.get(name)
+    return bool(getattr(settings, attr, False)) if attr else False
+
+
 __all__ = [
     "GenerationResult",
     "InComposition",
@@ -208,5 +228,6 @@ __all__ = [
     "build_generate_prompt",
     "can_act",
     "compose_in",
+    "is_bot_live",
     "parse_generation",
 ]

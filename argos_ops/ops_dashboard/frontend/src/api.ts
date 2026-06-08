@@ -412,6 +412,66 @@ export function fetchAtelierTranscript(
 }
 
 // =============================================================================
+// Console bot — découple générer / agir (Cockpit LOT 3)
+// =============================================================================
+export interface ConsoleInSource {
+  key: string;
+  label: string;
+  count: number;
+  detail: string;
+}
+
+export interface ConsoleInResponse {
+  bot: string;
+  sources: ConsoleInSource[];
+  context_chars: number;
+}
+
+export interface ConsoleStatus {
+  engine_enabled: boolean;
+  live: boolean;
+  runnable: boolean;
+}
+
+export type ConsoleVerdict = "auto_send" | "queued" | "killed";
+
+export interface ConsoleActResponse {
+  acted: boolean;
+  live: boolean;
+  status: string | null;
+  output_summary: string | null;
+  error: string | null;
+  reason: string | null;
+}
+
+export function fetchConsoleIn(
+  name: string,
+  own: boolean,
+  accessible: boolean,
+  signal?: AbortSignal,
+): Promise<ConsoleInResponse> {
+  return getJSON<ConsoleInResponse>(
+    `/api/agents/${encodeURIComponent(name)}/console/in?own=${own}&accessible=${accessible}`,
+    signal,
+  );
+}
+
+export function fetchConsoleStatus(name: string, signal?: AbortSignal): Promise<ConsoleStatus> {
+  return getJSON<ConsoleStatus>(`/api/agents/${encodeURIComponent(name)}/console/status`, signal);
+}
+
+export function consoleAct(
+  name: string,
+  payload: { verdict: ConsoleVerdict; approved: boolean },
+): Promise<ConsoleActResponse> {
+  return sendJSON<ConsoleActResponse>(
+    "POST",
+    `/api/agents/${encodeURIComponent(name)}/console/act`,
+    payload,
+  );
+}
+
+// =============================================================================
 // Mémoire de flotte — Cockpit Console (LOT 2)
 // =============================================================================
 export function fetchAgentMemory(
