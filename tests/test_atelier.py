@@ -38,16 +38,18 @@ def test_argv_resume_when_session() -> None:
     assert argv[argv.index("--resume") + 1] == "sess-123"
 
 
-def test_argv_fleet_mode_wires_mcp_and_forbids_edits() -> None:
+def test_argv_fleet_mode_wires_mcp_and_scopes_writes_to_data() -> None:
     argv = build_claude_argv("lance TrendSpotter", permission_mode="fleet")
     # Serveur MCP flotte branché + outils flotte autorisés.
     assert "--mcp-config" in argv
     assert "argos_ops.mcp.fleet_server" in argv[argv.index("--mcp-config") + 1]
     allowed = argv[argv.index("--allowedTools") + 1]
     assert "mcp__fleet__run_bot" in allowed
-    # Write/Edit explicitement interdits → jamais de modif du repo.
-    disallowed = argv[argv.index("--disallowedTools") + 1]
-    assert "Write" in disallowed and "Edit" in disallowed
+    # Écriture SCOPÉE à data/ (brouillons) — le code n'est pas dans l'allowlist.
+    assert "Write(data/**)" in allowed
+    assert "Edit(data/**)" in allowed
+    # Pas d'allow-write global (qui ouvrirait le code).
+    assert "Write,Edit" not in allowed and ",Write," not in allowed
     # Prompt orchestrateur présent, et PAS le mode plan (qui est read-only).
     assert "--append-system-prompt" in argv
     assert "plan" not in argv

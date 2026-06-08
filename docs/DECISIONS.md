@@ -1450,9 +1450,13 @@ React via **WebSocket** full-duplex. Activé par le flag `OPS_ATELIER_ENABLED`
 (OFF par défaut), **local-only**, jamais routé à distance. Deux modes :
 **lecture seule** (`plan`) et **pilotage flotte** (l'atelier devient chef
 d'orchestre : il lit la mémoire des bots et les lance via un serveur MCP
-`argos-fleet`, mais **ne modifie jamais le repo** — Write/Edit interdits). Le
-mode édition de code (`acceptEdits`) a été **retiré** : le fondateur édite le
-repo via Claude Code direct, pas via l'atelier (décision 2026-06-07).
+`argos-fleet`). En pilotage flotte il **ne modifie jamais le CODE**
+(argos_ops/, scripts/, .claude/… — Write/Edit hors allowlist, refusés) mais
+**peut écrire des brouillons dans `data/`** (`Write(data/**)`/`Edit(data/**)`)
+pour préparer du contenu — affiné le 2026-06-08, pour que la chaîne « parler →
+drafter → publier » fonctionne. Le mode édition de code (`acceptEdits`) a été
+**retiré** : le fondateur édite le code via Claude Code direct, pas via
+l'atelier.
 
 **Pourquoi :** Le **Claude Agent SDK exige `ANTHROPIC_API_KEY`** (facturation à
 l'usage = API tierce) → incompatible **D-017**. Le CLI headless hérite du token
