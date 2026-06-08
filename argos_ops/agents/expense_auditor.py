@@ -30,7 +30,7 @@ from typing import Literal
 from loguru import logger
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.finance.expense_csv import (
@@ -211,8 +211,52 @@ class ExpenseAuditor(BaseAgent):
         seen_now = {e.vendor for e in expenses}
         append_new_vendors(self._dir, seen_now)
 
+        vendors_path = self._dir / VENDORS_JOURNAL_NAME
+        outliers = [a for a in anomalies if a.kind == "amount_outlier"]
+        duplicates = [a for a in anomalies if a.kind == "duplicate"]
+        new_vendors = [a for a in anomalies if a.kind == "new_vendor"]
+        inputs = [
+            IOItem(
+                label="Export Qonto le plus récent",
+                kind="file",
+                detail=source.name,
+                ref=str(source),
+                count=len(expenses),
+            ),
+            IOItem(
+                label="Historique vendors connus",
+                kind="file",
+                detail=str(vendors_path),
+                ref=str(vendors_path),
+                count=len(history),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Montants outliers",
+                kind="other",
+                detail=", ".join(a.expense.vendor for a in outliers) or None,
+                count=len(outliers),
+            ),
+            IOItem(
+                label="Doublons de prélèvement",
+                kind="other",
+                detail=", ".join(a.expense.vendor for a in duplicates) or None,
+                count=len(duplicates),
+            ),
+            IOItem(
+                label="Nouveaux vendors",
+                kind="other",
+                detail=", ".join(a.expense.vendor for a in new_vendors) or None,
+                count=len(new_vendors),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_expense_embed, agent_name=self.name
+            report,
+            embed_builder=build_expense_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

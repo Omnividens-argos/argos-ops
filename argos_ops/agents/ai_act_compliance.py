@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.compliance import AIActRisk, classify_ai_act_risk
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
@@ -183,8 +183,36 @@ class AIActComplianceBot(BaseAgent):
         agent_classes = discover_agents(self._package_name)
         classifications = classify_all(agent_classes)
         report = build_report(classifications)
+        prohibited = [c for c in classifications if c.risk == "prohibited"]
+        unclassified = [c for c in classifications if c.risk == "unclassified"]
+        inputs = [
+            IOItem(
+                label="Agents Python découverts",
+                kind="other",
+                detail=f"sous-classes BaseAgent dans {self._package_name}",
+                count=len(classifications),
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Agents prohibited (AI Act art. 5)",
+                kind="other",
+                detail=", ".join(c.name for c in prohibited) or None,
+                count=len(prohibited),
+            ),
+            IOItem(
+                label="Agents non classifiés",
+                kind="other",
+                detail=", ".join(c.name for c in unclassified) or None,
+                count=len(unclassified),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_ai_act_embed, agent_name=self.name
+            report,
+            embed_builder=build_ai_act_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

@@ -41,7 +41,7 @@ from loguru import logger
 
 from argos_ops.agents._fetcher_base import fetch
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField
 
@@ -283,8 +283,39 @@ class CompetitorWatcher(BaseAgent):
                 )
 
         report = build_report(changes)
+        changed = [c for c in changes if c.changed]
+        inputs = [
+            IOItem(
+                label="Pages concurrent surveillées",
+                kind="file",
+                detail=str(self._targets_path),
+                ref=str(self._targets_path),
+                count=len(targets),
+            ),
+            IOItem(
+                label="Snapshots précédents",
+                kind="file",
+                detail=str(self._snapshot_dir),
+                ref=str(self._snapshot_dir),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Pages ayant changé",
+                kind="http",
+                detail=", ".join(
+                    f"{c.target.name}/{c.target.section}" for c in changed
+                )
+                or None,
+                count=len(changed),
+            )
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_competitor_embed, agent_name=self.name
+            report,
+            embed_builder=build_competitor_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

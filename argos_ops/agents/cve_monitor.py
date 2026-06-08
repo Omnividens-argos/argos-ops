@@ -29,7 +29,7 @@ from loguru import logger
 
 from argos_ops.agents._fetcher_base import fetch
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.agents.dependency_auditor import (
     OSV_QUERYBATCH_URL,
     OSV_VULN_URL_TEMPLATE,
@@ -293,8 +293,56 @@ class CVEMonitor(BaseAgent):
         save_seen_vulns(seen, path=self._seen_path)
 
         report = build_report(new_alerts, total_packages=len(packages))
+        critical_high = [a for a in new_alerts if a.severity in SEVERITY_ALERT]
+        inputs = [
+            IOItem(
+                label="Stacks clients déclarées",
+                kind="file",
+                detail=str(self._customers_path),
+                ref=str(self._customers_path),
+                count=len(packages),
+            ),
+            IOItem(
+                label="CVE déjà vues (anti-réalerte)",
+                kind="file",
+                detail=str(self._seen_path),
+                ref=str(self._seen_path),
+                count=len(seen),
+            ),
+            IOItem(
+                label="Requête vulnérabilités OSV.dev",
+                kind="api",
+                detail=OSV_QUERYBATCH_URL,
+                ref=OSV_QUERYBATCH_URL,
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Nouvelles CVE détectées",
+                kind="other",
+                detail=", ".join(
+                    f"{a.package.name} {a.vuln_id}" for a in new_alerts
+                )
+                or None,
+                count=len(new_alerts),
+            ),
+            IOItem(
+                label="CVE HIGH/CRITICAL",
+                kind="other",
+                detail=", ".join(
+                    f"{a.package.customer_name}/{a.package.name} {a.vuln_id}"
+                    for a in critical_high
+                )
+                or None,
+                count=len(critical_high),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_cve_embed, agent_name=self.name
+            report,
+            embed_builder=build_cve_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

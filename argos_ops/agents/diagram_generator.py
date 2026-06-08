@@ -38,7 +38,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 
 DEFAULT_SPECS_DIR: Path = REPO_ROOT / "data" / "diagrams"
@@ -199,12 +199,35 @@ class DiagramGenerator(BaseAgent):
 
         target = write_diagram(self._slug, spec, output_dir=self._output_dir)
         logger.info(f"DiagramGenerator — diagramme écrit dans {target}")
+
+        def _repo_ref(path: Path) -> str:
+            try:
+                return path.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return path.as_posix()
+
         return RunResult(
             status="success",
             output_summary=(
                 f"slug={self._slug} nodes={len(spec.nodes)} edges={len(spec.edges)}"
             ),
             extras={"written_to": str(target)},
+            inputs=[
+                IOItem(
+                    label=f"Spec diagramme « {spec.title} »",
+                    kind="file",
+                    detail=f"{len(spec.nodes)} nodes · {len(spec.edges)} edges",
+                    ref=_repo_ref(spec_path),
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label="Diagramme Mermaid généré",
+                    kind="file",
+                    detail=f"flowchart {spec.direction}",
+                    ref=_repo_ref(target),
+                )
+            ],
         )
 
 

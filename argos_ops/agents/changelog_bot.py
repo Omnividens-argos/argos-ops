@@ -17,7 +17,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
     GREEN,
@@ -195,7 +195,33 @@ class ChangelogBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"ChangelogBot — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=result.summary(), extras={"path": str(path)})
+        try:
+            out_ref = path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            out_ref = str(path)
+        inputs = [
+            IOItem(
+                label="Historique git",
+                kind="other",
+                detail=f"git log {period_label}",
+                count=result.commits_total,
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Changelog généré",
+                kind="file",
+                detail=f"{len(sections)} section(s) conventional commits",
+                ref=out_ref,
+            )
+        ]
+        return RunResult(
+            status="success",
+            output_summary=result.summary(),
+            inputs=inputs,
+            outputs=outputs,
+            extras={"path": str(path)},
+        )
 
 
 __all__ = [

@@ -31,7 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun
 from argos_ops.notifications.discord import (
@@ -229,8 +229,31 @@ class ErrorTriageBot(BaseAgent):
         async with session_scope() as session:
             clusters, total = await collect_clusters(session)
         report = build_report(clusters, total)
+        inputs = [
+            IOItem(
+                label="Erreurs runtime",
+                kind="db",
+                detail=f"agent_runs.error sur {WINDOW_HOURS}h",
+                count=total,
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label=f"Clusters d'erreurs (>= {MIN_OCCURRENCES_TO_ALERT})",
+                kind="other",
+                detail=", ".join(
+                    f"{c.signature} x{c.count}" for c in report.clusters
+                )
+                or None,
+                count=len(report.clusters),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_triage_embed, agent_name=self.name
+            report,
+            embed_builder=build_triage_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

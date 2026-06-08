@@ -29,7 +29,7 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
     GREEN,
@@ -246,7 +246,36 @@ class BugTriageBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"BugTriageBot — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
+        inputs = [
+            IOItem(
+                label="Issues GitHub ouvertes",
+                kind="file",
+                detail="export gh / saisie manuelle",
+                ref=_rel(self._issues_path),
+                count=stats.issues_total,
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Triage par sévérité",
+                kind="file",
+                detail=f"P0={stats.p0} · P1={stats.p1} · P2={stats.p2}",
+                ref=_rel(triage_path),
+                count=stats.issues_total,
+            )
+        ]
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

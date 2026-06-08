@@ -37,7 +37,7 @@ from argos_ops.agents._watcher_base import (
     format_duration,
     format_rate,
 )
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.agents.bot_health import ERROR_STATUSES, MONITORED_AGENTS
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun
@@ -359,8 +359,37 @@ class BotPerfAnalyzer(BaseAgent):
         async with session_scope() as session:
             snapshots = await collect_snapshots(session, agent_names=self._agent_names)
         report = build_report(snapshots)
+        regressions = [s for s in snapshots if s.status == "regression"]
+        warns = [s for s in snapshots if s.status == "warn"]
+        inputs = [
+            IOItem(
+                label="Durées + erreurs des agents",
+                kind="db",
+                detail="agent_runs (fenêtre 7j courante vs baseline J-14→J-7)",
+                count=len(snapshots),
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Agents en régression (>=2x baseline)",
+                kind="other",
+                detail=", ".join(f"{s.agent_name} ({s.reason})" for s in regressions)
+                or None,
+                count=len(regressions),
+            ),
+            IOItem(
+                label="Agents en dérive (>=1.5x baseline)",
+                kind="other",
+                detail=", ".join(f"{s.agent_name} ({s.reason})" for s in warns) or None,
+                count=len(warns),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_perf_embed, agent_name=self.name
+            report,
+            embed_builder=build_perf_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

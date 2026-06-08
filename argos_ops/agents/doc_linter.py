@@ -25,7 +25,7 @@ from typing import Literal
 from loguru import logger
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
@@ -274,10 +274,50 @@ class DocLinter(BaseAgent):
         report = build_report(
             files_scanned=len(docs), links_checked=total_links, issues=all_issues
         )
+        missing_files = [i for i in all_issues if i.kind == "missing_file"]
+        missing_anchors = [i for i in all_issues if i.kind == "missing_anchor"]
+        inputs = [
+            IOItem(
+                label="Fichiers markdown scannés",
+                kind="file",
+                detail=", ".join(DOCS_GLOBS),
+                ref=str(self._root),
+                count=len(docs),
+            ),
+            IOItem(
+                label="Liens internes vérifiés",
+                kind="other",
+                count=total_links,
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Liens vers fichier mort",
+                kind="other",
+                detail=", ".join(
+                    f"{i.source_file.name}:{i.line_number} → {i.target}"
+                    for i in missing_files
+                )
+                or None,
+                count=len(missing_files),
+            ),
+            IOItem(
+                label="Anchors morts (heading renommé)",
+                kind="other",
+                detail=", ".join(
+                    f"{i.source_file.name}:{i.line_number} → {i.target}"
+                    for i in missing_anchors
+                )
+                or None,
+                count=len(missing_anchors),
+            ),
+        ]
         return await emit_alert_or_silence(
             report,
             embed_builder=lambda r: build_lint_embed(r, root=self._root),
             agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

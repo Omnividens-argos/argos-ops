@@ -37,7 +37,7 @@ import yaml
 from loguru import logger
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
@@ -230,8 +230,32 @@ class BurnRateMonitor(BaseAgent):
         report = build_report(snapshot)
         if snapshot is None:
             logger.info(f"BurnRateMonitor — {self._path} absent, skip silencieux")
+        inputs = [
+            IOItem(
+                label="État trésorerie déclaré",
+                kind="file",
+                detail=str(self._path),
+                ref=str(self._path),
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Runway estimé",
+                kind="other",
+                detail=(
+                    f"{report.runway_months}m · net_burn={report.net_burn_eur} €/m "
+                    f"· {report.severity}"
+                    if snapshot is not None
+                    else "treasury absent"
+                ),
+            )
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_burn_embed, agent_name=self.name
+            report,
+            embed_builder=build_burn_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import get_settings
 from argos_ops.notifications.discord import (
     GREEN,
@@ -146,7 +146,35 @@ class ContentBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"ContentBot — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        inputs = [
+            IOItem(
+                label="Drafts validés à publier",
+                kind="draft",
+                detail="status=validated · scheduled_for <= now",
+                ref="data/content/drafts/",
+                count=stats.ready,
+            )
+        ]
+        published_total = stats.published_live + stats.published_shadow
+        channels = ", ".join(f"{ch}={n}" for ch, n in stats.by_channel.most_common())
+        outputs = [
+            IOItem(
+                label="Posts publiés (LinkedIn / Mastodon / …)",
+                kind="http",
+                detail=(
+                    f"{stats.published_live} live · {stats.published_shadow} shadow"
+                    + (f" · {channels}" if channels else "")
+                ),
+                ref="data/content/published/",
+                count=published_total,
+            )
+        ]
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = ["ContentBot", "ContentRunStats", "build_content_embed"]

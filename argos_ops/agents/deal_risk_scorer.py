@@ -28,7 +28,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
     GREEN,
@@ -167,7 +167,30 @@ class DealRiskScorer(BaseAgent):
             except Exception as exc:
                 logger.warning(f"DealRiskScorer — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=report.summary())
+        inputs = [
+            IOItem(
+                label="Pipe commercial",
+                kind="file",
+                detail=f"{report.active} actif(s) · {report.won} won · {report.lost} lost",
+                ref="data/sales/deals/pipe.yaml",
+                count=report.total,
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Top 3 deals à risque sur Discord",
+                kind="discord",
+                detail=f"{report.stalled} deal(s) stalled au-delà du seuil",
+                count=report.stalled,
+            )
+        ]
+
+        return RunResult(
+            status="success",
+            output_summary=report.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

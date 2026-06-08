@@ -37,7 +37,7 @@ from typing import Literal
 from loguru import logger
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
@@ -306,8 +306,48 @@ class DNSGuard(BaseAgent):
         changes = diff_snapshots(previous, snapshot)
         report = build_report(snapshot, changes)
         save_snapshot(snapshot, self._domain, self._snapshot_dir)
+        snapshot_path = _snapshot_path(self._domain, self._snapshot_dir)
+        critical = [c for c in changes if c.is_critical]
+        inputs = [
+            IOItem(
+                label="Snapshot DNS précédent",
+                kind="file",
+                detail=str(snapshot_path) if previous else "aucun (baseline)",
+                ref=str(snapshot_path),
+            ),
+            IOItem(
+                label="Zone DNS résolue",
+                kind="other",
+                detail=f"{self._domain} + {', '.join(self._subdomains)}",
+                count=len(snapshot.records),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Snapshot DNS écrit",
+                kind="file",
+                detail=str(snapshot_path),
+                ref=str(snapshot_path),
+            ),
+            IOItem(
+                label="Changements DNS détectés",
+                kind="other",
+                detail=", ".join(c.key for c in changes) or None,
+                count=len(changes),
+            ),
+            IOItem(
+                label="Changements critiques (A root / MX)",
+                kind="other",
+                detail=", ".join(c.key for c in critical) or None,
+                count=len(critical),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_dns_embed, agent_name=self.name
+            report,
+            embed_builder=build_dns_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

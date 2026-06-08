@@ -25,7 +25,7 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.cs.loader import load_customers
 from argos_ops.cs.models import ChurnSignal
@@ -157,7 +157,36 @@ class ChurnPredictor(BaseAgent):
             except Exception as exc:
                 logger.warning(f"ChurnPredictor — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=report.summary())
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
+        inputs = [
+            IOItem(
+                label="Comptes clients",
+                kind="file",
+                detail="usage · NPS · tickets · inactivité",
+                ref=_rel(self._customers_path),
+                count=report.customers_seen,
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Snapshot comptes à risque",
+                kind="file",
+                detail=f"{len(urgent)} urgent(s) (score ≥ 60)",
+                ref=_rel(snapshot_path),
+                count=len(report.at_risk),
+            )
+        ]
+        return RunResult(
+            status="success",
+            output_summary=report.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

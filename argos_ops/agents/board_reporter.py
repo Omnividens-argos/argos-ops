@@ -25,7 +25,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun
@@ -249,9 +249,48 @@ class BoardReporter(BaseAgent):
             f"(MRR {metrics.mrr_eur:.0f}€ · {metrics.runs_month} runs · "
             f"{metrics.incidents_month} incidents)"
         )
+        inputs = [
+            IOItem(
+                label="MRR / ARR actifs",
+                kind="db",
+                detail=f"MRR {metrics.mrr_eur:.0f} € · ARR {metrics.arr_eur:.0f} €",
+            ),
+            IOItem(
+                label="Agent runs du mois",
+                kind="db",
+                detail=f"{metrics.breakers_tripped} breaker(s) tripped",
+                count=metrics.runs_month,
+            ),
+            IOItem(
+                label="Burn / runway",
+                kind="file",
+                detail="cash flow tracké (optionnel)",
+                ref="data/strategy/burn.yaml",
+            ),
+            IOItem(
+                label="Incidents internes du mois",
+                kind="file",
+                ref="data/compliance/incidents/",
+                count=metrics.incidents_month,
+            ),
+        ]
+        try:
+            out_ref = output_path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            out_ref = str(output_path)
+        outputs = [
+            IOItem(
+                label=f"Board pack {metrics.period}",
+                kind="file",
+                detail="markdown pandoc-ready (PDF via pandoc)",
+                ref=out_ref,
+            )
+        ]
         return RunResult(
             status="success",
             output_summary=summary,
+            inputs=inputs,
+            outputs=outputs,
             extras={
                 "output_path": str(output_path),
                 "mrr_eur": str(metrics.mrr_eur),

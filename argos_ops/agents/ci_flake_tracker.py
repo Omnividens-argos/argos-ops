@@ -29,7 +29,7 @@ from datetime import UTC, datetime
 from loguru import logger
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField
 
 DEFAULT_REPO = "Omnividens-argos/argos-ops"
@@ -226,8 +226,32 @@ class CIFlakeTracker(BaseAgent):
             )
         flakes = compute_flakes(samples)
         report = build_report(flakes, total_runs=self._lookback_runs)
+        inputs = [
+            IOItem(
+                label="Jobs CI GitHub Actions",
+                kind="api",
+                detail=f"{self._repo} (derniers {self._lookback_runs} runs)",
+                ref=f"https://github.com/{self._repo}/actions",
+                count=len(samples),
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Jobs flaky détectés",
+                kind="other",
+                detail=", ".join(
+                    f"{s.job_name} ({s.fail_rate_pct:.0f}%)" for s in flakes
+                )
+                or None,
+                count=len(flakes),
+            )
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_flake_embed, agent_name=self.name
+            report,
+            embed_builder=build_flake_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

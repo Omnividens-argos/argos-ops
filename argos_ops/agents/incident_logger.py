@@ -30,7 +30,7 @@ from typing import Literal
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 
 IncidentCategory = Literal[
@@ -209,6 +209,15 @@ class IncidentLogger(BaseAgent):
             status="success",
             output_summary=f"incidents dir OK ({count} post-mortems archivés)",
             extras={"incidents_count": count},
+            inputs=[
+                IOItem(
+                    label="Post-mortems d'incident archivés",
+                    kind="file",
+                    detail="health check passif (vérifie l'accès au dossier)",
+                    ref="data/compliance/incidents/",
+                    count=count,
+                )
+            ],
         )
 
 

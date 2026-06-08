@@ -23,7 +23,7 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.cs.loader import load_customers
 from argos_ops.cs.models import HealthBand, HealthScore
@@ -164,7 +164,42 @@ class HealthScoreBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"HealthScoreBot — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=report.summary())
+        inputs = [
+            IOItem(
+                label="Comptes clients",
+                kind="file",
+                detail="usage · tickets 30j · NPS · inactivité",
+                ref="data/cs/customers.yaml",
+                count=len(customers),
+            )
+        ]
+        outputs: list[IOItem] = [
+            IOItem(
+                label="Snapshot scores santé",
+                kind="file",
+                detail=(
+                    f"vert={report.green} jaune={report.yellow} "
+                    f"rouge={report.red} · moyenne {report.average}/100"
+                ),
+                ref=f"data/health_scores/{snapshot_path.name}",
+                count=len(scores),
+            )
+        ]
+        if report.red > 0 or report.yellow > 0:
+            outputs.append(
+                IOItem(
+                    label="Alerte Discord comptes à surveiller",
+                    kind="discord",
+                    count=report.red + report.yellow,
+                )
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=report.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

@@ -31,7 +31,7 @@ from loguru import logger
 
 from argos_ops.agents._fetcher_base import fetch
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField
 
@@ -258,8 +258,42 @@ class BountyRadar(BaseAgent):
         save_seen(seen, path=self._seen_path)
 
         report = build_report(new_programs, total_scanned=len(all_programs))
+        inputs = [
+            IOItem(
+                label="Filtres keywords sectoriels",
+                kind="file",
+                detail=str(self._filters_path),
+                ref=str(self._filters_path),
+                count=len(keywords),
+            ),
+            IOItem(
+                label="Programmes déjà vus",
+                kind="file",
+                detail=str(self._seen_path),
+                ref=str(self._seen_path),
+                count=len(seen),
+            ),
+            IOItem(
+                label="Plateformes bounty scrapées",
+                kind="http",
+                detail="HackerOne + YesWeHack",
+                count=len(all_programs),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Nouveaux programmes pertinents",
+                kind="other",
+                detail=", ".join(p.name for p in new_programs) or None,
+                count=len(new_programs),
+            )
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_bounty_embed, agent_name=self.name
+            report,
+            embed_builder=build_bounty_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

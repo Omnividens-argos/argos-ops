@@ -32,7 +32,7 @@ from typing import Literal
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 
 DEFAULT_ADR_DIR: Path = REPO_ROOT / "docs" / "adr"
@@ -178,11 +178,30 @@ class ADRWriter(BaseAgent):
         target, number, created = write_adr(self._draft, adr_dir=self._adr_dir)
         action = "created" if created else "updated"
         logger.info(f"ADRWriter — ADR-{number:04d} {action} ({target})")
+        try:
+            ref = target.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            ref = str(target)
         return RunResult(
             status="success",
             output_summary=(
                 f"adr=ADR-{number:04d} slug={self._draft.slug} action={action}"
             ),
+            inputs=[
+                IOItem(
+                    label="Draft ADR structuré",
+                    kind="other",
+                    detail=f"{self._draft.title} · statut {self._draft.status}",
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label=f"ADR-{number:04d} {action}",
+                    kind="file",
+                    detail=self._draft.title,
+                    ref=ref,
+                )
+            ],
             extras={"written_to": str(target), "number": number, "created": created},
         )
 

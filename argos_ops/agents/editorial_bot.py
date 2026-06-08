@@ -30,7 +30,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
 
@@ -222,7 +222,33 @@ class EditorialBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"EditorialBot — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=plan.summary())
+        inputs = [
+            IOItem(
+                label="Dernier digest TrendSpotter",
+                kind="file",
+                detail=f"{len(topics)} sujet(s) chaud(s)",
+                ref=f"data/trends/{digest.name}",
+                count=len(topics),
+            )
+        ]
+        outputs: list[IOItem] = []
+        if queue_path is not None:
+            outputs.append(
+                IOItem(
+                    label="Queue éditoriale (recommandations writer/canal)",
+                    kind="file",
+                    detail="shadow — le fondateur déclenche les /draft-* listés",
+                    ref=f"data/editorial/{queue_path.name}",
+                    count=len(tasks),
+                )
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=plan.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [
