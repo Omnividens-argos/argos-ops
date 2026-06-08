@@ -18,7 +18,7 @@ from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col, select
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.breakers import count_recent_failed, trip_with_notification
 from argos_ops.config import get_settings
 from argos_ops.crm.db import session_scope
@@ -202,7 +202,38 @@ class EmailBot(BaseAgent):
         # Breaker métier (P15) — burst d'erreurs IMAP/persist sur 24 h
         await self._maybe_trip_smtp_failures_burst(webhook)
 
-        return RunResult(status="success", output_summary=stats.summary())
+        # IN/OUT structuré pour l'onglet Travail du cockpit.
+        inputs = [
+            IOItem(
+                label=f"Boîte IMAP {settings.email_user}",
+                kind="imap",
+                detail=f"{settings.email_imap_host}:{settings.email_imap_port} · non lus",
+                count=stats.fetched,
+            )
+        ]
+        outputs: list[IOItem] = [
+            IOItem(
+                label="Emails ingérés en CRM",
+                kind="db",
+                detail=(
+                    f"{stats.new_leads} nouveau(x) lead(s) · "
+                    f"{stats.new_companies} société(s) · "
+                    f"{stats.skipped_noreply} noreply ignoré(s)"
+                ),
+                count=stats.ingested,
+            )
+        ]
+        if stats.failures:
+            outputs.append(
+                IOItem(label="Échecs de persistance", kind="db", count=stats.failures)
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
     async def _maybe_trip_smtp_failures_burst(self, discord_webhook: SecretStr | None) -> None:
         """Trip ``email_smtp_failures_burst`` si EmailBot a enchaîné ≥ 3 runs failed sur 24 h.

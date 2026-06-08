@@ -14,7 +14,7 @@ Pattern :
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Literal
 
 from loguru import logger
@@ -35,12 +35,32 @@ RunStatus = Literal[
 
 
 @dataclass
+class IOItem:
+    """Une entrée (IN) ou sortie (OUT) structurée d'un run d'agent.
+
+    Sert à afficher dans le cockpit « ce que le bot a regardé » (IN) →
+    « ce qu'il a trouvé / produit » (OUT). Renseigné par l'agent dans son
+    :class:`RunResult` ; sérialisé en JSONB dans ``agent_runs.inputs`` /
+    ``agent_runs.outputs``. Tout est optionnel sauf ``label`` — un bot non
+    instrumenté laisse les listes vides et l'UI retombe sur une vue dérivée.
+    """
+
+    label: str  # ex. "Boîte IMAP contact@omnividens.fr", "KPIs Postgres"
+    kind: str = "other"  # imap|db|file|kb|memory|api|http|draft|discord|email|other
+    detail: str | None = None  # ex. "50 mails non lus", "data/uptime/endpoints.yaml"
+    ref: str | None = None  # chemin fichier ou URL cliquable (optionnel)
+    count: int | None = None  # cardinalité (ex. 50)
+
+
+@dataclass
 class RunResult:
     """Résultat d'exécution d'un agent — sérialisé dans ``agent_runs``."""
 
     status: RunStatus
     output_summary: str | None = None
     error: str | None = None
+    inputs: list[IOItem] = field(default_factory=list)
+    outputs: list[IOItem] = field(default_factory=list)
     extras: dict[str, object] = field(default_factory=dict)
 
 
@@ -108,6 +128,8 @@ async def run_agent(agent: BaseAgent) -> RunResult:
             status=result.status,
             output_summary=result.output_summary,
             error=result.error,
+            inputs=[asdict(i) for i in result.inputs] or None,
+            outputs=[asdict(o) for o in result.outputs] or None,
         )
     if result.status == "success":
         await _remember_run_facts(agent, result)

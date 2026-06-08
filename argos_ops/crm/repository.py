@@ -163,6 +163,8 @@ async def complete_agent_run(
     output_summary: str | None = None,
     error: str | None = None,
     cost_estimate_eur: Decimal | None = None,
+    inputs: list[dict[str, object]] | None = None,
+    outputs: list[dict[str, object]] | None = None,
 ) -> None:
     run = await session.get(AgentRun, run_id)
     if run is None:
@@ -172,6 +174,8 @@ async def complete_agent_run(
     run.output_summary = output_summary
     run.error = error
     run.cost_estimate_eur = cost_estimate_eur
+    run.inputs = inputs
+    run.outputs = outputs
 
 
 async def list_recent_agent_runs(

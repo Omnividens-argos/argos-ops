@@ -40,7 +40,7 @@ import yaml
 from loguru import logger
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import (
     GREEN,
@@ -293,8 +293,37 @@ class UptimeMonitor(BaseAgent):
 
         results = await check_all(endpoints)
         report = build_report(results)
+        down = [r for r in results if r.status == "down"]
+        degraded = [r for r in results if r.status == "degraded"]
+        inputs = [
+            IOItem(
+                label="Endpoints publics surveillés",
+                kind="http",
+                detail=str(self._endpoints_path),
+                ref=str(self._endpoints_path),
+                count=len(endpoints),
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Endpoints down",
+                kind="http",
+                detail=", ".join(r.endpoint.url for r in down) or None,
+                count=len(down),
+            ),
+            IOItem(
+                label="Endpoints dégradés (lents)",
+                kind="http",
+                detail=", ".join(r.endpoint.url for r in degraded) or None,
+                count=len(degraded),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_uptime_embed, agent_name=self.name
+            report,
+            embed_builder=build_uptime_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

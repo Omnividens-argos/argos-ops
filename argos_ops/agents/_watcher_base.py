@@ -29,7 +29,7 @@ from typing import Protocol
 
 from loguru import logger
 
-from argos_ops.agents.base import RunResult
+from argos_ops.agents.base import IOItem, RunResult
 from argos_ops.config import Settings, get_settings
 from argos_ops.notifications.discord import Embed, send_embed
 
@@ -57,6 +57,8 @@ async def emit_alert_or_silence[ReportT: WatcherReport](
     agent_name: str,
     webhook_attr_name: str = "discord_webhook_ops_logs",
     settings: Settings | None = None,
+    inputs: list[IOItem] | None = None,
+    outputs: list[IOItem] | None = None,
 ) -> RunResult:
     """Politique commune des watchers : silence si vert, alerte sinon.
 
@@ -64,6 +66,9 @@ async def emit_alert_or_silence[ReportT: WatcherReport](
     - ``webhook_attr_name`` permet de cibler un autre webhook que celui
       par défaut (ex : ``discord_webhook_alerts`` pour les events critiques)
     - ``settings`` injectable pour les tests (sinon ``get_settings()``)
+    - ``inputs`` / ``outputs`` : IN/OUT structuré du watcher (cf. IOItem) pour
+      l'onglet Travail du cockpit. Optionnel — un watcher non instrumenté laisse
+      ``None`` et l'UI retombe sur une vue dérivée.
 
     Garantit ces préfixes canoniques dans ``output_summary`` :
     - ``silence (vert) — …`` quand tout est ok
@@ -71,12 +76,16 @@ async def emit_alert_or_silence[ReportT: WatcherReport](
       pas configuré
     - ``alert pushed — …`` quand l'embed est posté avec succès
     """
+    ins = inputs or []
+    outs = outputs or []
     if not report.should_alert:
         logger.info(f"{agent_name} — tout vert, silence Discord ({report.summary})")
         return RunResult(
             status="success",
             output_summary=f"silence (vert) — {report.summary}",
             extras={"alerted": False, "summary": report.summary},
+            inputs=ins,
+            outputs=outs,
         )
 
     settings = settings or get_settings()
@@ -89,6 +98,8 @@ async def emit_alert_or_silence[ReportT: WatcherReport](
             status="success",
             output_summary=f"alerte non envoyée (webhook absent) — {report.summary}",
             extras={"alerted": False, "summary": report.summary},
+            inputs=ins,
+            outputs=outs,
         )
 
     embed = embed_builder(report)
@@ -98,6 +109,8 @@ async def emit_alert_or_silence[ReportT: WatcherReport](
         status="success",
         output_summary=f"alert pushed — {report.summary}",
         extras={"alerted": True, "summary": report.summary},
+        inputs=ins,
+        outputs=outs,
     )
 
 
