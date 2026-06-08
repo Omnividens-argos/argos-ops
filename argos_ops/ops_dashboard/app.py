@@ -46,7 +46,7 @@ from argos_ops.crm.repository import (
     sum_active_mrr_eur,
     update_agent_config,
 )
-from argos_ops.ops_dashboard import atelier, atelier_history, auth
+from argos_ops.ops_dashboard import atelier, atelier_history, auth, console
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
 from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
@@ -68,6 +68,7 @@ from argos_ops.ops_dashboard.models import (
     CashSubBreakdown,
     CashTicketBreakdown,
     CohortsResponse,
+    ConsoleInResponse,
     FactCreatePayload,
     FactRow,
     FilePeekResponse,
@@ -76,6 +77,7 @@ from argos_ops.ops_dashboard.models import (
     InboxActionPayload,
     InboxActionResponse,
     InboxDraft,
+    InSourceRow,
     KPIsOverview,
     ManualRunResponse,
     OpsLoginPayload,
@@ -1065,6 +1067,41 @@ async def archive_agent_memory(name: str, fact_id: str) -> FactRow:
     if fact is None:
         raise HTTPException(status_code=404, detail=f"Fait introuvable : {fact_id}")
     return _fact_to_row(fact)
+
+
+# =============================================================================
+# Console bot — découple générer / agir (Cockpit LOT 3)
+# =============================================================================
+@app.get("/api/agents/{name}/console/in", response_model=ConsoleInResponse)
+async def get_console_in(
+    name: str,
+    own: bool = Query(default=True),
+    accessible: bool = Query(default=True),
+) -> ConsoleInResponse:
+    """Compose le « IN » mémoire d'un bot pour la console (sources cochables).
+
+    Mémoire propre + mémoire accessible (graphe). Skills / data sont overlayés
+    côté frontend (depuis ``botMetadata``). C'est la base réversible de la
+    génération : voir ce qu'on donnerait à l'IA avant de générer quoi que ce soit.
+    """
+    if name not in KNOWN_AGENTS:
+        raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
+    comp = await console.compose_in(
+        name,
+        include_own_memory=own,
+        include_accessible_memory=accessible,
+        include_skills=False,
+        include_data=False,
+        root=FLEET_MEMORY_ROOT,
+    )
+    return ConsoleInResponse(
+        bot=comp.bot,
+        sources=[
+            InSourceRow(key=s.key, label=s.label, count=s.count, detail=s.detail)
+            for s in comp.sources
+        ],
+        context_chars=len(comp.context_text),
+    )
 
 
 # =============================================================================

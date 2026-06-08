@@ -412,3 +412,23 @@ class FactCreatePayload(BaseModel):
     confidence: Literal["low", "medium", "high"] = "medium"
     tags: list[str] = []
     ttl_days: int | None = None
+
+
+# =============================================================================
+# Console bot — découple générer / agir (Cockpit LOT 3)
+# =============================================================================
+class InSourceRow(BaseModel):
+    """Une source du IN (case à cocher) composée côté backend."""
+
+    key: str
+    label: str
+    count: int
+    detail: str = ""
+
+
+class ConsoleInResponse(BaseModel):
+    """Le IN composé d'un bot : sources cochées + taille du contexte assemblé."""
+
+    bot: str
+    sources: list[InSourceRow]
+    context_chars: int
