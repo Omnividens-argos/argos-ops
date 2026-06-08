@@ -109,11 +109,25 @@ def test_normalize_result() -> None:
     assert ev == {"kind": "result", "text": "fini", "is_error": False}
 
 
-def test_normalize_assistant_full_message() -> None:
+def test_normalize_assistant_full_message_is_raw_not_duplicated() -> None:
+    # Le message assistant complet ne doit PAS être ré-émis comme texte : son
+    # contenu est déjà arrivé en streaming via les deltas. Sinon → doublon.
     ev = normalize_event(
         {"type": "assistant", "message": {"content": [{"type": "text", "text": "Bonjour"}]}}
     )
-    assert ev == {"kind": "text", "text": "Bonjour"}
+    assert ev["kind"] == "raw"
+
+
+def test_normalize_tool_result() -> None:
+    ev = normalize_event(
+        {
+            "type": "user",
+            "message": {
+                "content": [{"type": "tool_result", "content": [{"type": "text", "text": "fait"}]}]
+            },
+        }
+    )
+    assert ev == {"kind": "tool_result", "text": "fait"}
 
 
 def test_normalize_unknown_falls_back_to_raw() -> None:

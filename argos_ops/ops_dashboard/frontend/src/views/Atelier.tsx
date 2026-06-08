@@ -1,7 +1,12 @@
 import {
   AlertTriangle,
+  ChevronDown,
+  ChevronRight,
   Cpu,
   Eye,
+  History,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Send,
   Square,
@@ -9,38 +14,45 @@ import {
   Wrench,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchAtelierStatus } from "../api";
+import {
+  type AtelierSessionMeta,
+  fetchAtelierSessions,
+  fetchAtelierStatus,
+  fetchAtelierTranscript,
+} from "../api";
 import { EmptyState } from "../components/EmptyState";
+import { MarkdownPreview } from "../components/MarkdownPreview";
 import { Badge, Button } from "../components/ui";
+import { formatRelativeTime } from "../lib/format";
 
-// Atelier libre embarqué — Claude Code piloté depuis le panel via WebSocket
-// full-duplex (cf. argos_ops/ops_dashboard/atelier.py). Local-only, derrière
-// le flag OPS_ATELIER_ENABLED. Aesthétique dev-tool / terminal (tokens argos-*).
+// Atelier libre v2 — Claude Code piloté depuis le panel via WebSocket full-duplex
+// (cf. argos_ops/ops_dashboard/atelier.py). Local-only, flag OPS_ATELIER_ENABLED.
+// v2 : historique des conversations (rouvrir + reprendre), rendu markdown,
+// cartes d'outils repliables, layout dev-tool soigné (tokens argos-*).
 
 type SessionStatus =
-  | "loading" // appel /status en cours
-  | "disabled" // OPS_ATELIER_ENABLED=false
-  | "connecting" // WS en cours d'ouverture
-  | "ready" // prêt à recevoir un message
-  | "running" // un tour Claude est en cours
-  | "stopped" // WS fermé / erreur transport
+  | "loading"
+  | "disabled"
+  | "connecting"
+  | "ready"
+  | "running"
+  | "stopped"
   | "error";
 
 type PermissionMode = "read" | "fleet";
 
 interface TranscriptItem {
   id: number;
-  role: "user" | "assistant" | "tool" | "result" | "error";
+  role: "user" | "assistant" | "tool" | "tool_result" | "error" | "result";
   text: string;
+  name?: string;
 }
 
-// Event normalisé venant du backend (cf. atelier.normalize_event).
 interface AtelierEvent {
   kind: string;
   text?: string;
   name?: string;
   message?: string;
-  session_id?: string | null;
 }
 
 function wsUrl(): string {
@@ -53,31 +65,40 @@ export function Atelier() {
   const [items, setItems] = useState<TranscriptItem[]>([]);
   const [draft, setDraft] = useState("");
   const [mode, setMode] = useState<PermissionMode>("read");
+  const [sessions, setSessions] = useState<AtelierSessionMeta[]>([]);
+  const [activeSession, setActiveSession] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const wsRef = useRef<WebSocket | null>(null);
   const idRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const pinnedRef = useRef(true); // autoscroll seulement si l'user est en bas
+  const pinnedRef = useRef(true);
 
   const nextId = () => {
     idRef.current += 1;
     return idRef.current;
   };
 
-  // — Réducteur d'items : les deltas de texte s'accumulent dans le dernier
-  //   item assistant ; tout autre kind ouvre un nouvel item.
+  const refreshSessions = useCallback(() => {
+    fetchAtelierSessions()
+      .then(setSessions)
+      .catch(() => undefined);
+  }, []);
+
   const pushEvent = useCallback((ev: AtelierEvent) => {
     setItems((prev) => {
       if (ev.kind === "text" && ev.text) {
         const last = prev[prev.length - 1];
         if (last && last.role === "assistant") {
-          const copy = prev.slice(0, -1);
-          return [...copy, { ...last, text: last.text + ev.text }];
+          return [...prev.slice(0, -1), { ...last, text: last.text + ev.text }];
         }
         return [...prev, { id: nextId(), role: "assistant", text: ev.text }];
       }
       if (ev.kind === "tool_use") {
-        return [...prev, { id: nextId(), role: "tool", text: ev.name ?? "?" }];
+        return [...prev, { id: nextId(), role: "tool", text: "", name: ev.name ?? "?" }];
+      }
+      if (ev.kind === "tool_result") {
+        return [...prev, { id: nextId(), role: "tool_result", text: ev.text ?? "" }];
       }
       if (ev.kind === "error") {
         return [...prev, { id: nextId(), role: "error", text: ev.message ?? "Erreur" }];
@@ -85,11 +106,10 @@ export function Atelier() {
       if (ev.kind === "result" && ev.text) {
         return [...prev, { id: nextId(), role: "result", text: ev.text }];
       }
-      return prev; // system / raw / turn_done : non rendus
+      return prev;
     });
   }, []);
 
-  // — Connexion WS (après confirmation que l'atelier est activé).
   const connect = useCallback(() => {
     setStatus("connecting");
     const ws = new WebSocket(wsUrl());
@@ -103,15 +123,17 @@ export function Atelier() {
       }
       if (msg.type === "disabled") setStatus("disabled");
       else if (msg.type === "ready") setStatus("ready");
-      else if (msg.type === "turn_complete") setStatus("ready");
-      else if (msg.type === "event" && msg.event) pushEvent(msg.event);
+      else if (msg.type === "turn_complete") {
+        setStatus("ready");
+        refreshSessions();
+      } else if (msg.type === "event" && msg.event) pushEvent(msg.event);
     };
     ws.onclose = () => {
       wsRef.current = null;
       setStatus((s) => (s === "disabled" ? s : "stopped"));
     };
     ws.onerror = () => setStatus("error");
-  }, [pushEvent]);
+  }, [pushEvent, refreshSessions]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -122,6 +144,7 @@ export function Atelier() {
           return;
         }
         connect();
+        refreshSessions();
       })
       .catch((e) => {
         if (e instanceof DOMException && e.name === "AbortError") return;
@@ -132,9 +155,8 @@ export function Atelier() {
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [connect]);
+  }, [connect, refreshSessions]);
 
-  // — Autoscroll si l'utilisateur est resté en bas.
   useEffect(() => {
     if (pinnedRef.current && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -165,7 +187,21 @@ export function Atelier() {
   const newSession = () => {
     wsRef.current?.close();
     setItems([]);
+    setActiveSession(null);
     connect();
+  };
+
+  const openSession = async (id: string) => {
+    try {
+      const { items: dto } = await fetchAtelierTranscript(id);
+      setItems(dto.map((it) => ({ id: nextId(), role: it.role, text: it.text, name: it.name })));
+      setActiveSession(id);
+      // Reprend le contexte de cette conversation pour les prochains messages.
+      wsRef.current?.send(JSON.stringify({ type: "resume", session_id: id }));
+      pinnedRef.current = true;
+    } catch {
+      // silencieux : la session a pu être supprimée
+    }
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -182,53 +218,137 @@ export function Atelier() {
       </div>
     );
   }
-
-  if (status === "disabled") {
-    return <AtelierDisabled />;
-  }
+  if (status === "disabled") return <AtelierDisabled />;
 
   return (
-    <div className="flex flex-col h-full">
-      <AtelierBar
-        status={status}
-        mode={mode}
-        onToggleMode={() => setMode((m) => (m === "read" ? "fleet" : "read"))}
-        onNewSession={newSession}
-        onInterrupt={interrupt}
-      />
+    <div className="flex h-full">
+      {sidebarOpen && (
+        <SessionsSidebar
+          sessions={sessions}
+          activeSession={activeSession}
+          onOpen={openSession}
+          onNew={newSession}
+          onCollapse={() => setSidebarOpen(false)}
+        />
+      )}
 
-      <div
-        ref={scrollRef}
-        onScroll={onScroll}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-3 font-mono text-[12px] leading-relaxed"
-      >
-        {items.length === 0 && (
-          <div className="text-argos-fg-tertiary text-center mt-10">
-            Session prête. Pose une question, ou demande une action à orchestrer
-            sur la flotte.
-            <br />
-            <span className="text-[11px]">
-              Mode {mode === "read" ? "lecture seule" : "pilotage flotte (lancer des bots)"} actif.
-            </span>
+      <div className="flex flex-col flex-1 min-w-0">
+        <AtelierBar
+          status={status}
+          mode={mode}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen((v) => !v)}
+          onToggleMode={() => setMode((m) => (m === "read" ? "fleet" : "read"))}
+          onNewSession={newSession}
+          onInterrupt={interrupt}
+        />
+
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        >
+          {items.length === 0 && (
+            <div className="text-argos-fg-tertiary text-center mt-10 font-mono text-[12px]">
+              Session prête. Pose une question, ou demande une action à orchestrer sur la flotte.
+              <br />
+              <span className="text-[11px]">
+                Mode {mode === "read" ? "lecture seule" : "pilotage flotte (lancer des bots)"} actif.
+              </span>
+            </div>
+          )}
+          {items.map((it) => (
+            <TranscriptRow key={it.id} item={it} />
+          ))}
+          {status === "running" && (
+            <div className="font-mono text-[12px] text-argos-fg-tertiary animate-pulse">
+              ▍ Claude réfléchit…
+            </div>
+          )}
+        </div>
+
+        <AtelierComposer
+          draft={draft}
+          setDraft={setDraft}
+          onKeyDown={onKeyDown}
+          onSend={send}
+          onInterrupt={interrupt}
+          status={status}
+        />
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Sidebar historique des conversations
+// =============================================================================
+function SessionsSidebar({
+  sessions,
+  activeSession,
+  onOpen,
+  onNew,
+  onCollapse,
+}: {
+  sessions: AtelierSessionMeta[];
+  activeSession: string | null;
+  onOpen: (id: string) => void;
+  onNew: () => void;
+  onCollapse: () => void;
+}) {
+  return (
+    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-argos-border-subtle bg-argos-surface">
+      <div className="flex items-center justify-between gap-1 px-3 py-2.5 border-b border-argos-border-subtle">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-argos-fg-tertiary min-w-0">
+          <History size={12} strokeWidth={2} className="shrink-0" />
+          Conversations
+        </span>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={onNew}
+            title="Nouvelle conversation"
+            className="inline-flex items-center gap-1 rounded-md border border-argos-border-subtle px-1.5 py-0.5 font-mono text-[10px] text-argos-fg-secondary hover:text-argos-fg hover:border-argos-border transition-colors"
+          >
+            <Plus size={10} strokeWidth={2} />
+            neuve
+          </button>
+          <button
+            type="button"
+            onClick={onCollapse}
+            title="Replier l'historique"
+            className="inline-flex items-center justify-center rounded-md border border-argos-border-subtle p-1 text-argos-fg-tertiary hover:text-argos-fg hover:border-argos-border transition-colors"
+          >
+            <PanelLeftClose size={12} strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
+        {sessions.length === 0 ? (
+          <div className="font-mono text-[10px] text-argos-fg-tertiary p-2">
+            Aucune conversation pour l'instant.
           </div>
-        )}
-        {items.map((it) => (
-          <TranscriptRow key={it.id} item={it} />
-        ))}
-        {status === "running" && (
-          <div className="text-argos-fg-tertiary animate-pulse">▍ Claude réfléchit…</div>
+        ) : (
+          sessions.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onOpen(s.id)}
+              className={`w-full text-left rounded-md px-2.5 py-1.5 transition-colors ${
+                activeSession === s.id
+                  ? "bg-argos-surface-2 text-argos-fg"
+                  : "text-argos-fg-secondary hover:bg-argos-surface-2/60 hover:text-argos-fg"
+              }`}
+            >
+              <div className="text-[12px] leading-snug line-clamp-2">{s.title}</div>
+              <div className="font-mono text-[10px] text-argos-fg-tertiary mt-0.5">
+                {formatRelativeTime(s.updated_at)}
+              </div>
+            </button>
+          ))
         )}
       </div>
-
-      <AtelierComposer
-        draft={draft}
-        setDraft={setDraft}
-        onKeyDown={onKeyDown}
-        onSend={send}
-        onInterrupt={interrupt}
-        status={status}
-      />
-    </div>
+    </aside>
   );
 }
 
@@ -248,12 +368,16 @@ const STATUS_META: Record<SessionStatus, { label: string; dot: string }> = {
 function AtelierBar({
   status,
   mode,
+  sidebarOpen,
+  onToggleSidebar,
   onToggleMode,
   onNewSession,
   onInterrupt,
 }: {
   status: SessionStatus;
   mode: PermissionMode;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
   onToggleMode: () => void;
   onNewSession: () => void;
   onInterrupt: () => void;
@@ -262,6 +386,18 @@ function AtelierBar({
   return (
     <header className="flex items-center justify-between gap-3 border-b border-argos-border-subtle bg-argos-surface px-4 py-2.5 flex-wrap">
       <div className="flex items-center gap-2 min-w-0">
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          title={sidebarOpen ? "Replier l'historique" : "Afficher l'historique"}
+          className="hidden md:inline-flex items-center justify-center rounded-md border border-argos-border-subtle p-1 text-argos-fg-tertiary hover:text-argos-fg hover:border-argos-border transition-colors"
+        >
+          {sidebarOpen ? (
+            <PanelLeftClose size={14} strokeWidth={2} />
+          ) : (
+            <PanelLeftOpen size={14} strokeWidth={2} />
+          )}
+        </button>
         <Terminal size={15} strokeWidth={2} className="text-argos-fg-tertiary shrink-0" />
         <h1 className="text-sm font-semibold text-argos-fg">Atelier libre</h1>
         <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-argos-fg-tertiary">
@@ -310,8 +446,17 @@ function TranscriptRow({ item }: { item: TranscriptItem }) {
   if (item.role === "user") {
     return (
       <div className="rounded-md border border-argos-border-subtle bg-argos-surface-2 px-3 py-2">
-        <div className="text-[10px] uppercase tracking-widest text-argos-fg-tertiary mb-1">vous</div>
-        <div className="text-argos-fg whitespace-pre-wrap break-words">{item.text}</div>
+        <div className="text-[10px] font-mono uppercase tracking-widest text-argos-fg-tertiary mb-1">
+          vous
+        </div>
+        <div className="text-[13px] text-argos-fg whitespace-pre-wrap break-words">{item.text}</div>
+      </div>
+    );
+  }
+  if (item.role === "assistant") {
+    return (
+      <div className="px-1 text-[13px] leading-relaxed">
+        <MarkdownPreview content={item.text} />
       </div>
     );
   }
@@ -319,28 +464,49 @@ function TranscriptRow({ item }: { item: TranscriptItem }) {
     return (
       <div className="inline-flex items-center gap-1.5 rounded-md border border-argos-info/30 bg-argos-info/5 px-2.5 py-1 text-argos-info">
         <Wrench size={11} strokeWidth={2} />
-        <span className="text-[11px]">{item.text}</span>
+        <span className="font-mono text-[11px]">{item.name ?? "outil"}</span>
       </div>
     );
+  }
+  if (item.role === "tool_result") {
+    return <ToolResult text={item.text} />;
   }
   if (item.role === "error") {
     return (
       <div className="flex items-start gap-2 rounded-md border border-argos-danger/40 bg-argos-danger/5 px-3 py-2 text-argos-danger">
         <AlertTriangle size={13} strokeWidth={2} className="shrink-0 mt-0.5" />
-        <div className="whitespace-pre-wrap break-words text-[11px]">{item.text}</div>
+        <div className="whitespace-pre-wrap break-words font-mono text-[11px]">{item.text}</div>
       </div>
     );
   }
-  if (item.role === "result") {
-    return (
-      <div className="border-t border-argos-border-subtle pt-2 text-[10px] text-argos-fg-tertiary whitespace-pre-wrap break-words">
-        {item.text}
-      </div>
-    );
-  }
-  // assistant
+  // result
   return (
-    <div className="text-argos-fg whitespace-pre-wrap break-words">{item.text}</div>
+    <div className="border-t border-argos-border-subtle pt-2 font-mono text-[10px] text-argos-fg-tertiary whitespace-pre-wrap break-words">
+      {item.text}
+    </div>
+  );
+}
+
+function ToolResult({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  if (!text.trim()) return null;
+  const chars = text.length;
+  return (
+    <div className="ml-4">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1 font-mono text-[10px] text-argos-fg-tertiary hover:text-argos-fg transition-colors"
+      >
+        {open ? <ChevronDown size={11} strokeWidth={2} /> : <ChevronRight size={11} strokeWidth={2} />}
+        résultat ({chars.toLocaleString("fr")} car.)
+      </button>
+      {open && (
+        <pre className="mt-1 max-h-72 overflow-auto rounded-md border border-argos-border-subtle bg-argos-bg/60 p-2 font-mono text-[10px] text-argos-fg-secondary whitespace-pre-wrap break-words">
+          {text}
+        </pre>
+      )}
+    </div>
   );
 }
 
