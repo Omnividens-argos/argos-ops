@@ -22,7 +22,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
 
@@ -164,7 +164,43 @@ class NewsletterBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"NewsletterBot — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=draft.summary())
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
+        inputs = [
+            IOItem(
+                label="Articles blog publiés",
+                kind="file",
+                detail="posts récents pour le sommaire",
+                ref=_rel(BLOG_INDEX),
+                count=draft.blog_count,
+            ),
+            IOItem(
+                label="Digests TrendSpotter",
+                kind="file",
+                detail="actu cyber des 14 derniers jours",
+                ref=_rel(TRENDS_DIR),
+                count=draft.trends_count,
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Draft newsletter mensuelle",
+                kind="draft",
+                detail="envoi humain via zimbra-ops après validation",
+                ref=_rel(path),
+            )
+        ]
+
+        return RunResult(
+            status="success",
+            output_summary=draft.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

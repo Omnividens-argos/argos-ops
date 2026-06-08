@@ -23,7 +23,7 @@ from typing import Literal
 import yaml
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.exceptions import AgentDataSourceError, ConfigError
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
@@ -281,8 +281,37 @@ class OKRTracker(BaseAgent):
             report = load_okr(path, today=self._today)
         except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
             raise AgentDataSourceError(f"load_okr {path.name}: {exc}") from exc
+        at_risk = [k for k in report.key_results if k.status == "at_risk"]
+        off_track = [k for k in report.key_results if k.status == "off_track"]
+        inputs = [
+            IOItem(
+                label="OKRs trimestriels",
+                kind="file",
+                detail=f"{report.quarter} — {len(report.key_results)} key result(s)",
+                ref=str(path),
+                count=len(report.key_results),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="KRs off track (< 50% du prorata)",
+                kind="other",
+                detail=", ".join(k.name for k in off_track) or None,
+                count=len(off_track),
+            ),
+            IOItem(
+                label="KRs at risk (50-90% du prorata)",
+                kind="other",
+                detail=", ".join(k.name for k in at_risk) or None,
+                count=len(at_risk),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_okr_embed, agent_name=self.name
+            report,
+            embed_builder=build_okr_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

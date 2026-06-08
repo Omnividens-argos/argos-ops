@@ -30,7 +30,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.compliance import is_phone_on_bloctel
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
@@ -235,8 +235,37 @@ class BloctelGuard(BaseAgent):
             matches=matches,
             leads_checked=len(leads),
         )
+        inputs = [
+            IOItem(
+                label="Liste Bloctel mensuelle",
+                kind="file",
+                detail=(
+                    f"{list_path.name} ({age}j)" if list_path is not None else "introuvable"
+                ),
+                ref=str(list_path) if list_path is not None else None,
+            ),
+            IOItem(
+                label="Leads outbound (téléphones)",
+                kind="file",
+                detail=str(self._leads_csv),
+                ref=str(self._leads_csv),
+                count=len(leads),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Leads BtoC matchés Bloctel",
+                kind="other",
+                detail=", ".join(m.lead_identifier for m in matches) or None,
+                count=len(matches),
+            )
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_bloctel_embed, agent_name=self.name
+            report,
+            embed_builder=build_bloctel_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

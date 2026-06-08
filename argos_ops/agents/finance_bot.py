@@ -29,7 +29,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col, select
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.breakers import count_recent_failed, trip_with_notification
 from argos_ops.config import get_settings
 from argos_ops.crm.db import session_scope
@@ -421,7 +421,60 @@ class FinanceBot(BaseAgent):
         # 6. Breakers métier (P15) — chute MRR critique + burst d'erreurs API
         await self._maybe_trip_business_breakers(stats, webhook)
 
-        return RunResult(status="success", output_summary=stats.summary())
+        inputs = [
+            IOItem(
+                label="Abonnements Stripe",
+                kind="api",
+                detail=f"{stats.n_active_subs}/{stats.n_subs} actifs · MRR {stats.mrr_eur} €",
+                ref="https://dashboard.stripe.com/subscriptions",
+                count=stats.n_subs,
+            ),
+            IOItem(
+                label="Factures Stripe impayées",
+                kind="api",
+                detail="classées dunning J+3 / J+7 / J+15",
+                ref="https://dashboard.stripe.com/invoices",
+                count=stats.n_open_invoices,
+            ),
+        ]
+        n_dunning = (
+            stats.n_dunning_sent_j3 + stats.n_dunning_sent_j7 + stats.n_dunning_sent_j15
+        )
+        outputs: list[IOItem] = [
+            IOItem(
+                label="Companies synchronisées (CRM)",
+                kind="db",
+                detail="stripe_customer_id · subscription_status · mrr_eur",
+                count=stats.n_companies_synced,
+            )
+        ]
+        if n_dunning:
+            outputs.append(
+                IOItem(
+                    label="Relances dunning envoyées",
+                    kind="email",
+                    detail=(
+                        f"J+3: {stats.n_dunning_sent_j3} · "
+                        f"J+7: {stats.n_dunning_sent_j7} · "
+                        f"J+15: {stats.n_dunning_sent_j15}"
+                    ),
+                    count=n_dunning,
+                )
+            )
+        outputs.append(
+            IOItem(
+                label="Digest finance sur Discord",
+                kind="discord",
+                detail=f"MRR {stats.mrr_eur} € · ARR {stats.arr_eur} €",
+            )
+        )
+
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
     async def _maybe_trip_business_breakers(
         self, stats: FinanceStats, discord_webhook: SecretStr | None

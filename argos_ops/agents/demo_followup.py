@@ -35,7 +35,7 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import (
@@ -203,7 +203,33 @@ class DemoFollowupBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"DemoFollowupBot — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        inputs = [
+            IOItem(
+                label="Démos achevées",
+                kind="file",
+                detail=f"{stats.pending_seen} pending · {stats.already_done} déjà traité(s)",
+                ref="data/sales/demos/done.yaml",
+                count=len(demos),
+            )
+        ]
+        outputs: list[IOItem] = []
+        if stats.drafts_created:
+            outputs.append(
+                IOItem(
+                    label="Mails récap post-démo draftés",
+                    kind="draft",
+                    detail="; ".join(stats.drafts[:5]),
+                    ref="data/sales/demos/drafts/",
+                    count=stats.drafts_created,
+                )
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

@@ -23,7 +23,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.cs.loader import load_customers
 from argos_ops.cs.models import Customer
@@ -170,7 +170,36 @@ class ReviewBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"ReviewBot — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        try:
+            customers_ref = self._customers_path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            customers_ref = "data/cs/customers.yaml"
+        try:
+            drafts_ref = self._drafts_dir.relative_to(REPO_ROOT).as_posix() + "/"
+        except ValueError:
+            drafts_ref = "data/reviews/drafts/"
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=[
+                IOItem(
+                    label="Clients CS",
+                    kind="file",
+                    detail="filtre promoteurs NPS ≥ 9 · onboarding ≥ J+30",
+                    ref=customers_ref,
+                    count=stats.customers_seen,
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label="Demandes d'avis draftées",
+                    kind="draft",
+                    detail=f"{stats.drafts_skipped} déjà draftées (skip)",
+                    ref=drafts_ref,
+                    count=stats.drafts_created,
+                )
+            ],
+        )
 
 
 __all__ = [

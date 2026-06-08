@@ -26,7 +26,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.exceptions import AgentDataSourceError
 
@@ -190,6 +190,15 @@ class DecisionLogger(BaseAgent):
             status="success",
             output_summary=f"{count} décisions présentes dans {path.name}",
             extras={"decisions_count": count, "path": str(path)},
+            inputs=[
+                IOItem(
+                    label="Journal des décisions",
+                    kind="file",
+                    detail="health check passif (lecture seule)",
+                    ref="docs/DECISIONS.md",
+                    count=count,
+                )
+            ],
         )
 
 

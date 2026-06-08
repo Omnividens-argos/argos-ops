@@ -31,7 +31,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentConfig
@@ -233,8 +233,49 @@ class BotConfigManager(BaseAgent):
         baseline = load_baseline(self._baseline_path)
         async with session_scope() as session:
             report = await collect_drifts(session, baseline=baseline)
+        inputs = [
+            IOItem(
+                label="Baseline config canonique",
+                kind="file",
+                detail=str(self._baseline_path),
+                ref=str(self._baseline_path),
+                count=len(baseline),
+            ),
+            IOItem(
+                label="Config agents en DB",
+                kind="db",
+                detail="agent_config (enabled / intensity / daily_limit)",
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Drifts détectés",
+                kind="other",
+                detail=", ".join(
+                    f"{d.agent_name}.{d.field}" for d in report.drifts
+                )
+                or None,
+                count=len(report.drifts),
+            ),
+            IOItem(
+                label="Agents baselinés absents en DB",
+                kind="other",
+                detail=", ".join(report.missing_in_db) or None,
+                count=len(report.missing_in_db),
+            ),
+            IOItem(
+                label="Agents en DB non baselinés",
+                kind="other",
+                detail=", ".join(report.missing_in_baseline) or None,
+                count=len(report.missing_in_baseline),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_config_drift_embed, agent_name=self.name
+            report,
+            embed_builder=build_config_drift_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

@@ -34,7 +34,7 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
     GREEN,
@@ -223,7 +223,36 @@ class ReleaseNotesBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"ReleaseNotesBot — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        try:
+            spec_ref = self._spec_path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            spec_ref = "data/release_notes/spec.yaml"
+        try:
+            out_ref = self._output_dir.relative_to(REPO_ROOT).as_posix() + "/"
+        except ValueError:
+            out_ref = "data/public/release_notes/"
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=[
+                IOItem(
+                    label="Spec release notes",
+                    kind="file",
+                    detail=f"{stats.already_done} déjà traitées (skip)",
+                    ref=spec_ref,
+                    count=stats.releases_seen,
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label="Release notes draftées",
+                    kind="draft",
+                    detail="ton user-friendly · status=drafted",
+                    ref=out_ref,
+                    count=stats.drafted,
+                )
+            ],
+        )
 
 
 __all__ = [

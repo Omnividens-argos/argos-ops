@@ -26,7 +26,7 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
     GREEN,
@@ -179,7 +179,31 @@ class FeedbackAggregator(BaseAgent):
             except Exception as exc:
                 logger.warning(f"FeedbackAggregator — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=report.summary())
+        inputs = [
+            IOItem(
+                label="Demandes clients brutes",
+                kind="file",
+                detail=f"clusterisées en {len(themes)} thème(s)",
+                ref="data/feedback/items.yaml",
+                count=len(items),
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Digest feedback par thème",
+                kind="file",
+                detail="; ".join(f"{t.topic} ({t.count})" for t in themes[:3]),
+                ref=f"data/feedback/{digest_path.name}",
+                count=len(themes),
+            )
+        ]
+
+        return RunResult(
+            status="success",
+            output_summary=report.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

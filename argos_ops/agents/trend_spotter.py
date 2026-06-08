@@ -17,7 +17,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.marketing.trends import load_trend_sources, score_trends
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
@@ -110,9 +110,43 @@ class TrendSpotter(BaseAgent):
             }
             for rank, title in enumerate(top_titles)
         ]
+        inputs = [
+            IOItem(
+                label="Sources de veille cyber",
+                kind="file",
+                detail=f"{len(fresh)} item(s) frais dans la fenêtre 14j",
+                ref="data/trends/sources.yaml",
+                count=len(items),
+            )
+        ]
+        outputs: list[IOItem] = []
+        if path is not None:
+            try:
+                digest_ref = path.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                digest_ref = None
+            outputs.append(
+                IOItem(
+                    label="Digest top sujets chauds",
+                    kind="file",
+                    detail=" · ".join(top_titles[:3]),
+                    ref=digest_ref,
+                    count=len(top_titles),
+                )
+            )
+        if fleet_facts:
+            outputs.append(
+                IOItem(
+                    label="Sujets mémorisés (fleet memory, TTL 21j)",
+                    kind="memory",
+                    count=len(fleet_facts),
+                )
+            )
         return RunResult(
             status="success",
             output_summary=digest.summary(),
+            inputs=inputs,
+            outputs=outputs,
             extras={"fleet_facts": fleet_facts},
         )
 

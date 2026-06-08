@@ -23,7 +23,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.exceptions import AgentDataSourceError, AgentOutputError, ConfigError
 from argos_ops.finance.tva import (
@@ -143,9 +143,29 @@ class TaxBot(BaseAgent):
             raise AgentOutputError(f"write tax draft: {exc}") from exc
         logger.info(f"TaxBot — CA3 draft écrit dans {target}")
 
+        try:
+            target_ref = target.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            target_ref = None
         return RunResult(
             status="success",
             output_summary=ca3.summary(),
+            inputs=[
+                IOItem(
+                    label="Abonnements actifs Stripe (MRR)",
+                    kind="api",
+                    detail=f"MRR proxy CA HT mensuel = {mrr} €",
+                    count=len(subs),
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label=f"Draft TVA CA3 {period_month}",
+                    kind="file",
+                    detail=f"TVA nette due {ca3.tva_net_due_eur} € — à auditer avant dépôt",
+                    ref=target_ref,
+                )
+            ],
             extras={"written_to": str(target)},
         )
 

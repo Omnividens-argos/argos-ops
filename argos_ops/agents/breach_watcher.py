@@ -37,7 +37,7 @@ from loguru import logger
 
 from argos_ops.agents._fetcher_base import fetch
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
@@ -327,8 +327,41 @@ class BreachWatcher(BaseAgent):
         )
         report = build_report(matches, total_breaches=len(events))
         save_last_run(report, path=self._last_run_path)
+        inputs = [
+            IOItem(
+                label="Clients / prospects Argos",
+                kind="file",
+                detail=str(self._customers_path),
+                ref=str(self._customers_path),
+                count=len(customers),
+            ),
+            IOItem(
+                label="Breaches publics scannés",
+                kind="http",
+                detail="CERT-FR RSS + HIBP /breaches",
+                count=len(events),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Clients touchés par un breach",
+                kind="other",
+                detail=", ".join(m.customer.name for m in matches) or None,
+                count=len(matches),
+            ),
+            IOItem(
+                label="Snapshot dernier run",
+                kind="file",
+                detail=str(self._last_run_path),
+                ref=str(self._last_run_path),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_breach_embed, agent_name=self.name
+            report,
+            embed_builder=build_breach_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

@@ -22,7 +22,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
 
@@ -165,7 +165,28 @@ class ReplyBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"ReplyBot — notif Discord : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=[
+                IOItem(
+                    label="Mentions sociales",
+                    kind="file",
+                    detail=f"{stats.pending} en attente (status=pending)",
+                    ref="data/social/mentions.yaml",
+                    count=stats.mentions_read,
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label="Réponses draftées",
+                    kind="draft",
+                    detail=f"{stats.skipped_existing} déjà draftées (skip) · pas de publish",
+                    ref="data/social/reply_drafts/",
+                    count=stats.drafted,
+                )
+            ],
+        )
 
 
 __all__ = [

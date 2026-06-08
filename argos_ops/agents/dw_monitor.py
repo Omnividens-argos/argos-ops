@@ -34,7 +34,7 @@ from loguru import logger
 
 from argos_ops.agents._fetcher_base import fetch
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField
 
@@ -235,8 +235,46 @@ class DarkWebMonitor(BaseAgent):
         save_seen_hits(seen, path=self._seen_path)
 
         report = build_report(new_hits, total_domains=len(domains))
+        inputs = [
+            IOItem(
+                label="Domaines clients surveillés",
+                kind="file",
+                detail=str(self._customers_path),
+                ref=str(self._customers_path),
+                count=len(domains),
+            ),
+            IOItem(
+                label="Hits déjà vus (dédup)",
+                kind="file",
+                detail=str(self._seen_path),
+                ref=str(self._seen_path),
+                count=len(seen),
+            ),
+            IOItem(
+                label="Liste breaches publiques HIBP",
+                kind="api",
+                detail=HIBP_DOMAIN_ENDPOINT,
+                ref=HIBP_DOMAIN_ENDPOINT,
+                count=len(breaches),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Nouveaux domaines pwned",
+                kind="other",
+                detail=", ".join(
+                    f"{h.domain} ({h.breach_name})" for h in new_hits
+                )
+                or None,
+                count=len(new_hits),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_dw_embed, agent_name=self.name
+            report,
+            embed_builder=build_dw_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

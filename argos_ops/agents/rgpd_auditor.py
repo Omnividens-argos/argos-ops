@@ -23,7 +23,7 @@ from pathlib import Path
 import yaml
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.compliance import PIIFinding, scan_pii_collectors
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
@@ -243,10 +243,49 @@ class RGPDAuditor(BaseAgent):
             total_scanned=total_scanned,
             registry_present=registry_present,
         )
+        uncovered = [c for c in coverage if not c.covered]
+
+        def _rel(c: CoverageFinding) -> str:
+            try:
+                return c.finding.path.relative_to(self._repo_root).as_posix()
+            except ValueError:
+                return c.finding.path.as_posix()
+
+        inputs = [
+            IOItem(
+                label="Registre RGPD des traitements",
+                kind="file",
+                detail="présent" if registry_present else "INTROUVABLE",
+                ref=str(self._registry_path),
+                count=len(prefixes),
+            ),
+            IOItem(
+                label="Code source scanné (.py)",
+                kind="file",
+                ref=str(self._scan_root),
+                count=total_scanned,
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Findings PII détectés",
+                kind="other",
+                count=len(coverage),
+            ),
+            IOItem(
+                label="Findings PII non documentés (gaps registre)",
+                kind="other",
+                detail=", ".join(f"{_rel(c)}:{c.finding.line_no}" for c in uncovered[:15])
+                or None,
+                count=len(uncovered),
+            ),
+        ]
         return await emit_alert_or_silence(
             report,
             embed_builder=lambda r: build_rgpd_embed(r, repo_root=self._repo_root),
             agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

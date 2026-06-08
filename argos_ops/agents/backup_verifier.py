@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Literal
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence, format_age
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
@@ -197,8 +197,36 @@ class BackupVerifier(BaseAgent):
     async def run(self) -> RunResult:
         snapshot = inspect_backups(self._backups_dir)
         report = build_report(snapshot)
+        inputs = [
+            IOItem(
+                label="Dossier de backups Postgres",
+                kind="file",
+                detail=", ".join(BACKUP_GLOBS),
+                ref=str(self._backups_dir),
+                count=snapshot.file_count,
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Backup le plus récent",
+                kind="file",
+                detail=(
+                    f"{snapshot.most_recent_file.name} "
+                    f"({format_age(snapshot.most_recent_age_hours)}, {snapshot.status})"
+                    if snapshot.most_recent_file is not None
+                    else "aucun backup trouvé"
+                ),
+                ref=str(snapshot.most_recent_file)
+                if snapshot.most_recent_file is not None
+                else None,
+            )
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_backup_embed, agent_name=self.name
+            report,
+            embed_builder=build_backup_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

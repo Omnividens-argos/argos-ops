@@ -19,7 +19,7 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.cs.loader import load_tickets
 from argos_ops.cs.models import SupportTicket, TicketPriority, TriagedTicket
@@ -183,7 +183,42 @@ class EscalationRouter(BaseAgent):
             except Exception as exc:
                 logger.warning(f"EscalationRouter — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=report.summary())
+        inputs = [
+            IOItem(
+                label="Tickets support",
+                kind="file",
+                detail=(
+                    f"P0={report.p0_open} P1={report.p1_open} "
+                    f"P2={report.p2_open} · {len(report.breached)} SLA breach"
+                ),
+                ref="data/support/tickets.yaml",
+                count=len(tickets),
+            )
+        ]
+        outputs: list[IOItem] = [
+            IOItem(
+                label="Triage tickets (priorité + SLA)",
+                kind="file",
+                detail=f"{len(report.breached)} SLA breach flaggé(s)",
+                ref=f"data/support/{triage_path.name}",
+                count=len(report.triaged),
+            )
+        ]
+        if report.breached:
+            outputs.append(
+                IOItem(
+                    label="Alerte Discord SLA breach",
+                    kind="discord",
+                    count=len(report.breached),
+                )
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=report.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

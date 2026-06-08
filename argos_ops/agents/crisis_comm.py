@@ -21,7 +21,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.comm.brand import CANONICAL_DOMAIN
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
@@ -197,7 +197,41 @@ class CrisisCommBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"CrisisCommBot — notif Discord : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        inputs = [
+            IOItem(
+                label="Incidents de crise",
+                kind="file",
+                detail=f"{stats.open_count} ouvert(s) · {stats.critical_open} critique(s)",
+                ref="data/comm/crisis_incidents.yaml",
+                count=stats.total,
+            )
+        ]
+        outputs: list[IOItem] = []
+        if stats.drafted:
+            outputs.append(
+                IOItem(
+                    label="Réponses type draftées",
+                    kind="draft",
+                    detail="templates de crise à personnaliser avant publication",
+                    ref="data/comm/crisis_drafts/",
+                    count=stats.drafted,
+                )
+            )
+        if stats.critical_open > 0:
+            outputs.append(
+                IOItem(
+                    label="Alerte Discord crise critique",
+                    kind="discord",
+                    count=stats.critical_open,
+                )
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

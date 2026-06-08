@@ -19,7 +19,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
     GREEN,
@@ -199,7 +199,38 @@ class RoadmapPublisher(BaseAgent):
             except Exception as exc:
                 logger.warning(f"RoadmapPublisher — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        try:
+            annexe_ref = self._annexe_path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            annexe_ref = "docs/ARGOS_OPS_PLAN.md"
+        try:
+            out_ref = self._output_path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            out_ref = "data/public/roadmap.md"
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=[
+                IOItem(
+                    label="Annexe D (avancement flotte)",
+                    kind="file",
+                    detail=f"{stats.services} services · source unique d'avancement",
+                    ref=annexe_ref,
+                    count=stats.entries_total,
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label="Roadmap publique régénérée",
+                    kind="file",
+                    detail=(
+                        f"{stats.done} livrés · {stats.partial} en cours · "
+                        f"{stats.roadmap} à venir (codes sprint retirés)"
+                    ),
+                    ref=out_ref,
+                )
+            ],
+        )
 
 
 __all__ = [

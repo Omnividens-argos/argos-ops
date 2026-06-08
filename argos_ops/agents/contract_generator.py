@@ -24,7 +24,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.agents.proposal_bot import DEFAULT_PROPOSALS_ROOT, _load_context
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
@@ -171,7 +171,39 @@ class ContractGenerator(BaseAgent):
             except Exception as exc:
                 logger.warning(f"ContractGenerator — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
+        inputs = [
+            IOItem(
+                label="Deals (context.yaml devis envoyé)",
+                kind="file",
+                detail=f"{stats.waiting_on_proposal} en attente (devis non envoyé)",
+                ref=_rel(self._proposals_root),
+                count=stats.deals_seen,
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Contrats CGV/MSA générés",
+                kind="file",
+                detail=(
+                    f"{stats.pdf_generated} PDF · "
+                    f"{stats.already_drafted} déjà drafté(s)"
+                ),
+                ref=_rel(self._contracts_root),
+                count=stats.drafted,
+            )
+        ]
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

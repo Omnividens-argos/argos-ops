@@ -20,7 +20,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
 
@@ -137,7 +137,38 @@ class MediaListBuilder(BaseAgent):
             except Exception as exc:
                 logger.warning(f"MediaListBuilder — notif Discord : {exc}")
 
-        return RunResult(status="success", output_summary=report.summary())
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
+        inputs = [
+            IOItem(
+                label="DB journalistes / médias cyber",
+                kind="file",
+                detail="audit complétude des fiches",
+                ref=_rel(MEDIA_LIST_PATH),
+                count=report.total,
+            )
+        ]
+        outputs: list[IOItem] = []
+        if report.incomplete:
+            outputs.append(
+                IOItem(
+                    label="Fiches incomplètes détectées",
+                    kind="other",
+                    detail="email ou beat manquant",
+                    count=len(report.incomplete),
+                )
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=report.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

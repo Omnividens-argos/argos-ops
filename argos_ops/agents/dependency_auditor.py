@@ -31,7 +31,7 @@ import httpx
 from loguru import logger
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
 Severity = Literal["UNKNOWN", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
@@ -313,8 +313,47 @@ class DependencyAuditor(BaseAgent):
         deps = parse_requirements(raw)
         vulnerabilities = await query_osv(deps)
         report = build_report(vulnerabilities, total_deps_scanned=len(deps))
+        critical_high = [v for v in vulnerabilities if v.severity in SEVERITY_ALERT]
+        inputs = [
+            IOItem(
+                label="Dépendances Python du projet",
+                kind="other",
+                detail="uv export --format requirements-txt",
+                count=len(deps),
+            ),
+            IOItem(
+                label="Requête vulnérabilités OSV.dev",
+                kind="api",
+                detail=OSV_QUERYBATCH_URL,
+                ref=OSV_QUERYBATCH_URL,
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Vulnérabilités trouvées",
+                kind="other",
+                detail=", ".join(
+                    f"{v.dep.name} {v.vuln_id}" for v in vulnerabilities
+                )
+                or None,
+                count=len(vulnerabilities),
+            ),
+            IOItem(
+                label="Vulnérabilités HIGH/CRITICAL",
+                kind="other",
+                detail=", ".join(
+                    f"{v.dep.name}=={v.dep.version} {v.vuln_id}" for v in critical_high
+                )
+                or None,
+                count=len(critical_high),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_dependency_embed, agent_name=self.name
+            report,
+            embed_builder=build_dependency_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

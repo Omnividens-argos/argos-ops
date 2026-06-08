@@ -19,7 +19,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
     GREEN,
@@ -154,7 +154,39 @@ class PressMonitor(BaseAgent):
         if new and mentions:
             mark_ack(mentions, ack_ids={m.id for m in new})
 
-        return RunResult(status="success", output_summary=report.summary())
+        outputs: list[IOItem] = []
+        if report.should_alert and webhook is not None:
+            outputs.append(
+                IOItem(
+                    label="Alerte mentions presse → Discord",
+                    kind="discord",
+                    detail=f"{report.negatives} négative(s)",
+                    count=len(new),
+                )
+            )
+        if new and mentions:
+            outputs.append(
+                IOItem(
+                    label="Mentions marquées ack",
+                    kind="file",
+                    ref="data/comm/press_mentions.yaml",
+                    count=len(new),
+                )
+            )
+        return RunResult(
+            status="success",
+            output_summary=report.summary(),
+            inputs=[
+                IOItem(
+                    label="Veille mentions presse",
+                    kind="file",
+                    detail="Google Alerts / veille founder · status=new filtrés",
+                    ref="data/comm/press_mentions.yaml",
+                    count=report.total,
+                )
+            ],
+            outputs=outputs,
+        )
 
 
 __all__ = [

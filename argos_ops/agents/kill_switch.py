@@ -29,7 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence, format_age
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun, Breaker
 from argos_ops.crm.repository import list_tripped_breakers
@@ -223,8 +223,33 @@ class KillSwitchOperator(BaseAgent):
         async with session_scope() as session:
             candidates = await collect_candidates(session)
         report = build_report(candidates)
+        inputs = [
+            IOItem(
+                label="Circuit breakers tripped",
+                kind="db",
+                detail=f"breakers stale >= {MIN_STALE_HOURS}h",
+                count=len(candidates),
+            ),
+            IOItem(
+                label="Historique alertes KillSwitch",
+                kind="db",
+                detail=f"agent_runs (dédup {DEDUP_WINDOW_HOURS}h)",
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Breakers à relancer (rappel reset)",
+                kind="other",
+                detail=", ".join(b.name for b in report.to_alert) or None,
+                count=len(report.to_alert),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_kill_switch_embed, agent_name=self.name
+            report,
+            embed_builder=build_kill_switch_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

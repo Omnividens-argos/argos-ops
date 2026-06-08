@@ -19,7 +19,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.exceptions import AgentDataSourceError
 
@@ -56,9 +56,22 @@ class SEOBot(BaseAgent):
                 f"scan {self._briefs_dir.name}: {exc}"
             ) from exc
         latest = max(briefs, key=lambda p: p.stat().st_mtime).name if briefs else None
+        try:
+            ref = self._briefs_dir.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            ref = None
         return RunResult(
             status="success",
             output_summary=f"{len(briefs)} briefs présents · latest={latest}",
+            inputs=[
+                IOItem(
+                    label="Briefs SEO sur disque",
+                    kind="file",
+                    detail=f"latest={latest}" if latest else "dossier vide",
+                    ref=ref,
+                    count=len(briefs),
+                )
+            ],
             extras={
                 "briefs_count": len(briefs),
                 "latest_brief": latest,

@@ -20,7 +20,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
 
@@ -153,7 +153,33 @@ class CaseStudyDrafter(BaseAgent):
             except Exception as exc:
                 logger.warning(f"CaseStudyDrafter — notif Discord : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        inputs = [
+            IOItem(
+                label="Candidats case study",
+                kind="file",
+                detail="clients référence validés founder",
+                ref="data/crm/case_study_candidates.yaml",
+                count=stats.candidates,
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Squelettes case study draftés",
+                kind="draft",
+                detail=(
+                    f"{stats.skipped_existing} déjà drafté(s) · "
+                    f"{stats.skipped_not_ready} pas prêt(s)"
+                ),
+                ref="data/marketing/case_studies/",
+                count=stats.drafted,
+            )
+        ]
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

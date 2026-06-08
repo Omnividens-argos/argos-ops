@@ -22,7 +22,7 @@ from datetime import UTC, datetime
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
     GREEN,
@@ -185,7 +185,35 @@ class AdBotLive(BaseAgent):
             except Exception as exc:
                 logger.warning(f"AdBot — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        inputs = [
+            IOItem(
+                label="Recos ads-optimizer",
+                kind="file",
+                detail=f"YAML chiffrées · mode {'live' if live else 'shadow'}",
+                ref="data/ads/recommendations/",
+                count=stats.recos_read,
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Actions ads archivées",
+                kind="file",
+                detail=(
+                    f"{stats.actions_applied} appliquée(s) · "
+                    f"{stats.actions_shadow} shadow · "
+                    f"{stats.actions_blocked} bloquée(s) cap · "
+                    f"{stats.eur_committed_week:+.0f} €/semaine"
+                ),
+                ref="data/ads/applied/",
+                count=stats.actions_applied + stats.actions_shadow + stats.actions_blocked,
+            )
+        ]
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

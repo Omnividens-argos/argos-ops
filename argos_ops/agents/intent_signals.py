@@ -34,7 +34,7 @@ import httpx
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import (
@@ -295,7 +295,7 @@ class IntentSignalsBot(BaseAgent):
             top_relevance=signals[0]["relevance_score"] if signals else 0,
         )
 
-        _persist_signals(self._output_dir, signals)
+        out_path = _persist_signals(self._output_dir, signals)
 
         webhook = settings.discord_webhook_ops_logs or settings.discord_webhook_alerts
         if webhook is not None:
@@ -304,7 +304,37 @@ class IntentSignalsBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"IntentSignalsBot — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
+        n_feeds = sum(len(v or []) for v in sources.values() if isinstance(v, list))
+        inputs = [
+            IOItem(
+                label="Flux RSS signaux d'achat",
+                kind="http",
+                detail="breaches · embauches CISO · levées (sources publiques)",
+                ref=_rel(self._sources_path),
+                count=n_feeds,
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Signaux capturés du jour",
+                kind="file",
+                detail=f"top relevance {stats.top_relevance}/100",
+                ref=_rel(out_path),
+                count=stats.captured,
+            )
+        ]
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

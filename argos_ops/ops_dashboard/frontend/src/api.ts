@@ -441,6 +441,23 @@ export interface OutputContentResponse {
   content: string;
 }
 
+export interface FilePeekResponse {
+  file_path: string;
+  content: string;
+  truncated: boolean;
+  suffix: string;
+}
+
+export function fetchFilePeek(
+  path: string,
+  signal?: AbortSignal,
+): Promise<FilePeekResponse> {
+  return getJSON<FilePeekResponse>(
+    `/api/files/peek?path=${encodeURIComponent(path)}`,
+    signal,
+  );
+}
+
 export function fetchAllOutputs(signal?: AbortSignal): Promise<InboxDraft[]> {
   return getJSON<InboxDraft[]>("/api/outputs/index", signal);
 }

@@ -25,7 +25,7 @@ from typing import Literal
 import yaml
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.compliance import days_until, next_renewal_date
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
@@ -233,8 +233,37 @@ class ContractDeadlineBot(BaseAgent):
     async def run(self) -> RunResult:
         renewals = load_contracts(self._contracts_path, today=self._today)
         report = build_report(renewals)
+        urgent = [r for r in renewals if r.status == "urgent"]
+        warn = [r for r in renewals if r.status == "warn"]
+        inputs = [
+            IOItem(
+                label="Contrats clients",
+                kind="file",
+                detail=str(self._contracts_path),
+                ref=str(self._contracts_path),
+                count=len(renewals),
+            )
+        ]
+        outputs = [
+            IOItem(
+                label="Échéances urgentes (< 30j)",
+                kind="other",
+                detail=", ".join(r.client for r in urgent) or None,
+                count=len(urgent),
+            ),
+            IOItem(
+                label="Échéances à surveiller (30-60j)",
+                kind="other",
+                detail=", ".join(r.client for r in warn) or None,
+                count=len(warn),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_contract_embed, agent_name=self.name
+            report,
+            embed_builder=build_contract_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

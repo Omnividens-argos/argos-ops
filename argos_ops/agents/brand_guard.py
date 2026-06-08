@@ -24,7 +24,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.comm.brand import BrandIssue, audit_text
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
@@ -190,7 +190,39 @@ class BrandGuardBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"BrandGuardBot — notif Discord : {exc}")
 
-        return RunResult(status="success", output_summary=report.summary())
+        inputs = [
+            IOItem(
+                label="Drafts sortants scannés",
+                kind="file",
+                detail="content · newsletters · press · case studies · backlinks",
+                count=report.total_files,
+            )
+        ]
+        outputs: list[IOItem] = []
+        if report.digest_path is not None:
+            try:
+                digest_ref = report.digest_path.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                digest_ref = str(report.digest_path)
+            outputs.append(
+                IOItem(
+                    label="Rapport d'audit brand",
+                    kind="file",
+                    detail=(
+                        f"{report.total_errors} erreur(s) · "
+                        f"{report.total_warnings} warning(s) sur "
+                        f"{report.files_with_issues} fichier(s)"
+                    ),
+                    ref=digest_ref,
+                )
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=report.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

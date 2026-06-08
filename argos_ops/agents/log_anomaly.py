@@ -36,7 +36,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
@@ -208,8 +208,41 @@ class LogAnomalyDetector(BaseAgent):
 
         baseline_hourly = baseline_count / BASELINE_HOURS
         report = build_report(current_count, baseline_hourly, top_agents)
+        inputs = [
+            IOItem(
+                label="Erreurs dernière heure",
+                kind="db",
+                detail=f"agent_runs.error sur {CURRENT_WINDOW_HOURS}h",
+                count=current_count,
+            ),
+            IOItem(
+                label="Baseline erreurs",
+                kind="db",
+                detail=f"moyenne sur {BASELINE_HOURS}h ({baseline_hourly:.1f}/h)",
+                count=baseline_count,
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label=f"Pic d'erreurs ({report.status})",
+                kind="other",
+                detail=f"ratio {report.ratio:.1f}x vs baseline",
+                count=current_count,
+            ),
+            IOItem(
+                label="Top agents en erreur",
+                kind="other",
+                detail=", ".join(f"{name} ({n})" for name, n in top_agents)
+                or None,
+                count=len(top_agents),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_anomaly_embed, agent_name=self.name
+            report,
+            embed_builder=build_anomaly_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

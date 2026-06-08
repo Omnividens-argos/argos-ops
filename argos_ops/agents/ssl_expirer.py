@@ -31,7 +31,7 @@ from typing import Literal
 from urllib.parse import urlparse
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.agents.uptime_monitor import DEFAULT_ENDPOINTS_PATH, load_endpoints
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
@@ -255,8 +255,44 @@ class SSLExpirer(BaseAgent):
     async def run(self) -> RunResult:
         results = check_all(self._endpoints_path)
         report = build_report(results)
+        critical = [r for r in results if r.status == "critical"]
+        expiring = [r for r in results if r.status == "expiring_soon"]
+        errored = [r for r in results if r.status == "error"]
+        inputs = [
+            IOItem(
+                label="Endpoints HTTPS (certs vérifiés)",
+                kind="file",
+                detail=str(self._endpoints_path.name),
+                ref=str(self._endpoints_path),
+                count=len(results),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Certs critiques (< 7j ou expiré)",
+                kind="other",
+                detail=", ".join(r.host for r in critical) or None,
+                count=len(critical),
+            ),
+            IOItem(
+                label="Certs expirant bientôt (7-30j)",
+                kind="other",
+                detail=", ".join(r.host for r in expiring) or None,
+                count=len(expiring),
+            ),
+            IOItem(
+                label="Certs en erreur (TLS injoignable)",
+                kind="other",
+                detail=", ".join(r.host for r in errored) or None,
+                count=len(errored),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_ssl_embed, agent_name=self.name
+            report,
+            embed_builder=build_ssl_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 
