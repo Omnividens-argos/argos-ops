@@ -169,18 +169,32 @@ def normalize_event(obj: Any) -> dict[str, Any]:
                     }
         return {"kind": "raw", "data": obj}
 
-    # Mode non-partiel : message assistant complet avec blocs de contenu.
-    if etype == "assistant":
+    # Résultat d'outil (renvoyé par claude dans un message ``user``).
+    if etype == "user":
         message = obj.get("message") or {}
         if isinstance(message, dict):
-            parts: list[str] = []
             for block in message.get("content") or []:
-                if isinstance(block, dict) and block.get("type") == "text":
-                    parts.append(str(block.get("text", "")))
-            if parts:
-                return {"kind": "text", "text": "".join(parts)}
+                if isinstance(block, dict) and block.get("type") == "tool_result":
+                    return {"kind": "tool_result", "text": _block_text(block.get("content"))}
 
+    # NB : on n'émet PAS le message ``assistant`` complet — son texte est déjà
+    # arrivé en streaming via les ``content_block_delta``. Le ré-émettre
+    # provoquerait un doublon a l'ecran (memes tokens, affiches 2 fois).
     return {"kind": "raw", "data": obj}
+
+
+def _block_text(content: Any) -> str:
+    """Extrait le texte d'un champ ``content`` (str, ou liste de blocs)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = [
+            str(b.get("text", ""))
+            for b in content
+            if isinstance(b, dict) and b.get("type") == "text"
+        ]
+        return "\n".join(p for p in parts if p)
+    return ""
 
 
 # =============================================================================

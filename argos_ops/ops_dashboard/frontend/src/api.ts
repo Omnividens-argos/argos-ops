@@ -372,6 +372,32 @@ export function fetchAtelierStatus(signal?: AbortSignal): Promise<{ enabled: boo
   return getJSON<{ enabled: boolean }>("/api/atelier/status", signal);
 }
 
+export interface AtelierSessionMeta {
+  id: string;
+  title: string;
+  updated_at: string;
+}
+
+export interface TranscriptItemDTO {
+  role: "user" | "assistant" | "tool" | "tool_result";
+  text: string;
+  name?: string;
+}
+
+export function fetchAtelierSessions(signal?: AbortSignal): Promise<AtelierSessionMeta[]> {
+  return getJSON<AtelierSessionMeta[]>("/api/atelier/sessions", signal);
+}
+
+export function fetchAtelierTranscript(
+  id: string,
+  signal?: AbortSignal,
+): Promise<{ id: string; items: TranscriptItemDTO[] }> {
+  return getJSON<{ id: string; items: TranscriptItemDTO[] }>(
+    `/api/atelier/sessions/${encodeURIComponent(id)}`,
+    signal,
+  );
+}
+
 // =============================================================================
 // Mémoire de flotte — Cockpit Console (LOT 2)
 // =============================================================================

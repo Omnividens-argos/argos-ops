@@ -46,7 +46,7 @@ from argos_ops.crm.repository import (
     sum_active_mrr_eur,
     update_agent_config,
 )
-from argos_ops.ops_dashboard import atelier, auth
+from argos_ops.ops_dashboard import atelier, atelier_history, auth
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
 from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
@@ -1072,6 +1072,22 @@ async def atelier_status() -> dict[str, bool]:
     return {"enabled": get_settings().ops_atelier_enabled}
 
 
+@app.get("/api/atelier/sessions")
+async def atelier_sessions() -> list[dict[str, str]]:
+    """Liste les anciennes conversations Claude de ce repo (récentes d'abord)."""
+    if not get_settings().ops_atelier_enabled:
+        return []
+    return [meta.__dict__ for meta in atelier_history.list_sessions()]
+
+
+@app.get("/api/atelier/sessions/{session_id}")
+async def atelier_transcript(session_id: str) -> dict[str, Any]:
+    """Relit le transcript d'une conversation (pour la rouvrir et la reprendre)."""
+    if not get_settings().ops_atelier_enabled:
+        raise HTTPException(status_code=404, detail="Atelier désactivé")
+    return {"id": session_id, "items": atelier_history.read_transcript(session_id)}
+
+
 async def _stream_atelier_turn(
     websocket: WebSocket,
     session: atelier.AtelierSession,
@@ -1124,6 +1140,13 @@ async def atelier_ws(websocket: WebSocket) -> None:
             mtype = msg.get("type")
             if mtype == "interrupt":
                 session.interrupt()
+            elif mtype == "resume":
+                # Rouvre une ancienne conversation : le prochain tour reprendra
+                # son contexte via --resume <session_id>.
+                sid = msg.get("session_id")
+                if isinstance(sid, str) and sid:
+                    session.session_id = sid
+                    await websocket.send_json({"type": "resumed", "session_id": sid})
             elif mtype == "user" and (current_turn is None or current_turn.done()):
                 text = str(msg.get("text", "")).strip()
                 mode = msg.get("permission_mode", "read")
