@@ -13,6 +13,9 @@ export default defineConfig({
       "/api": {
         target: "http://127.0.0.1:9000",
         changeOrigin: false,
+        // L'atelier libre utilise un WebSocket (/api/atelier/ws) — proxifier
+        // l'upgrade WS, sinon la connexion échoue depuis :5173.
+        ws: true,
       },
     },
   },
