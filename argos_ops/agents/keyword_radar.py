@@ -21,7 +21,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
 
@@ -169,7 +169,46 @@ class KeywordRadar(BaseAgent):
             except Exception as exc:
                 logger.warning(f"KeywordRadar — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=report.summary())
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
+        inputs = [
+            IOItem(
+                label="Keywords prioritaires trackés",
+                kind="file",
+                detail="positions SERP courantes (priority: high)",
+                ref=_rel(KEYWORDS_PATH),
+                count=len(current),
+            ),
+            IOItem(
+                label="Historique positions",
+                kind="file",
+                detail="positions du run précédent",
+                ref=_rel(HISTORY_PATH),
+                count=len(previous),
+            ),
+        ]
+        outputs: list[IOItem] = []
+        if report.digest_path is not None:
+            outputs.append(
+                IOItem(
+                    label="Digest mouvements SERP",
+                    kind="file",
+                    detail=f"{report.losses_over_5} perte(s) > 5 positions",
+                    ref=_rel(report.digest_path),
+                    count=len(movements),
+                )
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=report.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

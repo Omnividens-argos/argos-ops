@@ -22,7 +22,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
 
@@ -220,7 +220,48 @@ class SpokespersonPrep(BaseAgent):
             except Exception as exc:
                 logger.warning(f"SpokespersonPrep — notif Discord : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        inputs = [
+            IOItem(
+                label="Interviews à venir (7j)",
+                kind="file",
+                detail="upcoming.yaml filtré sur la fenêtre 7j",
+                ref="data/comm/interviews/upcoming.yaml",
+                count=stats.upcoming,
+            ),
+            IOItem(
+                label="Stats clés fondateur",
+                kind="file",
+                detail="chiffres à avoir en tête en interview",
+                ref="data/comm/founder_stats.yaml",
+            ),
+        ]
+        outputs: list[IOItem] = []
+        if stats.briefed:
+            outputs.append(
+                IOItem(
+                    label="Briefs Q&A draftés",
+                    kind="draft",
+                    detail=(
+                        "data/comm/interviews/<slug>/qa_brief.md · "
+                        + ", ".join(stats.interviews[:5])
+                    ),
+                    count=stats.briefed,
+                )
+            )
+        if stats.skipped_existing:
+            outputs.append(
+                IOItem(
+                    label="Briefs déjà existants (ignorés)",
+                    kind="draft",
+                    count=stats.skipped_existing,
+                )
+            )
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

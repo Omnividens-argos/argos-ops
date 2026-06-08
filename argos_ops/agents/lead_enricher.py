@@ -25,8 +25,8 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
-from argos_ops.config import get_settings
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
+from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import (
     GREEN,
@@ -207,7 +207,40 @@ class LeadEnricher(BaseAgent):
             except Exception as exc:
                 logger.warning(f"LeadEnricher — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
+        inputs = [
+            IOItem(
+                label="Leads inbox CSV",
+                kind="file",
+                detail="nom + domaine entreprise",
+                ref=_rel(csv_path),
+                count=stats.leads_seen,
+            )
+        ]
+        outputs: list[IOItem] = [
+            IOItem(
+                label="Fiches lead enrichies",
+                kind="file",
+                detail=(
+                    f"{stats.qualified} qualifié(s) BANT ≥ 40 · "
+                    f"{stats.already_enriched} déjà enrichi(s)"
+                ),
+                ref=_rel(self._enriched_dir),
+                count=stats.newly_enriched,
+            )
+        ]
+
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = ["EnrichmentStats", "LeadEnricher", "build_enrichment_embed"]

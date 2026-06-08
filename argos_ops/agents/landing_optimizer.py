@@ -21,7 +21,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.integrations.umami import UmamiClient, UmamiPageMetric
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
@@ -213,7 +213,39 @@ class LandingOptimizer(BaseAgent):
             except Exception as exc:
                 logger.warning(f"LandingOptimizer — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=report.summary())
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
+        inputs = [
+            IOItem(
+                label="Métriques landing pages",
+                kind="api",
+                detail="Umami (INFRA-02) ou fallback data/analytics/landing_perf.yaml",
+                ref=_rel(PERF_PATH),
+                count=len(metrics),
+            )
+        ]
+        outputs: list[IOItem] = []
+        if report.digest_path is not None:
+            outputs.append(
+                IOItem(
+                    label="Hypothèses A/B chiffrées",
+                    kind="file",
+                    detail=f"{len(report.proposals)} proposition(s)",
+                    ref=_rel(report.digest_path),
+                    count=len(report.proposals),
+                )
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=report.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

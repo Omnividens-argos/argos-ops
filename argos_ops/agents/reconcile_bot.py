@@ -36,7 +36,7 @@ import yaml
 from loguru import logger
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.agents.expense_auditor import find_latest_csv
 from argos_ops.config import REPO_ROOT
 from argos_ops.exceptions import AgentDataSourceError
@@ -205,10 +205,47 @@ class ReconcileBot(BaseAgent):
             raise AgentDataSourceError(f"parse CSV {csv.name}: {exc}") from exc
         report = reconcile(payouts, expenses)
         run_report = build_run_report(report)
+        inputs = [
+            IOItem(
+                label="Payouts Stripe",
+                kind="file",
+                detail=str(self._payouts_path.name),
+                ref=str(self._payouts_path),
+                count=len(payouts),
+            ),
+            IOItem(
+                label="Crédits Qonto (CSV le plus récent)",
+                kind="file",
+                detail=str(csv.name),
+                ref=str(csv),
+                count=len(expenses),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Payouts matchés",
+                kind="other",
+                count=len(report.matches),
+            ),
+            IOItem(
+                label="Payouts Stripe orphelins (sans crédit Qonto)",
+                kind="other",
+                detail=", ".join(p.id for p in report.orphan_payouts) or None,
+                count=len(report.orphan_payouts),
+            ),
+            IOItem(
+                label="Crédits Qonto orphelins (sans payout)",
+                kind="other",
+                detail=", ".join(c.vendor for c in report.orphan_credits) or None,
+                count=len(report.orphan_credits),
+            ),
+        ]
         return await emit_alert_or_silence(
             run_report,
             embed_builder=build_reconcile_embed,
             agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

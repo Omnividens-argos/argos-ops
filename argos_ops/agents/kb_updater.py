@@ -22,7 +22,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.cs.loader import load_tickets
 from argos_ops.cs.models import SupportTicket
@@ -218,7 +218,46 @@ class KBUpdater(BaseAgent):
             except Exception as exc:
                 logger.warning(f"KBUpdater — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
+        inputs = [
+            IOItem(
+                label="Tickets support résolus",
+                kind="file",
+                detail="clustering par mot-clé sujet",
+                ref=_rel(self._tickets_path),
+                count=stats.tickets_scanned,
+            )
+        ]
+        outputs: list[IOItem] = [
+            IOItem(
+                label="Gaps KB détectés",
+                kind="other",
+                detail="thèmes vus ≥ seuil sans article existant",
+                count=stats.themes_detected,
+            )
+        ]
+        if stats.drafts_created > 0:
+            outputs.append(
+                IOItem(
+                    label="Drafts d'articles KB",
+                    kind="draft",
+                    detail=f"{stats.drafts_skipped} déjà existant(s) ignoré(s)",
+                    ref=_rel(self._drafts_dir),
+                    count=stats.drafts_created,
+                )
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

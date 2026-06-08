@@ -24,7 +24,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import KBChunk
 from argos_ops.exceptions import AgentDataSourceError
@@ -66,6 +66,14 @@ class SupportBot(BaseAgent):
         return RunResult(
             status="success",
             output_summary=f"{count} chunks KB indexés",
+            inputs=[
+                IOItem(
+                    label="Knowledge Base Argos (chunks indexés)",
+                    kind="kb",
+                    detail="table kb_chunks (pgvector) — disponibilité RAG Tier 1",
+                    count=count,
+                )
+            ],
             extras={
                 "kb_chunks": count,
                 "checked_at": datetime.now(UTC).isoformat(),

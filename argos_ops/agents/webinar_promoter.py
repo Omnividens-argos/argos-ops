@@ -20,7 +20,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
 
@@ -183,7 +183,42 @@ class WebinarPromoter(BaseAgent):
             except Exception as exc:
                 logger.warning(f"WebinarPromoter — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        inputs = [
+            IOItem(
+                label="Webinars à venir (14j)",
+                kind="file",
+                detail="upcoming.yaml filtré sur la fenêtre 14j",
+                ref="data/webinars/upcoming.yaml",
+                count=stats.upcoming,
+            )
+        ]
+        outputs: list[IOItem] = []
+        if stats.drafted:
+            outputs.append(
+                IOItem(
+                    label="Assets promo draftés (posts + teaser + replay)",
+                    kind="draft",
+                    detail=(
+                        "data/content/drafts/ + data/webinars/<slug>/ · "
+                        + ", ".join(stats.new_assets[:5])
+                    ),
+                    count=stats.drafted,
+                )
+            )
+        if stats.skipped_existing:
+            outputs.append(
+                IOItem(
+                    label="Webinars déjà draftés (ignorés)",
+                    kind="draft",
+                    count=stats.skipped_existing,
+                )
+            )
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

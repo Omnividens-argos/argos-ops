@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import get_settings
 from argos_ops.marketing.analytics import EngagementMetrics, load_engagement_window
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
@@ -112,13 +112,39 @@ class SocialAnalytics(BaseAgent):
 
         settings = get_settings()
         webhook = settings.discord_webhook_content or settings.discord_webhook_ops_logs
+        discord_pushed = False
         if webhook is not None and run.by_channel:
             try:
                 await send_embed(webhook, build_analytics_embed(run))
+                discord_pushed = True
             except Exception as exc:
                 logger.warning(f"SocialAnalytics — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=run.summary())
+        total_posts = sum(r.posts for r in run.by_channel.values())
+        inputs = [
+            IOItem(
+                label="Métriques engagement social (7j)",
+                kind="file",
+                detail=f"{len(run.by_channel)} canal/canaux mesuré(s)",
+                ref="data/social/engagement.yaml",
+                count=total_posts,
+            )
+        ]
+        outputs: list[IOItem] = []
+        if discord_pushed:
+            outputs.append(
+                IOItem(
+                    label="Récap engagement poussé sur Discord",
+                    kind="discord",
+                    detail=run.summary(),
+                )
+            )
+        return RunResult(
+            status="success",
+            output_summary=run.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = ["AnalyticsRun", "ChannelReport", "SocialAnalytics", "aggregate", "build_analytics_embed"]

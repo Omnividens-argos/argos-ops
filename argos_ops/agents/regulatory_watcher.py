@@ -30,7 +30,7 @@ from loguru import logger
 
 from argos_ops.agents._fetcher_base import fetch
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField
 
@@ -284,14 +284,48 @@ class RegulatoryWatcher(BaseAgent):
                     f"{type(exc).__name__}: {exc}"
                 )
         new_items = select_new_items(all_items, seen)
+        seen_before = len(seen)
         # Persiste tous les guids scannés (pas que les matched), sinon le
         # cache RSS oublie qu'on a vu un titre non pertinent qui pourrait
         # ressortir comme "nouveau" si le keyword set change.
         seen.update(item.guid for item in all_items)
         save_seen_guids(seen, path=self._seen_path)
         report = build_report(new_items, total_scanned=len(all_items))
+        inputs = [
+            IOItem(
+                label="Sources RSS réglementaires",
+                kind="file",
+                detail=", ".join(s.name for s in sources),
+                ref=str(self._sources_path),
+                count=len(sources),
+            ),
+            IOItem(
+                label="Entrées RSS matchant les keywords",
+                kind="http",
+                detail=f"keywords : {', '.join(keywords)}",
+                count=len(all_items),
+            ),
+            IOItem(
+                label="GUIDs déjà vus (cache anti-doublon)",
+                kind="file",
+                ref=str(self._seen_path),
+                count=seen_before,
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Nouvelles entrées réglementaires",
+                kind="other",
+                detail=", ".join(i.title[:80] for i in new_items) or None,
+                count=len(new_items),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_regulatory_embed, agent_name=self.name
+            report,
+            embed_builder=build_regulatory_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

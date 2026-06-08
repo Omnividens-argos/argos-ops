@@ -20,7 +20,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.exceptions import AgentDataSourceError, AgentOutputError, ConfigError
 from argos_ops.finance.cash_flow import CashFlowForecast, forecast_cash_flow
@@ -107,9 +107,36 @@ class InvoicePredictor(BaseAgent):
             raise AgentOutputError(f"write forecast: {exc}") from exc
         logger.info(f"InvoicePredictor — forecast écrit dans {target}")
 
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
         return RunResult(
             status="success",
             output_summary=forecast.summary(),
+            inputs=[
+                IOItem(
+                    label="Subscriptions Stripe actives",
+                    kind="api",
+                    detail="MRR récurrent par échéance",
+                    ref="https://dashboard.stripe.com/subscriptions",
+                    count=forecast.n_subs_considered,
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label="Forecast cash flow 30/60/90j",
+                    kind="file",
+                    detail=(
+                        f"J+30 {forecast.expected_30d_eur} € · "
+                        f"J+60 {forecast.expected_60d_eur} € · "
+                        f"J+90 {forecast.expected_90d_eur} €"
+                    ),
+                    ref=_rel(target),
+                )
+            ],
             extras={"written_to": str(target)},
         )
 

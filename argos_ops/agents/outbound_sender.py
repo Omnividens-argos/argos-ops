@@ -38,8 +38,8 @@ from typing import Any, Literal
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
-from argos_ops.config import Settings, get_settings
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
+from argos_ops.config import REPO_ROOT, Settings, get_settings
 from argos_ops.integrations.zimbra import send_email
 from argos_ops.notifications.discord import (
     GREEN,
@@ -276,7 +276,36 @@ class OutboundSender(BaseAgent):
             except Exception as exc:
                 logger.warning(f"OutboundSender — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        try:
+            seq_ref = self._sequences_dir.relative_to(REPO_ROOT).as_posix() + "/"
+        except ValueError:
+            seq_ref = "data/outbound/sequences/"
+        dest_label = (
+            "envoyés au lead réel"
+            if mode == "live"
+            else f"reroutés → {settings.email_user} (stage)"
+        )
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=[
+                IOItem(
+                    label="Séquences outbound drafted",
+                    kind="file",
+                    detail=f"touches dues (scheduled_date <= today) · {stats.touches_ready} prêtes",
+                    ref=seq_ref,
+                    count=stats.sequences_scanned,
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label="Emails outbound envoyés (SMTP)",
+                    kind="email",
+                    detail=f"mode {mode} · {dest_label} · {stats.failures} échecs",
+                    count=stats.touches_sent,
+                )
+            ],
+        )
 
     def _extract_recipient(self, state: SequenceState, seq_dir: Path) -> str:
         """Récupère le destinataire réel : 1er email_guess de l'enriched, sinon fallback."""

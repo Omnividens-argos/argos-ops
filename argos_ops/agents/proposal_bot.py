@@ -25,7 +25,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import (
     GREEN,
@@ -185,7 +185,35 @@ class ProposalBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"ProposalBot — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        try:
+            root_ref = self._proposals_root.relative_to(REPO_ROOT).as_posix() + "/"
+        except ValueError:
+            root_ref = "data/proposals/"
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=[
+                IOItem(
+                    label="Contexts deals (devis)",
+                    kind="file",
+                    detail=f"context.yaml par deal · {stats.already_drafted} déjà draftés",
+                    ref=root_ref,
+                    count=stats.deals_seen,
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label="Devis générés (Markdown + PDF)",
+                    kind="draft",
+                    detail=(
+                        f"{stats.pdf_generated} PDF · "
+                        f"{stats.pdf_skipped_no_pandoc} sans pandoc"
+                    ),
+                    ref=root_ref,
+                    count=stats.drafted,
+                )
+            ],
+        )
 
 
 __all__ = [

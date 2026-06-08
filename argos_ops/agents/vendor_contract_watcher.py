@@ -43,7 +43,7 @@ import yaml
 from loguru import logger
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
@@ -240,8 +240,44 @@ class VendorContractWatcher(BaseAgent):
                 extras={"alerted": False},
             )
         report = build_report(contracts)
+        missed = [c for c in contracts if c.status == "missed"]
+        urgent = [c for c in contracts if c.status == "urgent"]
+        approaching = [c for c in contracts if c.status == "approaching"]
+        inputs = [
+            IOItem(
+                label="Contrats fournisseurs",
+                kind="file",
+                detail=str(self._path.name),
+                ref=str(self._path),
+                count=len(contracts),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Deadlines d'annulation ratées",
+                kind="other",
+                detail=", ".join(c.vendor for c in missed) or None,
+                count=len(missed),
+            ),
+            IOItem(
+                label="Annulations urgentes (≤ 30j)",
+                kind="other",
+                detail=", ".join(c.vendor for c in urgent) or None,
+                count=len(urgent),
+            ),
+            IOItem(
+                label="Annulations approchantes (30-60j)",
+                kind="other",
+                detail=", ".join(c.vendor for c in approaching) or None,
+                count=len(approaching),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_contract_embed, agent_name=self.name
+            report,
+            embed_builder=build_contract_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

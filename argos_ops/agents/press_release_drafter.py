@@ -22,7 +22,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.comm.brand import BRAND_TAGLINE, CANONICAL_DOMAIN
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
@@ -146,7 +146,28 @@ class PressReleaseDrafter(BaseAgent):
             except Exception as exc:
                 logger.warning(f"PressReleaseDrafter — notif Discord : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=[
+                IOItem(
+                    label="Queue communiqués",
+                    kind="file",
+                    detail=f"{stats.queued} en statut queued",
+                    ref="data/comm/press_releases/queue.yaml",
+                    count=len(queue),
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label="Communiqués draftés",
+                    kind="draft",
+                    detail=f"{stats.skipped_existing} déjà draftés (skip)",
+                    ref="data/comm/press_releases/",
+                    count=stats.drafted,
+                )
+            ],
+        )
 
 
 __all__ = [

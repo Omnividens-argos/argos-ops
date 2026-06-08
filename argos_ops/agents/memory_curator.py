@@ -34,7 +34,7 @@ from pathlib import Path
 
 from argos_ops import fleet_memory
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.fleet_memory import Fact
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField
 
@@ -215,8 +215,42 @@ class MemoryCurator(BaseAgent):
 
     async def run(self) -> RunResult:
         report = await self.curate()
+        inputs = [
+            IOItem(
+                label="Mémoire de flotte inspectée",
+                kind="memory",
+                detail=f"{report.scanned} fait(s) sur tous les bots",
+                ref=str(self._root),
+                count=report.scanned,
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Faits archivés (TTL / stale)",
+                kind="memory",
+                detail=_format_pairs(report.archived) if report.archived else None,
+                ref=str(self._root),
+                count=len(report.archived),
+            ),
+            IOItem(
+                label="Faits supprimés (purge définitive)",
+                kind="memory",
+                detail=_format_pairs(report.deleted) if report.deleted else None,
+                ref=str(self._root),
+                count=len(report.deleted),
+            ),
+            IOItem(
+                label="Faits importants protégés (pinned)",
+                kind="memory",
+                count=report.pinned_kept,
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_curator_embed, agent_name=self.name
+            report,
+            embed_builder=build_curator_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

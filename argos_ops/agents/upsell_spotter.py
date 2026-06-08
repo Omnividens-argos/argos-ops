@@ -20,7 +20,7 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.cs.loader import load_customers
 from argos_ops.cs.models import UpsellCandidate
@@ -122,13 +122,54 @@ class UpsellSpotter(BaseAgent):
         _persist_snapshot(snapshot_path, candidates, day=today)
 
         webhook = settings.discord_webhook_ops_logs or settings.discord_webhook_alerts
+        discord_pushed = False
         if webhook is not None and candidates:
             try:
                 await send_embed(webhook, build_upsell_embed(report))
+                discord_pushed = True
             except Exception as exc:
                 logger.warning(f"UpsellSpotter — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=report.summary())
+        try:
+            customers_ref = self._customers_path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            customers_ref = None
+        try:
+            snapshot_ref = snapshot_path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            snapshot_ref = None
+        inputs = [
+            IOItem(
+                label="Clients CS (usage vs quota)",
+                kind="file",
+                detail=f"{len(candidates)} compte(s) saturé(s) ≥ 80% quota",
+                ref=customers_ref,
+                count=len(customers),
+            )
+        ]
+        outputs: list[IOItem] = [
+            IOItem(
+                label="Snapshot candidats upsell",
+                kind="file",
+                detail=f"{len(candidates)} candidat(s)",
+                ref=snapshot_ref,
+                count=len(candidates),
+            )
+        ]
+        if discord_pushed:
+            outputs.append(
+                IOItem(
+                    label="Alerte candidats upsell sur Discord",
+                    kind="discord",
+                    count=len(candidates),
+                )
+            )
+        return RunResult(
+            status="success",
+            output_summary=report.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

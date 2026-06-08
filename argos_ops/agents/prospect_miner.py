@@ -37,7 +37,7 @@ import httpx
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.exceptions import AgentDataSourceError
 from argos_ops.notifications.discord import (
@@ -309,7 +309,41 @@ class ProspectMiner(BaseAgent):
             except Exception as exc:
                 logger.warning(f"ProspectMiner — notif Discord a échoué : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        try:
+            sources_ref = self._sources_path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            sources_ref = "data/sales/prospects/sources.yaml"
+        try:
+            inbox_ref = self._inbox_csv.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            inbox_ref = "data/outbound/inbox/leads.csv"
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=[
+                IOItem(
+                    label="Sources prospects (RSS publics)",
+                    kind="file",
+                    detail="annonces légales / Crunchbase / LinkedIn Jobs / manual",
+                    ref=sources_ref,
+                ),
+                IOItem(
+                    label="Candidats minés depuis les flux",
+                    kind="http",
+                    detail=f"{stats.skipped_dup} doublons ignorés",
+                    count=stats.candidates_seen,
+                ),
+            ],
+            outputs=[
+                IOItem(
+                    label="Nouveaux prospects ajoutés à l'inbox",
+                    kind="file",
+                    detail="dédupe sur (full_name, domain)",
+                    ref=inbox_ref,
+                    count=stats.new_appended,
+                )
+            ],
+        )
 
 
 __all__ = [

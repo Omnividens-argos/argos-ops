@@ -25,7 +25,7 @@ from typing import Literal
 import yaml
 
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
@@ -207,8 +207,44 @@ class SecretRotator(BaseAgent):
     async def run(self) -> RunResult:
         entries = load_entries(self._path)
         report = build_report(entries)
+        due = [e for e in entries if e.status == "due"]
+        overdue = [e for e in entries if e.status == "overdue"]
+        invalid = [e for e in entries if e.status == "invalid"]
+        inputs = [
+            IOItem(
+                label="Journal de rotation des secrets",
+                kind="file",
+                detail="noms + dates uniquement (jamais les valeurs)",
+                ref=str(self._path),
+                count=len(entries),
+            ),
+        ]
+        outputs = [
+            IOItem(
+                label="Secrets overdue (> 180j)",
+                kind="other",
+                detail=", ".join(e.name for e in overdue) or None,
+                count=len(overdue),
+            ),
+            IOItem(
+                label="Secrets due (90-180j)",
+                kind="other",
+                detail=", ".join(e.name for e in due) or None,
+                count=len(due),
+            ),
+            IOItem(
+                label="Secrets sans date valide",
+                kind="other",
+                detail=", ".join(e.name for e in invalid) or None,
+                count=len(invalid),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_secret_embed, agent_name=self.name
+            report,
+            embed_builder=build_secret_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

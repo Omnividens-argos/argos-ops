@@ -23,7 +23,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun
@@ -256,9 +256,40 @@ class StrategyBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"StrategyBot — push Discord échoué (digest OK sur disque): {exc}")
 
+        try:
+            digest_ref = digest_path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            digest_ref = None
+        total_fail = sum(m.failed_runs for m in metrics)
+        inputs = [
+            IOItem(
+                label="Runs agents (agent_runs, 7j)",
+                kind="db",
+                detail=f"fenêtre {self._window_days}j · {len(metrics)} agents actifs",
+                count=total,
+            )
+        ]
+        outputs: list[IOItem] = [
+            IOItem(
+                label="Digest stratégie hebdo",
+                kind="file",
+                detail=f"{total} runs · {total_fail} failed",
+                ref=digest_ref,
+            )
+        ]
+        if discord_pushed:
+            outputs.append(
+                IOItem(
+                    label="Résumé poussé sur Discord",
+                    kind="discord",
+                    detail=f"{total} runs · {len(metrics)} agents actifs",
+                )
+            )
         return RunResult(
             status="success",
             output_summary=f"digest écrit dans {digest_path.name} ({total} runs)",
+            inputs=inputs,
+            outputs=outputs,
             extras={
                 "digest_path": str(digest_path),
                 "total_runs": total,

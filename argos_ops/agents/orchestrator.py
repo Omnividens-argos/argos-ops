@@ -41,7 +41,7 @@ from typing import Any, Literal
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from argos_ops.agents.base import BaseAgent, RunResult, run_agent
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult, run_agent
 from argos_ops.agents.bot_health import BotHealthBot
 from argos_ops.agents.digest_builder import DigestBuilder
 from argos_ops.agents.email_bot import EmailBot
@@ -446,11 +446,42 @@ class OrchestratorBot(BaseAgent):
             else:
                 logger.debug(line)
 
+        orchestration_inputs = [
+            IOItem(
+                label="Cadence cron de la flotte",
+                kind="other",
+                detail="intervalle canonique par bot (AGENT_FLEET)",
+                count=len(self._fleet),
+            ),
+            IOItem(
+                label="Dernier run par agent",
+                kind="db",
+                detail="agent_runs.started_at · âge vs cadence",
+            ),
+            IOItem(
+                label="Config runtime + breakers",
+                kind="db",
+                detail="agent_config (enabled/paused/daily_limit/intensity) + breakers tripped",
+            ),
+        ]
+
         if not self._live:
             logger.info(f"OrchestratorBot dry-run — {plan.summary()}")
             return RunResult(
                 status="success",
                 output_summary=f"dry-run · {plan.summary()}",
+                inputs=orchestration_inputs,
+                outputs=[
+                    IOItem(
+                        label="Plan d'exécution (dry-run)",
+                        kind="other",
+                        detail=(
+                            f"{len(plan.to_launch)} à lancer · {len(plan.skipped)} skippés "
+                            "(aucun lancement)"
+                        ),
+                        count=len(plan.to_launch),
+                    )
+                ],
                 extras={
                     "dry_run": True,
                     "to_launch": [d.agent_name for d in plan.to_launch],
@@ -467,6 +498,15 @@ class OrchestratorBot(BaseAgent):
         return RunResult(
             status="success",
             output_summary=(f"live · launched={len(outcomes)} ok={ok} failed={failed}"),
+            inputs=orchestration_inputs,
+            outputs=[
+                IOItem(
+                    label="Bots lancés (live)",
+                    kind="other",
+                    detail=f"{ok} ok · {failed} en échec",
+                    count=len(outcomes),
+                )
+            ],
             extras={
                 "dry_run": False,
                 "outcomes": [

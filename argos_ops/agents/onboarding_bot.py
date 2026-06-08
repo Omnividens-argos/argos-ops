@@ -19,7 +19,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.cs.loader import load_customers
 from argos_ops.cs.models import Customer
@@ -169,7 +169,39 @@ class OnboardingBot(BaseAgent):
             except Exception as exc:
                 logger.warning(f"OnboardingBot — notif Discord échouée : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        def _rel(p: Path) -> str:
+            try:
+                return p.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return str(p)
+
+        inputs = [
+            IOItem(
+                label="Clients CS",
+                kind="file",
+                detail="étapes onboarding échues J+0 / J+7 / J+30",
+                ref=_rel(self._customers_path),
+                count=stats.customers_seen,
+            )
+        ]
+        outputs: list[IOItem] = []
+        if stats.drafts_created > 0:
+            outputs.append(
+                IOItem(
+                    label="Drafts email onboarding",
+                    kind="draft",
+                    detail="envoi humain via zimbra-ops",
+                    ref=_rel(self._drafts_dir),
+                    count=stats.drafts_created,
+                )
+            )
+
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

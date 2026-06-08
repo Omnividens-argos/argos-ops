@@ -20,7 +20,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField, send_embed
 
@@ -152,7 +152,42 @@ class TestimonialHunter(BaseAgent):
             except Exception as exc:
                 logger.warning(f"TestimonialHunter — notif Discord : {exc}")
 
-        return RunResult(status="success", output_summary=stats.summary())
+        inputs = [
+            IOItem(
+                label="Réponses NPS",
+                kind="file",
+                detail=f"{stats.high_score_hits} promoteur(s) (score ≥ 9) sur {stats.total_hits} lu(s)",
+                ref="data/crm/nps_responses.yaml",
+                count=stats.total_hits,
+            )
+        ]
+        outputs: list[IOItem] = []
+        if stats.drafted:
+            outputs.append(
+                IOItem(
+                    label="Demandes de verbatim draftées",
+                    kind="draft",
+                    detail=(
+                        "data/marketing/testimonial_drafts/<slug>.md · "
+                        + ", ".join(stats.new_slugs[:5])
+                    ),
+                    count=stats.drafted,
+                )
+            )
+        if stats.skipped_existing:
+            outputs.append(
+                IOItem(
+                    label="Demandes déjà draftées (ignorées)",
+                    kind="draft",
+                    count=stats.skipped_existing,
+                )
+            )
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=inputs,
+            outputs=outputs,
+        )
 
 
 __all__ = [

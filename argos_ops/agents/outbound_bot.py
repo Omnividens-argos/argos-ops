@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 
 from loguru import logger
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.breakers import trip_with_notification
 from argos_ops.config import get_settings
 from argos_ops.exceptions import AgentDataSourceError, ConfigError
@@ -190,7 +190,29 @@ class OutboundBot(BaseAgent):
                 "OutboundBot — aucun webhook Discord configuré (ops_logs/alerts/escalations)"
             )
 
-        return RunResult(status="success", output_summary=stats.summary())
+        outputs = [
+            IOItem(
+                label="Séquences cold email scaffold",
+                kind="file",
+                detail=f"{stats.already_scaffolded} déjà présentes · {stats.failures} échecs",
+                ref="data/outbound/sequences/",
+                count=stats.newly_scaffolded,
+            )
+        ]
+        return RunResult(
+            status="success",
+            output_summary=stats.summary(),
+            inputs=[
+                IOItem(
+                    label="CSV leads inbox",
+                    kind="file",
+                    detail="leads ICP déposés manuellement / export LinkedIn",
+                    ref="data/outbound/inbox/leads.csv",
+                    count=stats.read,
+                )
+            ],
+            outputs=outputs,
+        )
 
 
 __all__ = ["DEFAULT_CSV_NAME", "OutboundBot", "ScaffoldStats", "build_outbound_embed"]
