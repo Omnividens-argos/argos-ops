@@ -22,6 +22,8 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import subprocess
+import threading
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any, Literal
@@ -187,16 +189,16 @@ class AtelierSession:
         self.session_id: str | None = None
         self._claude_bin = claude_bin
         self._repo_root = repo_root
-        self._proc: asyncio.subprocess.Process | None = None
+        self._proc: subprocess.Popen[str] | None = None
 
     @property
     def running(self) -> bool:
-        return self._proc is not None and self._proc.returncode is None
+        return self._proc is not None and self._proc.poll() is None
 
     def interrupt(self) -> None:
         if self.running and self._proc is not None:
             logger.info("Atelier — interruption du tour en cours")
-            with contextlib.suppress(ProcessLookupError):  # process fini entre-temps
+            with contextlib.suppress(ProcessLookupError, OSError):
                 self._proc.terminate()
 
     async def send(
@@ -204,9 +206,12 @@ class AtelierSession:
     ) -> AsyncIterator[dict[str, Any]]:
         """Lance un tour et streame les events normalisés.
 
-        Capte le ``session_id`` au premier event ``system`` pour résumer la
-        session aux tours suivants. La mémoire ne fait jamais crasher : un
-        process en échec remonte un event ``error`` puis ``turn_done``.
+        Le CLI ``claude`` tourne dans un **thread** (``subprocess.Popen``
+        bloquant), pas via ``asyncio.create_subprocess_exec`` : sur Windows le
+        panel force le ``SelectorEventLoop`` (requis par psycopg) qui ne
+        supporte pas les sous-process asyncio. Le thread pousse les events dans
+        une queue asyncio. Un process en échec remonte ``error`` puis
+        ``turn_done`` ; ``session_id`` est capté au 1er event ``system``.
         """
         argv = build_claude_argv(
             prompt,
@@ -215,47 +220,65 @@ class AtelierSession:
             permission_mode=permission_mode,
         )
         logger.info(f"Atelier — tour ({permission_mode}) resume={self.session_id is not None}")
-        try:
-            self._proc = await asyncio.create_subprocess_exec(
-                *argv,
-                cwd=str(self._repo_root),
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                stdin=asyncio.subprocess.DEVNULL,
-            )
-        except FileNotFoundError:
-            yield {
-                "kind": "error",
-                "message": f"Binaire introuvable : {self._claude_bin}. "
-                "Claude Code doit être installé et loggué (abonnement Pro/Max).",
-            }
-            yield {"kind": "turn_done", "returncode": 127}
-            return
 
-        proc = self._proc
-        assert proc.stdout is not None
-        async for raw in proc.stdout:
-            line = raw.decode("utf-8", errors="replace").strip()
-            if not line:
-                continue
+        loop = asyncio.get_running_loop()
+        queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
+
+        def _emit(event: dict[str, Any] | None) -> None:
+            loop.call_soon_threadsafe(queue.put_nowait, event)
+
+        def _pump() -> None:
             try:
-                obj = json.loads(line)
-            except json.JSONDecodeError:
-                yield {"kind": "raw", "data": line}
-                continue
-            event = normalize_event(obj)
+                proc = subprocess.Popen(
+                    argv,
+                    cwd=str(self._repo_root),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,  # fusion stderr→stdout : pas de deadlock de pipe
+                    stdin=subprocess.DEVNULL,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    bufsize=1,
+                )
+            except FileNotFoundError:
+                _emit(
+                    {
+                        "kind": "error",
+                        "message": f"Binaire introuvable : {self._claude_bin}. "
+                        "Claude Code doit être installé et loggué (abonnement Pro/Max).",
+                    }
+                )
+                _emit({"kind": "turn_done", "returncode": 127})
+                _emit(None)
+                return
+
+            self._proc = proc
+            assert proc.stdout is not None
+            for raw in proc.stdout:
+                line = raw.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    _emit({"kind": "raw", "data": line})
+                    continue
+                _emit(normalize_event(obj))
+            rc = proc.wait()
+            if rc not in (0, None):
+                _emit({"kind": "error", "message": f"claude a quitté (code {rc})"})
+            _emit({"kind": "turn_done", "returncode": rc})
+            _emit(None)  # sentinelle de fin
+
+        threading.Thread(target=_pump, name="atelier-claude", daemon=True).start()
+
+        while True:
+            event = await queue.get()
+            if event is None:
+                break
             if event.get("kind") == "system" and event.get("session_id"):
                 self.session_id = str(event["session_id"])
             yield event
-
-        await proc.wait()
-        if proc.returncode not in (0, None):
-            stderr = b""
-            if proc.stderr is not None:
-                stderr = await proc.stderr.read()
-            tail = stderr.decode("utf-8", errors="replace").strip()[-500:]
-            yield {"kind": "error", "message": tail or f"claude a quitté ({proc.returncode})"}
-        yield {"kind": "turn_done", "returncode": proc.returncode}
 
 
 __all__ = [
