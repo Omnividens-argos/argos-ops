@@ -28,6 +28,18 @@ class AgentSummary(BaseModel):
     breaker_reason: str | None = None
 
 
+class RunIOItem(BaseModel):
+    """Une entrée (IN) ou sortie (OUT) structurée d'un run — cf.
+    ``argos_ops.agents.base.IOItem``. Affiché dans l'onglet Travail (IN→OUT)
+    du détail bot."""
+
+    label: str
+    kind: str = "other"
+    detail: str | None = None
+    ref: str | None = None
+    count: int | None = None
+
+
 class AgentRunRow(BaseModel):
     """Ligne d'``agent_runs`` exposée par l'API (page Runs + drawer logs)."""
 
@@ -41,6 +53,8 @@ class AgentRunRow(BaseModel):
     output_summary: str | None = None
     error: str | None = None
     cost_estimate_eur: float | None = None
+    inputs: list[RunIOItem] | None = None
+    outputs: list[RunIOItem] | None = None
 
 
 class BreakerInfo(BaseModel):

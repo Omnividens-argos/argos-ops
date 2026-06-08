@@ -17,7 +17,7 @@ from loguru import logger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import get_settings
 from argos_ops.crm.db import session_scope
 from argos_ops.notifications.discord import (
@@ -200,7 +200,28 @@ class DigestBuilder(BaseAgent):
             f"breakers={len(kpis.active_breakers)}"
         )
         logger.info(f"Digest pushé : {summary}")
-        return RunResult(status="success", output_summary=summary)
+        return RunResult(
+            status="success",
+            output_summary=summary,
+            inputs=[
+                IOItem(
+                    label="KPIs Postgres (24 h)",
+                    kind="db",
+                    detail="leads · customers · tickets · breakers actifs",
+                )
+            ],
+            outputs=[
+                IOItem(
+                    label="Digest poussé sur Discord",
+                    kind="discord",
+                    detail=(
+                        f"{kpis.leads_total} leads · {kpis.new_customers} customers · "
+                        f"{kpis.open_tickets} tickets ouverts · "
+                        f"{len(kpis.active_breakers)} breaker(s) actif(s)"
+                    ),
+                )
+            ],
+        )
 
 
 __all__ = ["DigestBuilder", "DigestKPIs", "build_digest_embed", "collect_kpis"]

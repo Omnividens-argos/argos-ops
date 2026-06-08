@@ -10,6 +10,7 @@ from decimal import Decimal
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, Index
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 
@@ -99,6 +100,11 @@ class AgentRun(SQLModel, table=True):
     output_summary: str | None = None
     error: str | None = None
     cost_estimate_eur: Decimal | None = None
+    # IN/OUT structuré par run (cf. argos_ops.agents.base.IOItem) — liste de
+    # dicts {label, kind, detail, ref, count}. NULL si le bot n'est pas encore
+    # instrumenté (l'UI retombe alors sur une vue dérivée).
+    inputs: list[dict[str, object]] | None = Field(default=None, sa_column=Column(JSONB))
+    outputs: list[dict[str, object]] | None = Field(default=None, sa_column=Column(JSONB))
 
 
 # =============================================================================

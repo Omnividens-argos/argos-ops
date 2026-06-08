@@ -40,7 +40,7 @@ from argos_ops.agents._watcher_base import (
     format_age,
     format_duration,
 )
-from argos_ops.agents.base import BaseAgent, RunResult
+from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun, Breaker
 from argos_ops.crm.repository import (
@@ -336,8 +336,43 @@ class BotHealthBot(BaseAgent):
             tripped = await list_tripped_breakers(session)
 
         report = build_report(snapshots, tripped)
+        stale = [s for s in snapshots if s.status == "stale"]
+        errored = [s for s in snapshots if s.status == "error"]
+        inputs = [
+            IOItem(
+                label="État des agents surveillés",
+                kind="db",
+                detail="agent_runs (dernier run + erreurs 24 h)",
+                count=len(snapshots),
+            ),
+            IOItem(label="Circuit breakers", kind="db", detail="état tripped"),
+        ]
+        outputs = [
+            IOItem(
+                label="Agents stale (en retard)",
+                kind="memory",
+                detail=", ".join(s.agent_name for s in stale) or None,
+                count=len(stale),
+            ),
+            IOItem(
+                label="Agents en erreur",
+                kind="memory",
+                detail=", ".join(s.agent_name for s in errored) or None,
+                count=len(errored),
+            ),
+            IOItem(
+                label="Breakers tripped",
+                kind="memory",
+                detail=", ".join(br.name for br in tripped) or None,
+                count=len(tripped),
+            ),
+        ]
         return await emit_alert_or_silence(
-            report, embed_builder=build_health_embed, agent_name=self.name
+            report,
+            embed_builder=build_health_embed,
+            agent_name=self.name,
+            inputs=inputs,
+            outputs=outputs,
         )
 
 

@@ -820,6 +820,8 @@ def _run_to_row(run: AgentRun) -> AgentRunRow:
         cost_estimate_eur=(
             float(run.cost_estimate_eur) if run.cost_estimate_eur is not None else None
         ),
+        inputs=run.inputs,
+        outputs=run.outputs,
     )
 
 

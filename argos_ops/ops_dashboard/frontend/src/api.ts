@@ -22,6 +22,16 @@ export interface AgentSummary {
   breaker_reason: string | null;
 }
 
+// Une entrée (IN) ou sortie (OUT) structurée d'un run — cf.
+// argos_ops.agents.base.IOItem. Alimente l'onglet Travail (IN→OUT) du détail bot.
+export interface RunIOItem {
+  label: string;
+  kind: string; // imap|db|file|kb|memory|api|http|draft|discord|email|other
+  detail: string | null;
+  ref: string | null;
+  count: number | null;
+}
+
 export interface AgentRunRow {
   id: number;
   agent_name: string;
@@ -33,6 +43,9 @@ export interface AgentRunRow {
   output_summary: string | null;
   error: string | null;
   cost_estimate_eur: number | null;
+  // null = bot pas encore instrumenté → l'UI retombe sur une vue dérivée.
+  inputs: RunIOItem[] | null;
+  outputs: RunIOItem[] | null;
 }
 
 export type BreakerSeverity = "critical" | "warning" | "info" | "unknown";

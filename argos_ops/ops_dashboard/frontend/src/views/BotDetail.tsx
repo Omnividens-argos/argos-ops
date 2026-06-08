@@ -1,7 +1,6 @@
 import {
-  Archive,
   ArrowLeft,
-  ArrowUpRight,
+  ArrowRightLeft,
   BookOpen,
   Brain,
   CheckCircle2,
@@ -9,11 +8,9 @@ import {
   FileCode,
   FileText,
   History,
-  Inbox as InboxIcon,
-  Network,
+  LayoutGrid,
   PauseCircle,
   Play,
-  Plus,
   Puzzle,
   Settings,
   Shield,
@@ -26,16 +23,10 @@ import type {
   AgentPerfStats,
   AgentRunRow,
   AgentSummary,
-  BotMemoryView,
-  FactRow,
-  InboxDraft,
   YamlConfigResponse,
 } from "../api";
 import {
-  appendAgentFact,
-  archiveAgentFact,
   fetchAgentConfig,
-  fetchAgentMemory,
   fetchAgentPerf,
   fetchAgentRuns,
   fetchAgentYamlConfig,
@@ -68,20 +59,27 @@ import {
   statusBgColor,
   statusColor,
 } from "../lib/format";
+import { KpiCard, SectionHeader } from "./bot/shared";
+import { MemoryTab } from "./bot/MemoryTab";
+import { TravailTab } from "./bot/TravailTab";
 
-// BotDetail — page-level vue détaillée par bot. 10 sections empilées :
-//   1. Hero / identité
-//   2. État live (4 KPI cards : last run, stats 7j, erreurs récentes, breaker)
-//   3. Configuration (mode débutant / expert)
-//   4. Sources de données (YAML config externe, si applicable)
-//   5. Skills & dépendances
-//   6. Conformité (AI Act, PII, Bloctel)
-//   7. Drafts produits (filtrés sur cet agent)
-//   8. Historique runs
-//   9. Documentation & code (deeplinks)
+// BotDetail — vue détaillée par bot, organisée en ONGLETS sous un hero
+// persistant (nom + statut + Run now / pause / toggle toujours visibles).
 //
-// Le mode débutant masque les contrôles avancés (intensity, daily limit,
-// tier1 threshold). Le mode expert les déplie. Toggle global via UserPrefs.
+//   • Vue d'ensemble — état live, config, sources de données, skills,
+//     conformité, doc & code.
+//   • Travail (IN → OUT) — ce que le bot regarde → ce qu'il produit, run par run.
+//   • Mémoire — mémoire de flotte rangée par date + code couleur fraîcheur.
+//   • Historique — tous les runs.
+
+type BotTab = "overview" | "travail" | "memory" | "history";
+
+const TABS: { key: BotTab; label: string; icon: typeof LayoutGrid }[] = [
+  { key: "overview", label: "Vue d'ensemble", icon: LayoutGrid },
+  { key: "travail", label: "Travail (IN → OUT)", icon: ArrowRightLeft },
+  { key: "memory", label: "Mémoire", icon: Brain },
+  { key: "history", label: "Historique", icon: History },
+];
 
 interface BotDetailProps {
   botName: string;
@@ -99,6 +97,10 @@ export function BotDetail({
   const { mode } = useUserPrefs();
   const meta = lookupBot(botName);
   const catalogEntry = findInCatalog(botName);
+
+  const [tab, setTab] = useState<BotTab>("overview");
+  // Reset sur l'onglet d'accueil quand on change de bot.
+  useEffect(() => setTab("overview"), [botName]);
 
   const agents = usePolling(useCallback((s) => fetchAgents(s), []));
   const live = agents.data?.find((a) => a.name === botName) ?? null;
@@ -208,7 +210,7 @@ export function BotDetail({
         Retour au catalogue
       </button>
 
-      {/* === 1. Hero === */}
+      {/* === Hero (persistant, hors onglets) === */}
       <HeroSection
         botName={botName}
         catalog={catalogEntry}
@@ -224,59 +226,106 @@ export function BotDetail({
         onPause={handlePause}
       />
 
-      {/* === 2. État live === */}
-      <LiveStateSection perf={perf.data} live={live} />
-
-      {/* === 3. Configuration === */}
-      <ConfigSection
-        config={config}
-        configError={configError}
-        mode={mode}
-        onSaved={(next) => {
-          setConfig(next);
-          toast.success("Config sauvegardée");
+      {/* === Barre d'onglets === */}
+      <TabBar
+        tab={tab}
+        onChange={setTab}
+        counts={{
+          travail: draftsForThisBot.length,
+          history: runs.data?.length ?? null,
         }}
-        onError={(e) => toast.error(`Config : ${e.message}`)}
       />
 
-      {/* === 4. Sources de données (YAML externe) === */}
-      {meta.configFile && (
-        <YamlConfigSection
-          botName={botName}
-          fallbackPath={meta.configFile}
-          onSaved={() => toast.success("Fichier YAML sauvegardé")}
-          onError={(msg) => toast.error(msg)}
-        />
+      {/* === Panneau actif === */}
+      {tab === "overview" && (
+        <div className="space-y-5">
+          <LiveStateSection perf={perf.data} live={live} />
+          <ConfigSection
+            config={config}
+            configError={configError}
+            mode={mode}
+            onSaved={(next) => {
+              setConfig(next);
+              toast.success("Config sauvegardée");
+            }}
+            onError={(e) => toast.error(`Config : ${e.message}`)}
+          />
+          {meta.configFile && (
+            <YamlConfigSection
+              botName={botName}
+              fallbackPath={meta.configFile}
+              onSaved={() => toast.success("Fichier YAML sauvegardé")}
+              onError={(msg) => toast.error(msg)}
+            />
+          )}
+          <SkillsSection meta={meta} />
+          <ComplianceSection meta={meta} />
+          <DocSection botName={botName} meta={meta} />
+        </div>
       )}
 
-      {/* === 5. Skills & dépendances === */}
-      <SkillsSection meta={meta} />
-
-      {/* === 5b. Mémoire (IN) === */}
-      <MemorySection botName={botName} />
-
-      {/* === 6. Conformité === */}
-      <ComplianceSection meta={meta} />
-
-      {/* === 7. Drafts produits === */}
-      {draftsForThisBot.length > 0 && (
-        <DraftsSection
+      {tab === "travail" && (
+        <TravailTab
+          runs={runs.data}
+          perf={perf.data}
           drafts={draftsForThisBot}
+          meta={meta}
           onOpenInbox={onOpenInbox}
         />
       )}
 
-      {/* === 8. Historique runs === */}
-      <RunsSection runs={runs.data} />
+      {tab === "memory" && <MemoryTab botName={botName} />}
 
-      {/* === 9. Doc & code === */}
-      <DocSection botName={botName} meta={meta} />
+      {tab === "history" && <RunsSection runs={runs.data} />}
     </div>
   );
 }
 
 // =============================================================================
-// 1. Hero
+// Barre d'onglets
+// =============================================================================
+function TabBar({
+  tab,
+  onChange,
+  counts,
+}: {
+  tab: BotTab;
+  onChange: (t: BotTab) => void;
+  counts: { travail: number; history: number | null };
+}) {
+  return (
+    <div className="flex items-center gap-1 border-b border-argos-border-subtle overflow-x-auto">
+      {TABS.map(({ key, label, icon: Icon }) => {
+        const active = tab === key;
+        const count =
+          key === "travail" ? counts.travail : key === "history" ? counts.history : null;
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onChange(key)}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
+              active
+                ? "border-argos-info text-argos-fg"
+                : "border-transparent text-argos-fg-tertiary hover:text-argos-fg"
+            }`}
+          >
+            <Icon size={13} strokeWidth={2} />
+            {label}
+            {count !== null && count > 0 && (
+              <span className="font-mono text-[10px] rounded-full bg-argos-info/15 text-argos-info px-1.5 py-0.5">
+                {count}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// =============================================================================
+// Hero
 // =============================================================================
 interface HeroProps {
   botName: string;
@@ -394,7 +443,7 @@ function HeroSection({
 }
 
 // =============================================================================
-// 2. État live (4 KPI cards)
+// État live (4 KPI cards)
 // =============================================================================
 function LiveStateSection({
   perf,
@@ -474,7 +523,7 @@ function LiveStateSection({
 }
 
 // =============================================================================
-// 3. Configuration (débutant / expert)
+// Configuration (débutant / expert)
 // =============================================================================
 function ConfigSection({
   config,
@@ -544,10 +593,6 @@ function ConfigForm({ config, mode, onSaved, onError }: ConfigFormProps) {
     setNotes(config.notes ?? "");
   }, [config]);
 
-  // Sync de l'état affiché avec le mode global :
-  //   - Mode expert → panneau toujours déplié (et figé ouvert)
-  //   - Mode débutant → repli par défaut quand l'user revient en débutant,
-  //     mais il garde la liberté de l'ouvrir à la main via le toggle
   useEffect(() => {
     setShowAdvanced(mode === "expert");
   }, [mode]);
@@ -575,14 +620,10 @@ function ConfigForm({ config, mode, onSaved, onError }: ConfigFormProps) {
     }
   };
 
-  // En mode expert, le panneau est figé ouvert (pas de bouton replier — la
-  // bascule passe par la sidebar). En mode débutant, l'user peut déplier
-  // ET replier à la demande.
   const canCollapse = mode === "beginner";
 
   return (
     <div className="space-y-4">
-      {/* Notes — visible en débutant ET expert */}
       <div>
         <TextInput
           label="Notes (contexte, raison d'un état exceptionnel)"
@@ -596,8 +637,6 @@ function ConfigForm({ config, mode, onSaved, onError }: ConfigFormProps) {
         </p>
       </div>
 
-      {/* Toggle déplier / replier — visible uniquement en mode débutant.
-          En expert le panneau est déjà ouvert (sidebar = source unique). */}
       {canCollapse && (
         <button
           type="button"
@@ -612,7 +651,6 @@ function ConfigForm({ config, mode, onSaved, onError }: ConfigFormProps) {
 
       {showAdvanced && (
         <div className="space-y-5 border-t border-argos-border-subtle pt-4">
-          {/* ── Intensity ───────────────────────────────────────────── */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
@@ -632,7 +670,6 @@ function ConfigForm({ config, mode, onSaved, onError }: ConfigFormProps) {
             </p>
           </div>
 
-          {/* ── Daily limit ─────────────────────────────────────────── */}
           <div>
             <TextInput
               label="Plafond quotidien — laisser vide pour illimité"
@@ -652,7 +689,6 @@ function ConfigForm({ config, mode, onSaved, onError }: ConfigFormProps) {
             </p>
           </div>
 
-          {/* ── Tier 1 threshold ────────────────────────────────────── */}
           <div>
             <TextInput
               label="Seuil d'auto-validation (0 — 100)"
@@ -696,7 +732,7 @@ function ConfigForm({ config, mode, onSaved, onError }: ConfigFormProps) {
 }
 
 // =============================================================================
-// 4. Sources de données (YAML externe)
+// Sources de données (YAML externe)
 // =============================================================================
 function YamlConfigSection({
   botName,
@@ -775,7 +811,7 @@ function YamlConfigSection({
 }
 
 // =============================================================================
-// 5. Skills & dépendances
+// Skills & dépendances
 // =============================================================================
 function SkillsSection({ meta }: { meta: BotMetadata }) {
   if (!meta.skills?.length && !meta.envVars?.length) return null;
@@ -861,256 +897,7 @@ function SkillsSection({ meta }: { meta: BotMetadata }) {
 }
 
 // =============================================================================
-// 5b. Mémoire (IN) — fenêtre de contexte mémoire du bot (Cockpit LOT 2)
-// =============================================================================
-function MemorySection({ botName }: { botName: string }) {
-  const [data, setData] = useState<BotMemoryView | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
-  const toast = useToast();
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setData(null);
-    setError(null);
-    fetchAgentMemory(botName, controller.signal)
-      .then(setData)
-      .catch((e) => {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        setError((e as Error).message);
-      });
-    return () => controller.abort();
-  }, [botName, reloadKey]);
-
-  const reload = () => setReloadKey((k) => k + 1);
-
-  const handleAdd = async (body: string, kind: string) => {
-    try {
-      await appendAgentFact(botName, { body, kind: kind || "note" });
-      toast.success("Fait ajouté à la mémoire");
-      reload();
-    } catch (e) {
-      toast.error(`Ajout : ${(e as Error).message}`);
-      throw e; // garde le texte dans le formulaire
-    }
-  };
-
-  const handleArchive = async (factId: string) => {
-    try {
-      await archiveAgentFact(botName, factId);
-      toast.success("Fait archivé");
-      reload();
-    } catch (e) {
-      toast.error(`Archivage : ${(e as Error).message}`);
-    }
-  };
-
-  return (
-    <section className="rounded-md border border-argos-border-subtle bg-argos-surface p-5">
-      <SectionHeader
-        title="Mémoire (IN)"
-        subtitle="Ce que le bot retient + ce qu'il lit chez les autres (graphe d'accès)"
-        icon={Brain}
-      />
-      {error && <Flash variant="error" message={`Mémoire : ${error}`} />}
-      {data === null && error === null && <SkeletonList count={2} />}
-      {data && (
-        <div className="space-y-5">
-          <AccessGraphRow reads={data.reads} readBy={data.read_by} />
-
-          {/* Mémoire propre — éditable */}
-          <div>
-            <h3 className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary mb-2">
-              Mémoire propre · {data.own.length} fait{data.own.length > 1 ? "s" : ""}
-            </h3>
-            <AddFactForm onAdd={handleAdd} />
-            {data.own.length === 0 ? (
-              <div className="mt-2 font-mono text-[11px] text-argos-fg-tertiary">
-                Ce bot n'a encore rien extrait.
-              </div>
-            ) : (
-              <ul className="mt-2 space-y-1.5">
-                {data.own.map((f) => (
-                  <FactCard key={f.id} fact={f} onArchive={() => handleArchive(f.id)} />
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Mémoire accessible — lecture seule */}
-          {data.visible.length > 0 && (
-            <div>
-              <h3 className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary mb-2">
-                Mémoire accessible (lecture seule) · {data.visible.length} bot
-                {data.visible.length > 1 ? "s" : ""}
-              </h3>
-              <div className="space-y-3">
-                {data.visible.map((vis) => (
-                  <div key={vis.bot}>
-                    <div className="font-mono text-[11px] text-argos-fg-secondary mb-1 flex items-center gap-1.5">
-                      <ArrowUpRight size={11} strokeWidth={2} className="text-argos-fg-tertiary" />
-                      {vis.bot}
-                      <span className="text-argos-fg-tertiary">
-                        · {vis.facts.length} fait{vis.facts.length > 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    {vis.facts.length === 0 ? (
-                      <div className="font-mono text-[10px] text-argos-fg-tertiary pl-4">
-                        (vide)
-                      </div>
-                    ) : (
-                      <ul className="space-y-1.5">
-                        {vis.facts.map((f) => (
-                          <FactCard key={`${vis.bot}-${f.id}`} fact={f} />
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function AccessGraphRow({ reads, readBy }: { reads: string[]; readBy: string[] }) {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <div className="rounded-md border border-argos-border-subtle bg-argos-bg/40 px-3 py-2">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary flex items-center gap-1 mb-1.5">
-          <Network size={11} strokeWidth={2} />
-          Lit la mémoire de
-        </div>
-        {reads.length === 0 ? (
-          <span className="font-mono text-[11px] text-argos-fg-tertiary">aucun autre bot</span>
-        ) : (
-          <div className="flex flex-wrap gap-1">
-            {reads.map((b) => (
-              <Badge key={b} tone="info">
-                {b}
-              </Badge>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="rounded-md border border-argos-border-subtle bg-argos-bg/40 px-3 py-2">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary flex items-center gap-1 mb-1.5">
-          <Network size={11} strokeWidth={2} />
-          Lu par
-        </div>
-        {readBy.length === 0 ? (
-          <span className="font-mono text-[11px] text-argos-fg-tertiary">aucun autre bot</span>
-        ) : (
-          <div className="flex flex-wrap gap-1">
-            {readBy.map((b) => (
-              <Badge key={b} tone="neutral">
-                {b}
-              </Badge>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function FactCard({ fact, onArchive }: { fact: FactRow; onArchive?: () => void }) {
-  const confTone: Record<string, "healthy" | "info" | "neutral"> = {
-    high: "healthy",
-    medium: "info",
-    low: "neutral",
-  };
-  return (
-    <li className="rounded-md border border-argos-border-subtle bg-argos-bg/40 px-3 py-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 flex-wrap mb-1">
-            <Badge tone="neutral">{fact.kind}</Badge>
-            <Badge tone={confTone[fact.confidence] ?? "neutral"}>{fact.confidence}</Badge>
-            {fact.tags.map((t) => (
-              <span key={t} className="font-mono text-[10px] text-argos-fg-tertiary">
-                #{t}
-              </span>
-            ))}
-          </div>
-          <p className="text-xs text-argos-fg-secondary leading-relaxed break-words">{fact.body}</p>
-          <div className="mt-1 font-mono text-[10px] text-argos-fg-tertiary truncate">
-            {fact.id}
-            {fact.source ? ` · ${fact.source}` : ""} · {formatRelativeTime(fact.created_at)}
-            {fact.ttl_days !== null ? ` · TTL ${fact.ttl_days}j` : ""}
-          </div>
-        </div>
-        {onArchive && (
-          <button
-            type="button"
-            onClick={onArchive}
-            title="Archiver ce fait (soft delete)"
-            className="shrink-0 inline-flex items-center gap-1 font-mono text-[10px] text-argos-fg-tertiary hover:text-argos-warning transition-colors"
-          >
-            <Archive size={11} strokeWidth={2} />
-            archiver
-          </button>
-        )}
-      </div>
-    </li>
-  );
-}
-
-function AddFactForm({
-  onAdd,
-}: {
-  onAdd: (body: string, kind: string) => Promise<void>;
-}) {
-  const [body, setBody] = useState("");
-  const [kind, setKind] = useState("note");
-  const [saving, setSaving] = useState(false);
-
-  const submit = async () => {
-    if (!body.trim()) return;
-    setSaving(true);
-    try {
-      await onAdd(body.trim(), kind.trim());
-      setBody("");
-      setKind("note");
-    } catch {
-      // toast affiché par le parent ; on garde le texte saisi
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="rounded-md border border-argos-border-subtle bg-argos-bg/40 p-3 space-y-2">
-      <textarea
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        rows={2}
-        placeholder="Ajouter un fait que ce bot doit retenir (ex. objection client récurrente, heuristique validée…)"
-        className="w-full bg-argos-bg border border-argos-border-subtle rounded-md px-2.5 py-1.5 font-mono text-xs text-argos-fg placeholder:text-argos-fg-disabled focus:outline-none focus:border-argos-info/60 resize-y"
-      />
-      <div className="flex items-center gap-2 flex-wrap">
-        <input
-          value={kind}
-          onChange={(e) => setKind(e.target.value)}
-          placeholder="kind (ex. note)"
-          className="w-40 bg-argos-bg border border-argos-border-subtle rounded-md px-2.5 py-1.5 font-mono text-xs text-argos-fg placeholder:text-argos-fg-disabled focus:outline-none focus:border-argos-info/60"
-        />
-        <Button variant="primary" size="sm" onClick={submit} disabled={saving || !body.trim()}>
-          <span className="inline-flex items-center gap-1.5">
-            <Plus size={11} strokeWidth={2} />
-            {saving ? "Ajout…" : "Ajouter un fait"}
-          </span>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// =============================================================================
-// 6. Conformité
+// Conformité
 // =============================================================================
 function ComplianceSection({ meta }: { meta: BotMetadata }) {
   const aiActTone: Record<typeof meta.aiActRisk, "healthy" | "info" | "warning" | "danger"> = {
@@ -1180,63 +967,7 @@ function ComplianceRow({
 }
 
 // =============================================================================
-// 7. Drafts produits
-// =============================================================================
-function DraftsSection({
-  drafts,
-  onOpenInbox,
-}: {
-  drafts: InboxDraft[];
-  onOpenInbox: () => void;
-}) {
-  return (
-    <section className="rounded-md border border-argos-info/30 bg-argos-info/5 p-5">
-      <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <InboxIcon size={14} strokeWidth={2} className="text-argos-info" />
-          <h2 className="text-sm font-semibold text-argos-fg">
-            Drafts produits par ce bot
-          </h2>
-          <Badge tone="info">{drafts.length} en attente</Badge>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenInbox}
-          className="font-mono text-[11px] text-argos-info hover:underline flex items-center gap-1"
-        >
-          Voir dans l'Inbox
-          <ArrowUpRight size={11} strokeWidth={2} />
-        </button>
-      </div>
-      <ul className="space-y-1.5">
-        {drafts.slice(0, 5).map((d) => (
-          <li
-            key={d.id}
-            className="rounded-md bg-argos-surface px-3 py-2 flex items-start justify-between gap-3 border border-argos-border-subtle"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-medium text-argos-fg truncate">
-                {d.title}
-              </div>
-              <div className="font-mono text-[10px] text-argos-fg-tertiary">
-                {formatRelativeTime(d.created_at)} · {d.file_path}
-              </div>
-            </div>
-            <Badge tone="info">{d.status}</Badge>
-          </li>
-        ))}
-        {drafts.length > 5 && (
-          <li className="font-mono text-[10px] text-argos-fg-tertiary text-center pt-1">
-            +{drafts.length - 5} de plus — voir Inbox
-          </li>
-        )}
-      </ul>
-    </section>
-  );
-}
-
-// =============================================================================
-// 8. Historique runs
+// Historique runs
 // =============================================================================
 function RunsSection({ runs }: { runs: AgentRunRow[] | null }) {
   const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed" | "skipped">(
@@ -1350,7 +1081,7 @@ function RunCard({ run }: { run: AgentRunRow }) {
 }
 
 // =============================================================================
-// 9. Doc & code (deeplinks copyables)
+// Doc & code (deeplinks copyables)
 // =============================================================================
 function DocSection({ botName, meta }: { botName: string; meta: BotMetadata }) {
   const links: { label: string; path: string; icon: typeof BookOpen }[] = [];
@@ -1364,13 +1095,11 @@ function DocSection({ botName, meta }: { botName: string; meta: BotMetadata }) {
       icon: BookOpen,
     });
   }
-  // Tests par convention
   links.push({
     label: "Tests",
     path: `tests/test_${snakeCase(botName)}.py`,
     icon: Workflow,
   });
-  // Annexe D
   links.push({
     label: "Annexe D (plan stratégique)",
     path: "docs/ARGOS_OPS_PLAN.md#annexe-d",
@@ -1454,73 +1183,4 @@ function snakeCase(name: string): string {
 
 function formatPercent(ratio: number): string {
   return `${(ratio * 100).toFixed(1)} %`;
-}
-
-interface SectionHeaderProps {
-  title: string;
-  subtitle?: string;
-  icon?: typeof BookOpen;
-}
-
-function SectionHeader({ title, subtitle, icon: Icon }: SectionHeaderProps) {
-  return (
-    <div className="flex items-center gap-2 mb-3 flex-wrap">
-      {Icon && <Icon size={14} strokeWidth={2} className="text-argos-fg-tertiary" />}
-      <h2 className="text-sm font-semibold text-argos-fg">{title}</h2>
-      {subtitle && (
-        <span className="font-mono text-[10px] text-argos-fg-tertiary">{subtitle}</span>
-      )}
-    </div>
-  );
-}
-
-interface KpiCardProps {
-  label: string;
-  value: string;
-  tooltipTerm?: string;
-  tone: "healthy" | "warning" | "danger" | "neutral";
-  sub?: string;
-}
-
-function KpiCard({ label, value, tooltipTerm, tone, sub }: KpiCardProps) {
-  const palette: Record<
-    KpiCardProps["tone"],
-    { border: string; valueFg: string; bg: string }
-  > = {
-    healthy: {
-      border: "border-argos-healthy/30",
-      valueFg: "text-argos-healthy",
-      bg: "bg-argos-healthy/5",
-    },
-    warning: {
-      border: "border-argos-warning/30",
-      valueFg: "text-argos-warning",
-      bg: "bg-argos-warning/5",
-    },
-    danger: {
-      border: "border-argos-danger/40",
-      valueFg: "text-argos-danger",
-      bg: "bg-argos-danger/5",
-    },
-    neutral: {
-      border: "border-argos-border-subtle",
-      valueFg: "text-argos-fg",
-      bg: "bg-argos-surface",
-    },
-  };
-  const p = palette[tone];
-  return (
-    <div className={`rounded-md border ${p.border} ${p.bg} px-4 py-3`}>
-      <div className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary flex items-center gap-1">
-        {label}
-        {tooltipTerm && <TooltipIcon term={tooltipTerm} />}
-      </div>
-      <div className={`mt-1 text-xl font-mono font-medium ${p.valueFg}`}>{value}</div>
-      {sub && (
-        <div className="mt-0.5 font-mono text-[10px] text-argos-fg-tertiary truncate">
-          {sub}
-        </div>
-      )}
-    </div>
-  );
 }
