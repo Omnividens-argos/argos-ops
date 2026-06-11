@@ -133,3 +133,80 @@ def test_read_by_reverse_graph(client: TestClient, memory_root: Path) -> None:
     # TrendSpotter est lu par OutboundBot (explicite) + OrchestratorBot (wildcard).
     assert "OutboundBot" in body["read_by"]
     assert "OrchestratorBot" in body["read_by"]
+
+
+# =============================================================================
+# Memory Hub global (GET /api/memory + pin / restore / delete)
+# =============================================================================
+def test_fleet_memory_empty(client: TestClient, memory_root: Path) -> None:
+    body = client.get("/api/memory").json()
+    assert body["facts"] == []
+    assert body["stats"] == {"total": 0, "active": 0, "archived": 0, "pinned": 0, "bots": 0}
+
+
+def test_fleet_memory_aggregates_all_bots(client: TestClient, memory_root: Path) -> None:
+    client.post("/api/agents/EmailBot/memory", json={"body": "fait email", "kind": "note"})
+    fid = client.post(
+        "/api/agents/TrendSpotter/memory", json={"body": "fait trend", "kind": "trend"}
+    ).json()["id"]
+    client.post(f"/api/agents/TrendSpotter/memory/{fid}/archive")
+
+    body = client.get("/api/memory").json()
+    assert body["stats"]["total"] == 2
+    assert body["stats"]["active"] == 1
+    assert body["stats"]["archived"] == 1
+    assert body["stats"]["bots"] == 2
+    assert set(body["bots"]) == {"EmailBot", "TrendSpotter"}
+    assert set(body["kinds"]) == {"note", "trend"}
+    # Les faits archivés sont inclus (le filtrage est côté client).
+    statuses = {f["status"] for f in body["facts"]}
+    assert statuses == {"active", "archived"}
+
+
+def test_pin_then_unpin_fact(client: TestClient, memory_root: Path) -> None:
+    fid = client.post(
+        "/api/agents/EmailBot/memory", json={"body": "fait critique", "kind": "note"}
+    ).json()["id"]
+    resp = client.post(f"/api/memory/EmailBot/{fid}/pin", json={"pinned": True})
+    assert resp.status_code == 200
+    assert resp.json()["pinned"] is True
+    resp = client.post(f"/api/memory/EmailBot/{fid}/pin", json={"pinned": False})
+    assert resp.json()["pinned"] is False
+
+
+def test_restore_fact_endpoint(client: TestClient, memory_root: Path) -> None:
+    fid = client.post(
+        "/api/agents/EmailBot/memory", json={"body": "archivé puis restauré", "kind": "note"}
+    ).json()["id"]
+    client.post(f"/api/agents/EmailBot/memory/{fid}/archive")
+    resp = client.post(f"/api/memory/EmailBot/{fid}/restore")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "active"
+    assert resp.json()["archived_at"] is None
+
+
+def test_delete_fact_endpoint(client: TestClient, memory_root: Path) -> None:
+    fid = client.post(
+        "/api/agents/EmailBot/memory", json={"body": "à supprimer", "kind": "note"}
+    ).json()["id"]
+    assert client.delete(f"/api/memory/EmailBot/{fid}").status_code == 204
+    assert client.get("/api/memory").json()["stats"]["total"] == 0
+    # Re-suppression → 404.
+    assert client.delete(f"/api/memory/EmailBot/{fid}").status_code == 404
+
+
+def test_memory_hub_unknown_bot_404(client: TestClient, memory_root: Path) -> None:
+    assert (
+        client.post("/api/memory/NopeBot/deadbeef0000/pin", json={"pinned": True}).status_code
+        == 404
+    )
+    assert client.delete("/api/memory/NopeBot/deadbeef0000").status_code == 404
+
+
+def test_append_pinned_fact(client: TestClient, memory_root: Path) -> None:
+    resp = client.post(
+        "/api/agents/EmailBot/memory",
+        json={"body": "fait épinglé dès la création", "kind": "note", "pinned": True},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["pinned"] is True

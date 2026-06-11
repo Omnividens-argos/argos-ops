@@ -3,6 +3,7 @@ import {
   Archive,
   Banknote,
   BookOpen,
+  Brain,
   Command,
   GraduationCap,
   HeartPulse,
@@ -90,9 +91,17 @@ const ITEMS: NavItem[] = [
       "Bibliothèque consultable de tout ce que les bots ont produit (drafts en cours + validés + rejetés + posted). Recherche fulltext.",
   },
   {
+    id: "memory",
+    label: "Mémoire",
+    shortcut: "8",
+    icon: Brain,
+    tooltip:
+      "Toute la mémoire de flotte : ce que chaque bot a retenu. Filtre, épingle, archive ou supprime n'importe quel fait.",
+  },
+  {
     id: "atelier",
     label: "Atelier libre",
-    shortcut: "8",
+    shortcut: "9",
     icon: Terminal,
     tooltip:
       "Claude Code embarqué : pilote un agent avec accès au repo depuis le cockpit. Local-only, opt-in (OPS_ATELIER_ENABLED).",
@@ -197,7 +206,7 @@ export function Sidebar({
               Aide & glossaire
             </span>
             <kbd className="font-mono text-[10px] text-argos-fg-tertiary border border-argos-border-subtle rounded px-1.5 py-0.5">
-              9
+              0
             </kbd>
           </button>
           <button

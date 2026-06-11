@@ -379,6 +379,7 @@ class FactRow(BaseModel):
     created_at: datetime
     archived_at: datetime | None
     tags: list[str]
+    pinned: bool = False
 
 
 class VisibleBotMemory(BaseModel):
@@ -412,6 +413,38 @@ class FactCreatePayload(BaseModel):
     confidence: Literal["low", "medium", "high"] = "medium"
     tags: list[str] = []
     ttl_days: int | None = None
+    pinned: bool = False
+
+
+class FactPinPayload(BaseModel):
+    """Corps du POST pin/unpin d'un fait (Memory Hub)."""
+
+    pinned: bool
+
+
+class FleetMemoryStats(BaseModel):
+    """Compteurs globaux affichés en tête du Memory Hub."""
+
+    total: int
+    active: int
+    archived: int
+    pinned: int
+    bots: int
+
+
+class FleetMemoryView(BaseModel):
+    """Vue globale de la mémoire de flotte (Memory Hub du cockpit).
+
+    ``facts`` = tous les faits de tous les bots (actifs + archivés), triés du
+    plus récent au plus ancien — le filtrage fin (bot / kind / statut /
+    recherche) se fait côté client, l'échelle reste petite (fichiers locaux).
+    ``kinds`` = vocabulaire observé, pour alimenter le filtre.
+    """
+
+    facts: list[FactRow]
+    stats: FleetMemoryStats
+    bots: list[str]
+    kinds: list[str]
 
 
 # =============================================================================

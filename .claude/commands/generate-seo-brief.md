@@ -33,6 +33,10 @@ KB les plus pertinents (top-5). En complément, charger systématiquement :
 
 Et conditionnellement selon le cluster (cf. `seo-brief-writer/SKILL.md` § 2).
 
+Charger aussi la **mémoire de flotte** :
+`uv run python scripts/fleet_memory_in.py SEOBot` — tendances TrendSpotter
++ mouvements KeywordRadar à intégrer dans l'angle du brief.
+
 ### 3. Drafting interactif (mode interview)
 
 Pour chaque section du brief, **proposer** + **demander validation** :

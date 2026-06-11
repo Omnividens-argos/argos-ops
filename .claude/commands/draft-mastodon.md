@@ -26,6 +26,9 @@ qui porte toute la logique éditoriale. Cette commande en est l'enveloppe.
 2. **Contexte KB** (non négociable) — `kb-rag` (top-5) + `tone_of_voice.md`
    + `ICP.md`, et conditionnellement `argos_features` / `competitor_compare`
    / `faq`.
+   **Mémoire de flotte** (non négociable) — lancer
+   `uv run python scripts/fleet_memory_in.py MastodonWriter` et injecter les
+   faits actifs (tendances TrendSpotter…) dans le contexte de drafting.
 3. **Drafting interactif** — angle (partage technique > promo) → hook
    technique → corps (1-2 paragraphes denses) → lien en fin (feature/blog,
    pas démo) → 2-3 hashtags. Recompter les chars (cible 300-500).

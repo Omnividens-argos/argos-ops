@@ -26,6 +26,9 @@ jargon). Cette commande en est l'enveloppe.
 2. **Contexte KB pour les FAITS** — `kb-rag` + `pricing.md` (tier d'entrée
    Free/Pro UNIQUEMENT) + `faq.md` + `argos_features.md`. **Traduire** en
    grand public, ne jamais copier une phrase technique de la KB.
+   **Mémoire de flotte** — lancer
+   `uv run python scripts/fleet_memory_in.py MetaWriter` ; une tendance
+   TrendSpotter peut inspirer le sujet, à condition de la traduire Patrick.
 3. **Drafting interactif** — angle (toujours côté réassurance) → hook
    (préoccupation douce ou question, jamais dramatisée) → corps (1-3 phrases
    simples, métaphore grand public) → CTA doux (offre d'entrée) → 1-2 emoji

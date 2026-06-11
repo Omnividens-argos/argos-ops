@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from argos_ops.fleet_memory import (
+    DEFAULT_FACT_TTL_DAYS,
     BotMemory,
     append_fact,
     archive_fact,
@@ -18,6 +19,8 @@ from argos_ops.fleet_memory import (
     read_memory,
     remember,
     resolve_visible_bots,
+    restore_fact,
+    set_pinned,
     visible_memory,
 )
 
@@ -173,6 +176,26 @@ async def test_remember_is_idempotent(tmp_path: Path) -> None:
     assert len(mem.facts) == 1
 
 
+@pytest.mark.asyncio
+async def test_remember_applies_default_ttl(tmp_path: Path) -> None:
+    """Un draft sans ttl_days hérite du TTL par défaut — rien d'éternel par accident."""
+    stored = await remember(
+        "EmailBot",
+        [
+            {"body": "fait sans ttl", "kind": "note"},  # absent → défaut
+            {"body": "fait ttl explicite", "kind": "note", "ttl_days": 30},
+            {"body": "fait éternel voulu", "kind": "note", "ttl_days": None},
+            {"body": "fait pinned", "kind": "note", "pinned": True},  # pinned → pas de TTL
+        ],
+        root=tmp_path,
+    )
+    by_body = {f.body: f for f in stored}
+    assert by_body["fait sans ttl"].ttl_days == DEFAULT_FACT_TTL_DAYS
+    assert by_body["fait ttl explicite"].ttl_days == 30
+    assert by_body["fait éternel voulu"].ttl_days is None
+    assert by_body["fait pinned"].ttl_days is None
+
+
 # =============================================================================
 # Archivage (soft delete)
 # =============================================================================
@@ -219,6 +242,34 @@ async def test_pinned_roundtrip(tmp_path: Path) -> None:
     await append_fact("EmailBot", "fait important", kind="note", pinned=True, root=tmp_path)
     fact = (await read_memory("EmailBot", root=tmp_path)).facts[0]
     assert fact.pinned is True
+
+
+@pytest.mark.asyncio
+async def test_restore_fact(tmp_path: Path) -> None:
+    fact = await append_fact("EmailBot", "archivé puis restauré", kind="note", root=tmp_path)
+    await archive_fact("EmailBot", fact.id, root=tmp_path)
+    restored = await restore_fact("EmailBot", fact.id, root=tmp_path)
+    assert restored is not None
+    assert restored.status == "active"
+    assert restored.archived_at is None
+    # Visible de nouveau dans la lecture active.
+    assert len((await read_memory("EmailBot", root=tmp_path)).facts) == 1
+    # Idempotent + introuvable → None.
+    again = await restore_fact("EmailBot", fact.id, root=tmp_path)
+    assert again is not None and again.status == "active"
+    assert await restore_fact("EmailBot", "deadbeef0000", root=tmp_path) is None
+
+
+@pytest.mark.asyncio
+async def test_set_pinned_toggle(tmp_path: Path) -> None:
+    fact = await append_fact("EmailBot", "à épingler", kind="note", root=tmp_path)
+    pinned = await set_pinned("EmailBot", fact.id, True, root=tmp_path)
+    assert pinned is not None and pinned.pinned is True
+    # Persistance sur disque.
+    assert (await read_memory("EmailBot", root=tmp_path)).facts[0].pinned is True
+    unpinned = await set_pinned("EmailBot", fact.id, False, root=tmp_path)
+    assert unpinned is not None and unpinned.pinned is False
+    assert await set_pinned("EmailBot", "deadbeef0000", True, root=tmp_path) is None
 
 
 @pytest.mark.asyncio

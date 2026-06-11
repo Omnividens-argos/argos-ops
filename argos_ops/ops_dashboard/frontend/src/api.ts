@@ -261,6 +261,7 @@ export interface FactRow {
   id: string;
   bot: string;
   kind: string;
+  pinned: boolean;
   body: string;
   source: string | null;
   confidence: string;
@@ -291,6 +292,25 @@ export interface FactCreatePayload {
   confidence?: "low" | "medium" | "high";
   tags?: string[];
   ttl_days?: number | null;
+  pinned?: boolean;
+}
+
+// =============================================================================
+// Mémoire de flotte — Memory Hub global
+// =============================================================================
+export interface FleetMemoryStats {
+  total: number;
+  active: number;
+  archived: number;
+  pinned: number;
+  bots: number;
+}
+
+export interface FleetMemoryView {
+  facts: FactRow[];
+  stats: FleetMemoryStats;
+  bots: string[];
+  kinds: string[];
 }
 
 // =============================================================================
@@ -490,6 +510,38 @@ export function archiveAgentFact(name: string, factId: string): Promise<FactRow>
     "POST",
     `/api/agents/${encodeURIComponent(name)}/memory/${encodeURIComponent(factId)}/archive`,
   );
+}
+
+// =============================================================================
+// Mémoire de flotte — Memory Hub global
+// =============================================================================
+export function fetchFleetMemory(signal?: AbortSignal): Promise<FleetMemoryView> {
+  return getJSON<FleetMemoryView>("/api/memory", signal);
+}
+
+export function pinFleetFact(bot: string, factId: string, pinned: boolean): Promise<FactRow> {
+  return sendJSON<FactRow>(
+    "POST",
+    `/api/memory/${encodeURIComponent(bot)}/${encodeURIComponent(factId)}/pin`,
+    { pinned },
+  );
+}
+
+export function restoreFleetFact(bot: string, factId: string): Promise<FactRow> {
+  return sendJSON<FactRow>(
+    "POST",
+    `/api/memory/${encodeURIComponent(bot)}/${encodeURIComponent(factId)}/restore`,
+  );
+}
+
+// DELETE → 204 No Content : pas de JSON à parser, fetch direct.
+export async function deleteFleetFact(bot: string, factId: string): Promise<void> {
+  const path = `/api/memory/${encodeURIComponent(bot)}/${encodeURIComponent(factId)}`;
+  const response = await fetch(path, { method: "DELETE" });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`DELETE ${path} → HTTP ${response.status} ${detail.slice(0, 200)}`);
+  }
 }
 
 export function fetchInboxDrafts(signal?: AbortSignal): Promise<InboxDraft[]> {

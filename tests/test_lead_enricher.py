@@ -48,3 +48,31 @@ def test_enrichment_embed_yellow_if_new() -> None:
     embed = build_enrichment_embed(stats)
     assert embed.color == 0xF1C40F
     assert any("Qualifiés" in f.name for f in embed.fields)
+
+
+# =============================================================================
+# build_qualified_facts — mémoire de flotte
+# =============================================================================
+def test_build_qualified_facts_one_per_lead() -> None:
+    from argos_ops.agents.lead_enricher import QualifiedLead, build_qualified_facts
+
+    facts = build_qualified_facts(
+        [QualifiedLead(full_name="Marc Dupont", domain="acme.fr", bant_total=65, persona="Marc")]
+    )
+    assert len(facts) == 1
+    fact = facts[0]
+    assert fact["kind"] == "lead-signal"
+    assert "Marc Dupont" in fact["body"]
+    assert "65/100" in fact["body"]
+    assert fact["ttl_days"] == 90
+    assert "qualified" in (fact.get("tags") or [])
+
+
+def test_build_qualified_facts_capped_at_five() -> None:
+    from argos_ops.agents.lead_enricher import QualifiedLead, build_qualified_facts
+
+    leads = [
+        QualifiedLead(full_name=f"Lead {i}", domain=f"d{i}.fr", bant_total=50, persona="Sarah")
+        for i in range(7)
+    ]
+    assert len(build_qualified_facts(leads)) == 5

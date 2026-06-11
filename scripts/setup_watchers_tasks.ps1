@@ -47,6 +47,9 @@
     - argos-ops-doc-lint          : hebdo (lundi 15h)
     - DiagramGenerator / ADRWriter : slash only (input slug requis)
 
+  Memoire de flotte (P20 / D-028) :
+    - argos-ops-memory-curator    : hebdo (lundi 5h30) - TTL / stale / purge
+
   Chaque tâche est idempotente — relancer écrase l'existante.
 
 .EXAMPLE
@@ -114,6 +117,7 @@ $Tasks = @(
     @{ Name = "argos-ops-media-list";       Script = "run_media_list_builder.py"; Trigger = "Weekly:Monday:14:00"; Description = "MediaListBuilder hebdo (lundi 14h)" }
     @{ Name = "argos-ops-brand-audit";      Script = "run_brand_guard.py";       Trigger = "Weekly:Monday:14:30";  Description = "BrandGuardBot hebdo (lundi 14h30)" }
     @{ Name = "argos-ops-doc-lint";         Script = "run_doc_linter.py";        Trigger = "Weekly:Monday:15:00";  Description = "DocLinter hebdo (lundi 15h)" }
+    @{ Name = "argos-ops-memory-curator";   Script = "run_memory_curator.py";    Trigger = "Weekly:Monday:05:30";  Description = "MemoryCurator hebdo (lundi 5h30) - nettoyage memoire de flotte" }
 )
 
 if ($Only) {
