@@ -61,7 +61,10 @@ async def test_success_with_facts_persists() -> None:
     args, kwargs = remember_mock.call_args
     assert args[0] == "TrendSpotter"
     assert args[1] == facts
-    assert kwargs["default_source"] == "/run-trend-spot"
+    # Provenance : source lisible run#N (commande) + run_id structuré
+    # (start_agent_run est mocké avec id=7).
+    assert kwargs["default_source"] == "run#7 (/run-trend-spot)"
+    assert kwargs["run_id"] == 7
 
 
 @pytest.mark.asyncio

@@ -270,6 +270,8 @@ export interface FactRow {
   created_at: string;
   archived_at: string | null;
   tags: string[];
+  /** Provenance : id du run agent_runs qui a extrait ce fait (null = ajout manuel). */
+  run_id: number | null;
 }
 
 export interface VisibleBotMemory {
@@ -365,6 +367,10 @@ export function fetchAgentRuns(
 
 export function fetchRuns(limit = 50, signal?: AbortSignal): Promise<AgentRunRow[]> {
   return getJSON<AgentRunRow[]>(`/api/runs?limit=${limit}`, signal);
+}
+
+export function fetchRun(runId: number, signal?: AbortSignal): Promise<AgentRunRow> {
+  return getJSON<AgentRunRow>(`/api/runs/${runId}`, signal);
 }
 
 export function fetchBreakers(signal?: AbortSignal): Promise<BreakerInfo[]> {

@@ -922,6 +922,16 @@ async def list_runs(limit: int = Query(default=50, ge=1, le=500)) -> list[AgentR
     return [_run_to_row(r) for r in runs]
 
 
+@app.get("/api/runs/{run_id}", response_model=AgentRunRow)
+async def get_run(run_id: int) -> AgentRunRow:
+    """Un run précis avec ses IN/OUT — provenance d'un fait mémoire (Memory Hub)."""
+    async with session_scope() as session:
+        run = await session.get(AgentRun, run_id)
+        if run is None:
+            raise HTTPException(status_code=404, detail=f"Run introuvable : {run_id}")
+        return _run_to_row(run)
+
+
 @app.get("/api/breakers", response_model=list[BreakerInfo])
 async def list_breakers() -> list[BreakerInfo]:
     """Liste des breakers actuellement tripped (auto-reset par délai pris en compte)."""
@@ -1007,6 +1017,7 @@ def _fact_to_row(fact: fleet_memory.Fact) -> FactRow:
         archived_at=fact.archived_at,
         tags=list(fact.tags),
         pinned=fact.pinned,
+        run_id=fact.run_id,
     )
 
 
