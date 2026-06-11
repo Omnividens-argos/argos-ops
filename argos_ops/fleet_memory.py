@@ -96,6 +96,7 @@ class Fact:
     archived_at: datetime | None = None  # prise MemoryCurator (P20).
     tags: tuple[str, ...] = ()
     pinned: bool = False  # « jugé important » : jamais nettoyé/supprimé par le curator.
+    run_id: int | None = None  # provenance : id agent_runs du run qui a extrait ce fait.
 
 
 @dataclass
@@ -171,6 +172,7 @@ def _fact_to_markdown(fact: Fact) -> str:
         "archived_at": fact.archived_at.isoformat() if fact.archived_at else None,
         "tags": list(fact.tags),
         "pinned": fact.pinned,
+        "run_id": fact.run_id,
     }
     return _join_frontmatter(fm, fact.body)
 
@@ -201,6 +203,7 @@ def _fact_from_markdown(content: str, *, bot: str) -> Fact:
         archived_at=_parse_dt(fm.get("archived_at")),
         tags=tags,
         pinned=bool(fm.get("pinned", False)),
+        run_id=(int(cast(int, fm["run_id"])) if fm.get("run_id") is not None else None),
     )
 
 
@@ -245,6 +248,7 @@ async def append_fact(
     ttl_days: int | None = None,
     pinned: bool = False,
     created_at: datetime | None = None,
+    run_id: int | None = None,
     root: Path = FLEET_MEMORY_DIR,
 ) -> Fact:
     """Écrit un fait dans la mémoire d'un bot. **Idempotent** par corps.
@@ -274,6 +278,7 @@ async def append_fact(
         ttl_days=ttl_days,
         pinned=pinned,
         created_at=created_at or _utcnow(),
+        run_id=run_id,
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(_fact_to_markdown(fact), encoding="utf-8")
@@ -287,6 +292,7 @@ async def remember(
     drafts: Iterable[FactDraft],
     *,
     default_source: str | None = None,
+    run_id: int | None = None,
     root: Path = FLEET_MEMORY_DIR,
 ) -> list[Fact]:
     """Conserve une série de faits qu'un bot a décidé de retenir (« se souvenir »).
@@ -320,6 +326,7 @@ async def remember(
             tags=tuple(str(t) for t in raw_tags),
             ttl_days=ttl_days,
             pinned=pinned,
+            run_id=run_id,
             root=root,
         )
         stored.append(fact)

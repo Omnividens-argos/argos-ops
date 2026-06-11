@@ -261,6 +261,33 @@ async def test_restore_fact(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_run_id_roundtrip(tmp_path: Path) -> None:
+    """La provenance (run_id) survit à l'écriture + relecture du fichier."""
+    await append_fact("EmailBot", "fait tracé", kind="lead-signal", run_id=42, root=tmp_path)
+    fact = (await read_memory("EmailBot", root=tmp_path)).facts[0]
+    assert fact.run_id == 42
+    # Sans run_id (ajout manuel) → None.
+    await append_fact("EmailBot", "fait manuel", kind="note", root=tmp_path)
+    manual = next(
+        f for f in (await read_memory("EmailBot", root=tmp_path)).facts if f.run_id is None
+    )
+    assert manual.body == "fait manuel"
+
+
+@pytest.mark.asyncio
+async def test_remember_propagates_run_id(tmp_path: Path) -> None:
+    stored = await remember(
+        "EmailBot",
+        [{"body": "souvenir du run", "kind": "lead-signal"}],
+        default_source="run#99 (/run-email-bot)",
+        run_id=99,
+        root=tmp_path,
+    )
+    assert stored[0].run_id == 99
+    assert stored[0].source == "run#99 (/run-email-bot)"
+
+
+@pytest.mark.asyncio
 async def test_set_pinned_toggle(tmp_path: Path) -> None:
     fact = await append_fact("EmailBot", "à épingler", kind="note", root=tmp_path)
     pinned = await set_pinned("EmailBot", fact.id, True, root=tmp_path)

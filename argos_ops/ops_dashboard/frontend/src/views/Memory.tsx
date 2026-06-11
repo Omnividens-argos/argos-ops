@@ -11,6 +11,7 @@ import {
   Archive,
   ArchiveRestore,
   Brain,
+  History,
   Pin,
   PinOff,
   Plus,
@@ -28,6 +29,7 @@ import {
   restoreFleetFact,
 } from "../api";
 import { EmptyState } from "../components/EmptyState";
+import { FactProvenanceModal } from "../components/FactProvenanceModal";
 import { SkeletonList } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
 import { Badge, Button, Flash } from "../components/ui";
@@ -53,6 +55,7 @@ export function Memory({ onOpenBot }: { onOpenBot: (name: string) => void }) {
   const [kindFilter, setKindFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [addOpen, setAddOpen] = useState(false);
+  const [provenance, setProvenance] = useState<FactRow | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -287,6 +290,7 @@ export function Memory({ onOpenBot }: { onOpenBot: (name: string) => void }) {
                 key={`${f.bot}-${f.id}`}
                 fact={f}
                 onOpenBot={onOpenBot}
+                onProvenance={() => setProvenance(f)}
                 onPin={() =>
                   mutate(f.pinned ? "Fait désépinglé" : "Fait épinglé", () =>
                     pinFleetFact(f.bot, f.id, !f.pinned),
@@ -302,6 +306,10 @@ export function Memory({ onOpenBot }: { onOpenBot: (name: string) => void }) {
           </ul>
         )}
       </section>
+
+      {provenance && (
+        <FactProvenanceModal fact={provenance} onClose={() => setProvenance(null)} />
+      )}
     </div>
   );
 }
@@ -312,6 +320,7 @@ export function Memory({ onOpenBot }: { onOpenBot: (name: string) => void }) {
 function FleetFactRow({
   fact,
   onOpenBot,
+  onProvenance,
   onPin,
   onArchive,
   onRestore,
@@ -319,6 +328,7 @@ function FleetFactRow({
 }: {
   fact: FactRow;
   onOpenBot: (name: string) => void;
+  onProvenance: () => void;
   onPin: () => void;
   onArchive: () => void;
   onRestore: () => void;
@@ -372,12 +382,33 @@ function FleetFactRow({
         </p>
         <div className="mt-1 font-mono text-[10px] text-argos-fg-tertiary truncate">
           <span className={fresh.text}>{fresh.label}</span> · {fact.id}
-          {fact.source ? ` · ${fact.source}` : ""} · {formatRelativeTime(fact.created_at)}
+          {fact.source ? (
+            <>
+              {" · "}
+              <button
+                type="button"
+                onClick={onProvenance}
+                title="Voir le travail qui a produit ce souvenir (sources IN → OUT)"
+                className="text-argos-info hover:underline"
+              >
+                {fact.source}
+              </button>
+            </>
+          ) : null}
+          {" · "}
+          {formatRelativeTime(fact.created_at)}
           {fact.ttl_days !== null ? ` · TTL ${fact.ttl_days}j` : " · sans TTL"}
         </div>
       </div>
 
       <div className="shrink-0 flex items-center gap-1">
+        <IconAction
+          title="D'où vient ce souvenir ? (run + sources)"
+          onClick={onProvenance}
+          hoverClass="hover:text-argos-info"
+        >
+          <History size={13} strokeWidth={2} />
+        </IconAction>
         <IconAction
           title={fact.pinned ? "Désépingler (redevient nettoyable)" : "Épingler (jamais nettoyé)"}
           onClick={onPin}

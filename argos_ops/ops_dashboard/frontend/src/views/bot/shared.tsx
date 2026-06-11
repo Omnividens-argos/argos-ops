@@ -2,7 +2,7 @@
 // Travail, Mémoire, Historique). Extraits de l'ancien BotDetail.tsx
 // monolithique pour rester réutilisables sans duplication.
 
-import { Archive, type BookOpen, Network, Plus } from "lucide-react";
+import { Archive, type BookOpen, History, Network, Plus } from "lucide-react";
 import { useState } from "react";
 import type { FactRow } from "../../api";
 import { Badge, Button } from "../../components/ui";
@@ -89,7 +89,15 @@ export function KpiCard({ label, value, tooltipTerm, tone, sub }: KpiCardProps) 
 // pastille). Réutilisé par l'onglet Mémoire (propre = éditable, accessible =
 // lecture seule).
 // =============================================================================
-export function FactCard({ fact, onArchive }: { fact: FactRow; onArchive?: () => void }) {
+export function FactCard({
+  fact,
+  onArchive,
+  onProvenance,
+}: {
+  fact: FactRow;
+  onArchive?: () => void;
+  onProvenance?: () => void;
+}) {
   const confTone: Record<string, "healthy" | "info" | "neutral"> = {
     high: "healthy",
     medium: "info",
@@ -120,21 +128,52 @@ export function FactCard({ fact, onArchive }: { fact: FactRow; onArchive?: () =>
           </p>
           <div className="mt-1 font-mono text-[10px] text-argos-fg-tertiary truncate">
             <span className={fresh.text}>{fresh.label}</span> · {fact.id}
-            {fact.source ? ` · ${fact.source}` : ""} · {formatRelativeTime(fact.created_at)}
+            {fact.source ? (
+              onProvenance ? (
+                <>
+                  {" · "}
+                  <button
+                    type="button"
+                    onClick={onProvenance}
+                    title="Voir le travail qui a produit ce souvenir (sources IN → OUT)"
+                    className="text-argos-info hover:underline"
+                  >
+                    {fact.source}
+                  </button>
+                </>
+              ) : (
+                ` · ${fact.source}`
+              )
+            ) : null}
+            {" · "}
+            {formatRelativeTime(fact.created_at)}
             {fact.ttl_days !== null ? ` · TTL ${fact.ttl_days}j` : ""}
           </div>
         </div>
-        {onArchive && fact.status !== "archived" && (
-          <button
-            type="button"
-            onClick={onArchive}
-            title="Archiver ce fait (soft delete)"
-            className="shrink-0 inline-flex items-center gap-1 font-mono text-[10px] text-argos-fg-tertiary hover:text-argos-warning transition-colors"
-          >
-            <Archive size={11} strokeWidth={2} />
-            archiver
-          </button>
-        )}
+        <div className="shrink-0 flex items-center gap-2.5">
+          {onProvenance && (
+            <button
+              type="button"
+              onClick={onProvenance}
+              title="D'où vient ce souvenir ? (run + sources)"
+              className="inline-flex items-center gap-1 font-mono text-[10px] text-argos-fg-tertiary hover:text-argos-info transition-colors"
+            >
+              <History size={11} strokeWidth={2} />
+              travail
+            </button>
+          )}
+          {onArchive && fact.status !== "archived" && (
+            <button
+              type="button"
+              onClick={onArchive}
+              title="Archiver ce fait (soft delete)"
+              className="inline-flex items-center gap-1 font-mono text-[10px] text-argos-fg-tertiary hover:text-argos-warning transition-colors"
+            >
+              <Archive size={11} strokeWidth={2} />
+              archiver
+            </button>
+          )}
+        </div>
       </div>
     </li>
   );
