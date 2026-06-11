@@ -6,6 +6,7 @@ import { ArrowDownToLine, ArrowUpRight, Brain } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { BotMemoryView, FactRow } from "../../api";
 import { appendAgentFact, archiveAgentFact, fetchAgentMemory } from "../../api";
+import { FactProvenanceModal } from "../../components/FactProvenanceModal";
 import { SkeletonList } from "../../components/Skeleton";
 import { useToast } from "../../components/Toast";
 import { Badge, Flash } from "../../components/ui";
@@ -49,6 +50,7 @@ export function MemoryTab({ botName }: { botName: string }) {
   const [data, setData] = useState<BotMemoryView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [provenance, setProvenance] = useState<FactRow | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -128,6 +130,7 @@ export function MemoryTab({ botName }: { botName: string }) {
                           key={f.id}
                           fact={f}
                           onArchive={() => handleArchive(f.id)}
+                          onProvenance={() => setProvenance(f)}
                         />
                       ))}
                     </DateGroup>
@@ -139,7 +142,7 @@ export function MemoryTab({ botName }: { botName: string }) {
                       muted
                     >
                       {grouped.archived.map((f) => (
-                        <FactCard key={f.id} fact={f} />
+                        <FactCard key={f.id} fact={f} onProvenance={() => setProvenance(f)} />
                       ))}
                     </DateGroup>
                   )}
@@ -176,7 +179,11 @@ export function MemoryTab({ botName }: { botName: string }) {
                       ) : (
                         <ul className="space-y-1.5">
                           {vis.facts.map((f) => (
-                            <FactCard key={`${vis.bot}-${f.id}`} fact={f} />
+                            <FactCard
+                              key={`${vis.bot}-${f.id}`}
+                              fact={f}
+                              onProvenance={() => setProvenance(f)}
+                            />
                           ))}
                         </ul>
                       )}
@@ -188,6 +195,10 @@ export function MemoryTab({ botName }: { botName: string }) {
           </div>
         )}
       </section>
+
+      {provenance && (
+        <FactProvenanceModal fact={provenance} onClose={() => setProvenance(null)} />
+      )}
     </div>
   );
 }

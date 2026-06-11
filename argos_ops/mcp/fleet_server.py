@@ -52,6 +52,7 @@ def _fact_dict(fact: Fact) -> dict[str, Any]:
         "ttl_days": fact.ttl_days,
         "pinned": fact.pinned,
         "created_at": fact.created_at.isoformat(),
+        "run_id": fact.run_id,
     }
 
 

@@ -132,17 +132,20 @@ async def run_agent(agent: BaseAgent) -> RunResult:
             outputs=[asdict(o) for o in result.outputs] or None,
         )
     if result.status == "success":
-        await _remember_run_facts(agent, result)
+        await _remember_run_facts(agent, result, run_id=run_id)
     logger.success(f"Agent {agent.name} — {result.status}")
     return result
 
 
-async def _remember_run_facts(agent: BaseAgent, result: RunResult) -> None:
+async def _remember_run_facts(agent: BaseAgent, result: RunResult, *, run_id: int = 0) -> None:
     """Conserve dans la mémoire de flotte ce que le bot a décidé de retenir.
 
     Le bot expose ses souvenirs via ``RunResult.extras["fleet_facts"]`` (liste
-    de :class:`argos_ops.fleet_memory.FactDraft`). La mémoire ne doit JAMAIS
-    faire échouer un run : toute erreur est logguée puis avalée.
+    de :class:`argos_ops.fleet_memory.FactDraft`). Chaque fait est tracé vers
+    son run d'origine (``run_id`` + source ``run#N (commande)``) — c'est ce qui
+    permet au cockpit de remonter d'un souvenir au travail (IN → OUT) qui l'a
+    produit. La mémoire ne doit JAMAIS faire échouer un run : toute erreur est
+    logguée puis avalée.
     """
     raw = result.extras.get("fleet_facts")
     if not raw:
@@ -150,9 +153,11 @@ async def _remember_run_facts(agent: BaseAgent, result: RunResult) -> None:
     if not isinstance(raw, list):
         logger.warning(f"Agent {agent.name} — extras['fleet_facts'] n'est pas une liste, ignoré")
         return
+    command = agent.command or agent.name
+    source = f"run#{run_id} ({command})" if run_id else command
     try:
         stored = await fleet_memory.remember(
-            agent.name, raw, default_source=agent.command or agent.name
+            agent.name, raw, default_source=source, run_id=run_id or None
         )
         if stored:
             logger.info(f"Agent {agent.name} — {len(stored)} fait(s) mémorisé(s)")

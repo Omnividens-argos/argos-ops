@@ -380,6 +380,7 @@ class FactRow(BaseModel):
     archived_at: datetime | None
     tags: list[str]
     pinned: bool = False
+    run_id: int | None = None  # provenance : run agent_runs qui a extrait ce fait
 
 
 class VisibleBotMemory(BaseModel):
