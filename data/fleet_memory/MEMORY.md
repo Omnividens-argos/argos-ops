@@ -44,10 +44,11 @@ BlueskyWriter: [TrendSpotter]
 MetaWriter: [TrendSpotter]
 XWriter: [TrendSpotter]
 
-# ── Sales : a besoin de l'enrichissement et des signaux d'intention ──
-OutboundBot: [LeadEnricher, IntentSignalsBot]
-ProspectMiner: [IntentSignalsBot]
-DealRiskScorer: [LeadEnricher, IntentSignalsBot]
+# ── Sales : a besoin de l'enrichissement, des signaux d'intention
+#    et des signaux inbound (EmailBot écrit ses lead-signals à chaque run) ──
+OutboundBot: [LeadEnricher, IntentSignalsBot, EmailBot]
+ProspectMiner: [IntentSignalsBot, EmailBot]
+DealRiskScorer: [LeadEnricher, IntentSignalsBot, EmailBot]
 DemoFollowupBot: [LeadEnricher]
 ProposalBot: [LeadEnricher]
 

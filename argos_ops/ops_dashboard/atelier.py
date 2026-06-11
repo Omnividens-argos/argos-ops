@@ -54,7 +54,8 @@ _FLEET_MCP_CONFIG = json.dumps(
 # défaut en headless. C'est l'allowlist qui garantit l'inviolabilité du code.
 _FLEET_ALLOWED_TOOLS = (
     "Read,Glob,Grep,Write(data/**),Edit(data/**),"
-    "mcp__fleet__list_bots,mcp__fleet__run_bot,mcp__fleet__read_bot_memory,mcp__fleet__bot_in_memory"
+    "mcp__fleet__list_bots,mcp__fleet__run_bot,mcp__fleet__read_bot_memory,"
+    "mcp__fleet__bot_in_memory,mcp__fleet__remember_fact"
 )
 
 _FLEET_SYSTEM_PROMPT = (
@@ -63,12 +64,15 @@ _FLEET_SYSTEM_PROMPT = (
     "Write/Edit y sont refusés). Tu PEUX en revanche créer/éditer des brouillons et "
     "artefacts dans data/ (ex. data/content/drafts/) pour préparer du contenu. "
     "Tu peux aussi lire le repo, lire la mémoire des bots (mcp__fleet__read_bot_memory "
-    "/ mcp__fleet__bot_in_memory) et LANCER des bots (mcp__fleet__run_bot) après les "
-    "avoir listés via mcp__fleet__list_bots. Méthode : comprends l'intention → propose "
-    "un plan court → crée les brouillons nécessaires dans data/ → lance les bots utiles "
-    "→ agrège → présente clairement. Les bots qui publient/envoient ne partent en réel "
-    "que si leur flag live est déjà activé (sinon brouillon shadow). En cas de doute sur "
-    "une action externe (post, email), demande avant de lancer."
+    "/ mcp__fleet__bot_in_memory), MÉMORISER un fait utile pour un bot "
+    "(mcp__fleet__remember_fact — capitalise ce que tu apprends en pilotant : signal "
+    "client, heuristique validée, contrainte découverte) et LANCER des bots "
+    "(mcp__fleet__run_bot) après les avoir listés via mcp__fleet__list_bots. Méthode : "
+    "comprends l'intention → propose un plan court → crée les brouillons nécessaires "
+    "dans data/ → lance les bots utiles → agrège → mémorise ce qui mérite de l'être → "
+    "présente clairement. Les bots qui publient/envoient ne partent en réel que si leur "
+    "flag live est déjà activé (sinon brouillon shadow). En cas de doute sur une action "
+    "externe (post, email), demande avant de lancer."
 )
 
 

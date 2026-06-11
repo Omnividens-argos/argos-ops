@@ -28,6 +28,7 @@ from argos_ops.crm.repository import (
     get_or_create_company,
     get_or_create_lead,
 )
+from argos_ops.fleet_memory import FactDraft
 from argos_ops.integrations.zimbra import (
     EmailMessage,
     extract_domain,
@@ -67,8 +68,12 @@ class IngestStats:
 # =============================================================================
 # Persistence d'un email
 # =============================================================================
-async def _persist_email(session: AsyncSession, msg: EmailMessage, stats: IngestStats) -> None:
-    """Crée company + lead + interaction. Mute ``stats`` au passage."""
+async def _persist_email(session: AsyncSession, msg: EmailMessage, stats: IngestStats) -> bool:
+    """Crée company + lead + interaction. Mute ``stats`` au passage.
+
+    Retourne ``True`` si un **nouveau** lead a été créé (signal mémoire de
+    flotte), ``False`` pour un lead déjà connu.
+    """
     company_id: int | None = None
     domain = extract_domain(msg.from_email)
     if domain:
@@ -101,6 +106,38 @@ async def _persist_email(session: AsyncSession, msg: EmailMessage, stats: Ingest
         subject=msg.subject,
         body=msg.body_text or msg.body_html or "",
     )
+    return existing_lead is None
+
+
+# =============================================================================
+# Mémoire de flotte
+# =============================================================================
+_MAX_LEAD_FACTS_PER_RUN = 5
+_LEAD_FACT_TTL_DAYS = 90
+
+
+def build_lead_facts(new_lead_msgs: list[EmailMessage]) -> list[FactDraft]:
+    """Faits « lead-signal » à conserver en mémoire de flotte pour ce run.
+
+    Un fait par **nouveau** lead inbound (lead déjà connu = pas de signal
+    neuf). Consommés par OutboundBot / DealRiskScorer via le graphe d'accès.
+    Cap (5 faits/run) pour ne pas inonder la mémoire sur un burst, TTL court
+    (90 j) : un signal lead périme vite.
+    """
+    facts: list[FactDraft] = []
+    for msg in new_lead_msgs[:_MAX_LEAD_FACTS_PER_RUN]:
+        who = f"{msg.from_name} <{msg.from_email}>" if msg.from_name else msg.from_email
+        subject = (msg.subject or "(sans sujet)").strip()
+        facts.append(
+            FactDraft(
+                body=f"Nouveau lead inbound : {who} — sujet « {subject[:120]} »",
+                kind="lead-signal",
+                confidence="medium",
+                tags=["inbound", "email"],
+                ttl_days=_LEAD_FACT_TTL_DAYS,
+            )
+        )
+    return facts
 
 
 # =============================================================================
@@ -171,6 +208,7 @@ class EmailBot(BaseAgent):
         stats = IngestStats(fetched=len(messages))
         logger.info(f"EmailBot — {len(messages)} email(s) non lu(s) récupéré(s)")
 
+        new_lead_msgs: list[EmailMessage] = []
         for msg in messages:
             if is_noreply(msg.from_email):
                 stats.skipped_noreply += 1
@@ -180,9 +218,11 @@ class EmailBot(BaseAgent):
 
             try:
                 async with session_scope() as session:
-                    await _persist_email(session, msg, stats)
+                    is_new_lead = await _persist_email(session, msg, stats)
                 stats.ingested += 1
                 stats.subjects.append(msg.subject or "(sans sujet)")
+                if is_new_lead:
+                    new_lead_msgs.append(msg)
             except Exception as exc:
                 stats.failures += 1
                 logger.exception(f"EmailBot — persist a échoué pour UID {msg.uid} : {exc}")
@@ -224,15 +264,20 @@ class EmailBot(BaseAgent):
             )
         ]
         if stats.failures:
-            outputs.append(
-                IOItem(label="Échecs de persistance", kind="db", count=stats.failures)
-            )
+            outputs.append(IOItem(label="Échecs de persistance", kind="db", count=stats.failures))
+
+        # Mémoire de flotte : signaux « nouveau lead » conservés par run_agent.
+        extras: dict[str, object] = {}
+        lead_facts = build_lead_facts(new_lead_msgs)
+        if lead_facts:
+            extras["fleet_facts"] = lead_facts
 
         return RunResult(
             status="success",
             output_summary=stats.summary(),
             inputs=inputs,
             outputs=outputs,
+            extras=extras,
         )
 
     async def _maybe_trip_smtp_failures_burst(self, discord_webhook: SecretStr | None) -> None:
@@ -271,4 +316,4 @@ class EmailBot(BaseAgent):
             logger.warning(f"mark_seen a échoué pour UID {uid} : {exc}")
 
 
-__all__ = ["EmailBot", "IngestStats", "build_inbox_embed"]
+__all__ = ["EmailBot", "IngestStats", "build_inbox_embed", "build_lead_facts"]

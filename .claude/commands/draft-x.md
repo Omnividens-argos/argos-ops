@@ -27,6 +27,9 @@ qui porte toute la logique éditoriale.
    d'une idée tranchée).
 2. **Contexte KB** — `kb-rag` (top-5) + `tone_of_voice.md` + `ICP.md`, et
    conditionnellement `argos_features` / `competitor_compare` / `faq`.
+   **Mémoire de flotte** — lancer
+   `uv run python scripts/fleet_memory_in.py XWriter` et injecter les
+   faits actifs (tendances TrendSpotter…) dans le contexte de drafting.
 3. **Drafting interactif** — angle (jugé sur son hook) → hook ligne 1
    (le plus travaillé) → corps nerveux (1-2 phrases) → lien/hashtag
    optionnels (lien = ~23 chars, 0-1 hashtag). Recompter (≤ 280).

@@ -47,6 +47,10 @@ GRAPH_WILDCARD = "*"  # « lit toute la flotte » (orchestrateur / curator).
 Confidence = Literal["low", "medium", "high"]
 FactStatus = Literal["active", "archived"]
 
+# TTL appliqué par remember() quand un bot n'en précise pas : aucun fait
+# auto-extrait n'est éternel par défaut (l'éternel = pinned, décision humaine).
+DEFAULT_FACT_TTL_DAYS = 180
+
 
 class FactDraft(TypedDict, total=False):
     """Fait brut qu'un bot demande à conserver en fin de run.
@@ -299,6 +303,14 @@ async def remember(
             logger.warning(f"fleet_memory.remember: draft sans body ignoré ({bot})")
             continue
         raw_tags = draft.get("tags") or []
+        pinned = bool(draft.get("pinned", False))
+        # TTL par défaut : un draft qui ne mentionne PAS ttl_days hérite de
+        # DEFAULT_FACT_TTL_DAYS (sauf pinned). ttl_days=None explicite reste
+        # possible pour un fait volontairement sans expiration.
+        if "ttl_days" in draft:
+            ttl_days = draft.get("ttl_days")
+        else:
+            ttl_days = None if pinned else DEFAULT_FACT_TTL_DAYS
         fact = await append_fact(
             bot,
             body,
@@ -306,8 +318,8 @@ async def remember(
             source=draft.get("source") or default_source,
             confidence=draft.get("confidence", "medium"),
             tags=tuple(str(t) for t in raw_tags),
-            ttl_days=draft.get("ttl_days"),
-            pinned=bool(draft.get("pinned", False)),
+            ttl_days=ttl_days,
+            pinned=pinned,
             root=root,
         )
         stored.append(fact)
@@ -341,12 +353,59 @@ async def archive_fact(
     return archived
 
 
-async def delete_fact(bot: str, fact_id: str, *, root: Path = FLEET_MEMORY_DIR) -> bool:
-    """Supprime définitivement un fait (hard delete). Réservé à MemoryCurator (P20).
+async def restore_fact(bot: str, fact_id: str, *, root: Path = FLEET_MEMORY_DIR) -> Fact | None:
+    """Restaure un fait archivé : ``status=active`` + ``archived_at`` effacé.
 
-    Retourne ``True`` si le fichier existait et a été supprimé, ``False`` sinon.
-    Régénère l'``INDEX.md`` du bot. Irréversible — le curator ne l'applique
-    qu'aux faits archivés depuis longtemps et jamais aux faits ``pinned``.
+    Pendant inverse de :func:`archive_fact` — utilisé par le Memory Hub du
+    cockpit (contrôle manuel). Retourne ``None`` si le fait n'existe pas,
+    le fait inchangé s'il était déjà actif (idempotent).
+    """
+    path = _fact_path(bot, fact_id, root)
+    if not path.exists():
+        logger.warning(f"fleet_memory: restore impossible — {bot}/{fact_id} introuvable")
+        return None
+    fact = _fact_from_markdown(path.read_text(encoding="utf-8"), bot=bot)
+    if fact.status == "active":
+        return fact
+    restored = replace(fact, status="active", archived_at=None)
+    path.write_text(_fact_to_markdown(restored), encoding="utf-8")
+    await _regenerate_bot_index(bot, root=root)
+    logger.info(f"fleet_memory: fait {bot}/{fact_id} restauré")
+    return restored
+
+
+async def set_pinned(
+    bot: str,
+    fact_id: str,
+    pinned: bool,
+    *,
+    root: Path = FLEET_MEMORY_DIR,
+) -> Fact | None:
+    """(Dé)pin un fait. Un fait ``pinned`` n'est jamais nettoyé par MemoryCurator.
+
+    Retourne le fait mis à jour, ``None`` s'il n'existe pas. Idempotent.
+    """
+    path = _fact_path(bot, fact_id, root)
+    if not path.exists():
+        logger.warning(f"fleet_memory: pin impossible — {bot}/{fact_id} introuvable")
+        return None
+    fact = _fact_from_markdown(path.read_text(encoding="utf-8"), bot=bot)
+    if fact.pinned == pinned:
+        return fact
+    updated = replace(fact, pinned=pinned)
+    path.write_text(_fact_to_markdown(updated), encoding="utf-8")
+    await _regenerate_bot_index(bot, root=root)
+    logger.info(f"fleet_memory: fait {bot}/{fact_id} pinned={pinned}")
+    return updated
+
+
+async def delete_fact(bot: str, fact_id: str, *, root: Path = FLEET_MEMORY_DIR) -> bool:
+    """Supprime définitivement un fait (hard delete).
+
+    Appelé par MemoryCurator (purge des archivés anciens) et par le Memory Hub
+    du cockpit (suppression manuelle assumée par le fondateur). Retourne
+    ``True`` si le fichier existait et a été supprimé, ``False`` sinon.
+    Régénère l'``INDEX.md`` du bot. Irréversible.
     """
     path = _fact_path(bot, fact_id, root)
     if not path.exists():
@@ -458,6 +517,7 @@ async def visible_memory(bot: str, *, root: Path = FLEET_MEMORY_DIR) -> dict[str
 
 
 __all__ = [
+    "DEFAULT_FACT_TTL_DAYS",
     "FLEET_MEMORY_DIR",
     "GRAPH_WILDCARD",
     "BotMemory",
@@ -474,5 +534,7 @@ __all__ = [
     "read_memory",
     "remember",
     "resolve_visible_bots",
+    "restore_fact",
+    "set_pinned",
     "visible_memory",
 ]

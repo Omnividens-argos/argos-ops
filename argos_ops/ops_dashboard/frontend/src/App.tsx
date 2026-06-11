@@ -15,6 +15,7 @@ import { CashCustomers } from "./views/CashCustomers";
 import { HealthCompliance } from "./views/HealthCompliance";
 import { Help } from "./views/Help";
 import { Inbox } from "./views/Inbox";
+import { Memory } from "./views/Memory";
 import { Outputs } from "./views/Outputs";
 import { Pipeline } from "./views/Pipeline";
 import { Runs } from "./views/Runs";
@@ -32,6 +33,7 @@ export type View =
   | "health"
   | "runs"
   | "outputs"
+  | "memory"
   | "atelier"
   | "help";
 
@@ -143,8 +145,9 @@ export function App() {
       if (e.key === "5") navigate("health");
       if (e.key === "6") navigate("runs");
       if (e.key === "7") navigate("outputs");
-      if (e.key === "8") navigate("atelier");
-      if (e.key === "9") navigate("help");
+      if (e.key === "8") navigate("memory");
+      if (e.key === "9") navigate("atelier");
+      if (e.key === "0") navigate("help");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -193,6 +196,7 @@ export function App() {
               {view === "health" && <HealthCompliance />}
               {view === "runs" && <Runs />}
               {view === "outputs" && <Outputs />}
+              {view === "memory" && <Memory onOpenBot={openBot} />}
               {view === "atelier" && <Atelier />}
               {view === "pipeline" && <Pipeline onBack={() => navigate("cash")} />}
               {view === "help" && (

@@ -2,6 +2,7 @@
 
 Expose à Claude (mode **pilotage flotte**) des outils typés pour :
 - **lire** la mémoire des bots (faits conservés + le « IN » résolu par graphe) ;
+- **écrire** un fait en mémoire (capitaliser ce que l'atelier apprend) ;
 - **lancer** un bot et récupérer son résultat.
 
 Aucun bash, aucune édition du repo. Les bots qui publient/envoient
@@ -26,7 +27,14 @@ import anyio
 from mcp.server.fastmcp import FastMCP
 
 from argos_ops.agents.base import RunResult, run_agent
-from argos_ops.fleet_memory import Fact, read_memory, visible_memory
+from argos_ops.fleet_memory import (
+    DEFAULT_FACT_TTL_DAYS,
+    Confidence,
+    Fact,
+    append_fact,
+    read_memory,
+    visible_memory,
+)
 from argos_ops.fleet_memory import list_bots as fm_list_bots
 from argos_ops.ops_dashboard.app import KNOWN_AGENTS, RUNNABLE_AGENTS, _build_agent
 
@@ -107,6 +115,42 @@ async def bot_in_memory(name: str) -> dict[str, Any]:
     """
     vis = await visible_memory(name)
     return {bot: [_fact_dict(f) for f in mem.facts] for bot, mem in vis.items()}
+
+
+@mcp.tool()
+async def remember_fact(
+    bot: str,
+    body: str,
+    kind: str = "note",
+    confidence: Confidence = "medium",
+    tags: list[str] | None = None,
+    ttl_days: int | None = DEFAULT_FACT_TTL_DAYS,
+    pinned: bool = False,
+) -> dict[str, Any]:
+    """Conserve un fait dans la mémoire d'un bot (capitaliser ce que tu apprends).
+
+    Idempotent par corps (même contenu = même fact_id, pas de doublon).
+    ``ttl_days`` défaut 180 j ; passe ``pinned=true`` seulement pour un fait
+    durable validé avec le fondateur. Le bot doit être connu de la flotte.
+    """
+    if bot not in KNOWN_AGENTS:
+        return {
+            "status": "error",
+            "error": f"Bot inconnu : {bot}. Utilise list_bots() pour les noms valides.",
+        }
+    if not body.strip():
+        return {"status": "error", "error": "body vide"}
+    fact = await append_fact(
+        bot,
+        body,
+        kind=kind,
+        source="atelier",
+        confidence=confidence,
+        tags=tuple(tags or ()),
+        ttl_days=ttl_days,
+        pinned=pinned,
+    )
+    return {"status": "ok", "fact": _fact_dict(fact)}
 
 
 def main() -> None:

@@ -26,6 +26,10 @@ qui porte toute la logique éditoriale. Cette commande en est l'enveloppe.
 2. **Contexte KB** (non négociable) — `kb-rag` (top-5) + `tone_of_voice.md`
    + `ICP.md`, et conditionnellement `argos_features` / `competitor_compare`
    / `faq` / `pricing`.
+   **Mémoire de flotte** (non négociable) — lancer
+   `uv run python scripts/fleet_memory_in.py LinkedInWriter` et injecter les
+   faits actifs (tendances TrendSpotter…) dans le contexte. Un sujet chaud
+   en mémoire = angle prioritaire s'il est cohérent avec le topic demandé.
 3. **Drafting interactif** — angle (2-3 options) → hook ligne 1 → corps
    (3-4 paragraphes courts) → CTA soft → 3-5 hashtags. Recompter les chars
    (cible 1300-2000).

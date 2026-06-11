@@ -22,7 +22,9 @@ const SHORTCUTS: { group: string; items: Shortcut[] }[] = [
       { keys: ["5"], label: "Aller à Health & Compliance" },
       { keys: ["6"], label: "Aller à Runs" },
       { keys: ["7"], label: "Aller à Outputs library" },
-      { keys: ["8"], label: "Aller à Aide & glossaire" },
+      { keys: ["8"], label: "Aller à la Mémoire de flotte" },
+      { keys: ["9"], label: "Aller à l'Atelier libre" },
+      { keys: ["0"], label: "Aller à Aide & glossaire" },
     ],
   },
   {

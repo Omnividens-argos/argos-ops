@@ -23,7 +23,15 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -73,8 +81,11 @@ from argos_ops.ops_dashboard.models import (
     ConsoleInResponse,
     ConsoleStatusResponse,
     FactCreatePayload,
+    FactPinPayload,
     FactRow,
     FilePeekResponse,
+    FleetMemoryStats,
+    FleetMemoryView,
     HealthAgentBreakdown,
     HealthSnapshot,
     InboxActionPayload,
@@ -995,6 +1006,7 @@ def _fact_to_row(fact: fleet_memory.Fact) -> FactRow:
         created_at=fact.created_at,
         archived_at=fact.archived_at,
         tags=list(fact.tags),
+        pinned=fact.pinned,
     )
 
 
@@ -1056,6 +1068,7 @@ async def append_agent_memory(name: str, payload: FactCreatePayload) -> FactRow:
         confidence=payload.confidence,
         tags=tuple(payload.tags),
         ttl_days=payload.ttl_days,
+        pinned=payload.pinned,
         root=FLEET_MEMORY_ROOT,
     )
     return _fact_to_row(fact)
@@ -1070,6 +1083,78 @@ async def archive_agent_memory(name: str, fact_id: str) -> FactRow:
     if fact is None:
         raise HTTPException(status_code=404, detail=f"Fait introuvable : {fact_id}")
     return _fact_to_row(fact)
+
+
+# =============================================================================
+# Mémoire de flotte — Memory Hub global (vue + contrôle manuel)
+# =============================================================================
+def _ensure_known_fact_bot(name: str) -> None:
+    """Garde-fou des mutations Memory Hub : bot connu du panel OU déjà sur disque.
+
+    (Un dossier mémoire peut exister pour un bot retiré du catalogue — on doit
+    quand même pouvoir nettoyer ses faits.)
+    """
+    if name in KNOWN_AGENTS or name in fleet_memory.list_bots(root=FLEET_MEMORY_ROOT):
+        return
+    raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
+
+
+@app.get("/api/memory", response_model=FleetMemoryView)
+async def get_fleet_memory() -> FleetMemoryView:
+    """Toute la mémoire de flotte, tous bots confondus (actifs + archivés).
+
+    Alimente le Memory Hub : le filtrage (bot / kind / statut / texte) se fait
+    côté client — l'échelle (fichiers locaux) ne justifie pas de pagination.
+    """
+    facts: list[FactRow] = []
+    for bot in fleet_memory.list_bots(root=FLEET_MEMORY_ROOT):
+        mem = await fleet_memory.read_memory(bot, root=FLEET_MEMORY_ROOT, include_archived=True)
+        facts.extend(_fact_to_row(f) for f in mem.facts)
+    facts.sort(key=lambda f: f.created_at, reverse=True)
+
+    stats = FleetMemoryStats(
+        total=len(facts),
+        active=sum(1 for f in facts if f.status == "active"),
+        archived=sum(1 for f in facts if f.status == "archived"),
+        pinned=sum(1 for f in facts if f.pinned),
+        bots=len({f.bot for f in facts}),
+    )
+    return FleetMemoryView(
+        facts=facts,
+        stats=stats,
+        bots=sorted({f.bot for f in facts}),
+        kinds=sorted({f.kind for f in facts}),
+    )
+
+
+@app.post("/api/memory/{name}/{fact_id}/pin", response_model=FactRow)
+async def pin_fleet_fact(name: str, fact_id: str, payload: FactPinPayload) -> FactRow:
+    """(Dé)pin un fait — un fait pinned n'est jamais nettoyé par MemoryCurator."""
+    _ensure_known_fact_bot(name)
+    fact = await fleet_memory.set_pinned(name, fact_id, payload.pinned, root=FLEET_MEMORY_ROOT)
+    if fact is None:
+        raise HTTPException(status_code=404, detail=f"Fait introuvable : {fact_id}")
+    return _fact_to_row(fact)
+
+
+@app.post("/api/memory/{name}/{fact_id}/restore", response_model=FactRow)
+async def restore_fleet_fact(name: str, fact_id: str) -> FactRow:
+    """Restaure un fait archivé (pendant inverse de l'archivage)."""
+    _ensure_known_fact_bot(name)
+    fact = await fleet_memory.restore_fact(name, fact_id, root=FLEET_MEMORY_ROOT)
+    if fact is None:
+        raise HTTPException(status_code=404, detail=f"Fait introuvable : {fact_id}")
+    return _fact_to_row(fact)
+
+
+@app.delete("/api/memory/{name}/{fact_id}", status_code=204)
+async def delete_fleet_fact(name: str, fact_id: str) -> Response:
+    """Supprime définitivement un fait (hard delete, contrôle manuel assumé)."""
+    _ensure_known_fact_bot(name)
+    deleted = await fleet_memory.delete_fact(name, fact_id, root=FLEET_MEMORY_ROOT)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Fait introuvable : {fact_id}")
+    return Response(status_code=204)
 
 
 # =============================================================================

@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Banknote,
   BookOpen,
+  Brain,
   HeartPulse,
   Inbox,
   Kanban,
@@ -141,6 +142,16 @@ export function CommandPalette({
         keywords:
           "outputs library archive drafts contents files markdown produit produced",
         run: () => onNavigate("outputs"),
+      },
+      {
+        id: "nav:memory",
+        type: "navigate",
+        label: "Mémoire de flotte",
+        hint: "Tous les faits retenus par les bots — filtre, épingle, archive, supprime",
+        icon: Brain,
+        keywords:
+          "memory memoire flotte fleet facts faits souvenirs pin epingle archive supprime ttl curator",
+        run: () => onNavigate("memory"),
       },
       {
         id: "nav:help",

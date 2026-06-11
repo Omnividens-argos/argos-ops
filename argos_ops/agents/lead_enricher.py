@@ -28,6 +28,7 @@ from loguru import logger
 from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
 from argos_ops.exceptions import AgentDataSourceError
+from argos_ops.fleet_memory import FactDraft
 from argos_ops.notifications.discord import (
     GREEN,
     YELLOW,
@@ -113,6 +114,46 @@ def _write_enriched_md(
     out_path.write_text(body, encoding="utf-8")
 
 
+# =============================================================================
+# Mémoire de flotte
+# =============================================================================
+_MAX_QUALIFIED_FACTS_PER_RUN = 5
+_QUALIFIED_FACT_TTL_DAYS = 90
+
+
+@dataclass(frozen=True)
+class QualifiedLead:
+    """Photo d'un lead qualifié pendant un run — sert à bâtir les faits mémoire."""
+
+    full_name: str
+    domain: str
+    bant_total: int
+    persona: str
+
+
+def build_qualified_facts(qualified: list[QualifiedLead]) -> list[FactDraft]:
+    """Faits « lead-signal » pour chaque lead nouvellement qualifié (BANT ≥ 40).
+
+    Consommés par OutboundBot / DealRiskScorer / ProposalBot via le graphe
+    d'accès. Cap (5 faits/run) + TTL 90 j : un signal commercial périme.
+    """
+    facts: list[FactDraft] = []
+    for lead in qualified[:_MAX_QUALIFIED_FACTS_PER_RUN]:
+        facts.append(
+            FactDraft(
+                body=(
+                    f"Lead qualifié BANT {lead.bant_total}/100 : {lead.full_name} "
+                    f"({lead.domain}) — persona {lead.persona}"
+                ),
+                kind="lead-signal",
+                confidence="medium",
+                tags=["qualified", "outbound"],
+                ttl_days=_QUALIFIED_FACT_TTL_DAYS,
+            )
+        )
+    return facts
+
+
 def build_enrichment_embed(stats: EnrichmentStats) -> Embed:
     """Embed Discord récap."""
     color = YELLOW if stats.newly_enriched > 0 else GREEN
@@ -172,6 +213,7 @@ class LeadEnricher(BaseAgent):
             raise AgentDataSourceError(f"CSV invalide {csv_path.name}: {exc}") from exc
 
         stats = EnrichmentStats(leads_seen=len(leads))
+        newly_qualified: list[QualifiedLead] = []
         for lead in leads:
             slug = slugify(lead.full_name, lead.domain)
             out_path = self._enriched_dir / f"{slug}.md"
@@ -196,6 +238,17 @@ class LeadEnricher(BaseAgent):
                 )
                 stats.newly_enriched += 1
                 stats.new_slugs.append(slug)
+                if bant["is_qualified"]:
+                    persona = enriched["persona"]
+                    assert isinstance(persona, dict)
+                    newly_qualified.append(
+                        QualifiedLead(
+                            full_name=lead.full_name,
+                            domain=lead.domain,
+                            bant_total=int(bant["total"]),
+                            persona=str(persona.get("name", "?")),
+                        )
+                    )
             except OSError as exc:
                 logger.exception(f"LeadEnricher — écriture {slug} a échoué : {exc}")
                 stats.skipped_invalid += 1
@@ -235,12 +288,25 @@ class LeadEnricher(BaseAgent):
             )
         ]
 
+        # Mémoire de flotte : leads qualifiés conservés par run_agent.
+        extras: dict[str, object] = {}
+        qualified_facts = build_qualified_facts(newly_qualified)
+        if qualified_facts:
+            extras["fleet_facts"] = qualified_facts
+
         return RunResult(
             status="success",
             output_summary=stats.summary(),
             inputs=inputs,
             outputs=outputs,
+            extras=extras,
         )
 
 
-__all__ = ["EnrichmentStats", "LeadEnricher", "build_enrichment_embed"]
+__all__ = [
+    "EnrichmentStats",
+    "LeadEnricher",
+    "QualifiedLead",
+    "build_enrichment_embed",
+    "build_qualified_facts",
+]

@@ -36,6 +36,10 @@ Invoquer `kb-rag` (P6) avec `topic` (top-5 chunks). Charger en plus :
 selon le topic : `argos_features.md`, `competitor_compare.md`, `faq.md`,
 `pricing.md`. Sans KB, on retombe dans le ton générique IA — refuser.
 
+**Mémoire de flotte** (non négociable) — lancer
+`uv run python scripts/fleet_memory_in.py BlueskyWriter` et injecter les
+faits actifs (tendances TrendSpotter…) dans le contexte de drafting.
+
 ### 3. Drafting interactif
 
 Proposer + faire valider : **angle** (2-3 options) → **hook** (ligne 1) →

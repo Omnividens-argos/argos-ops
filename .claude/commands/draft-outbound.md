@@ -91,6 +91,11 @@ Pour chaque touche `step ∈ [1..5]` dont `status == "scaffold"` :
      (si lead vient d'Acunetix/Detectify), `argos_features.md` (si feature
      spécifique).
 
+   Charger aussi la **mémoire de flotte** :
+   `uv run python scripts/fleet_memory_in.py OutboundBot` — signaux leads
+   inbound (EmailBot), objections récurrentes, heuristiques LeadEnricher.
+   Une objection connue = l'adresser proactivement dans la touche CASE.
+
 3. Proposer **subject + body** à l'humain. Demander validation.
 
 4. **Audit `claude-judge` obligatoire AVANT écriture** :
