@@ -76,10 +76,7 @@ def test_load_targets_returns_empty_when_missing(tmp_path: Path) -> None:
 def test_load_targets_parses_valid_entries(tmp_path: Path) -> None:
     path = tmp_path / "targets.yaml"
     path.write_text(
-        "targets:\n"
-        "  - name: Acme\n"
-        "    section: pricing\n"
-        "    url: https://acme.test/pricing\n",
+        "targets:\n  - name: Acme\n    section: pricing\n    url: https://acme.test/pricing\n",
         encoding="utf-8",
     )
     targets = load_targets(path)
@@ -131,3 +128,52 @@ def test_embed_only_lists_changed_pages() -> None:
     embed = build_competitor_embed(report)
     assert len(embed.fields) == 1
     assert "Acme" in embed.fields[0].name
+
+
+# =============================================================================
+# Mémoire de flotte (Axe 1) — un diff = un fait
+# =============================================================================
+def test_build_competitor_facts_only_for_changed_pages() -> None:
+    from argos_ops.agents.competitor_watcher import (
+        CompetitorChange,
+        CompetitorTarget,
+        build_competitor_facts,
+    )
+
+    changed = CompetitorChange(
+        target=CompetitorTarget(name="Acunetix", section="pricing", url="https://x/p"),
+        previous_hash="a",
+        current_hash="b",
+        changed=True,
+    )
+    stable = CompetitorChange(
+        target=CompetitorTarget(name="Detectify", section="features", url="https://y/f"),
+        previous_hash="c",
+        current_hash="c",
+        changed=False,
+    )
+    facts = build_competitor_facts([changed, stable])
+    assert len(facts) == 1
+    fact = facts[0]
+    assert fact["kind"] == "competitor"
+    assert "Acunetix" in fact["body"] and "pricing" in fact["body"]
+    assert fact["ttl_days"] == 60
+
+
+def test_build_competitor_facts_capped_at_five() -> None:
+    from argos_ops.agents.competitor_watcher import (
+        CompetitorChange,
+        CompetitorTarget,
+        build_competitor_facts,
+    )
+
+    changes = [
+        CompetitorChange(
+            target=CompetitorTarget(name=f"C{i}", section="pricing", url=f"https://c{i}"),
+            previous_hash="a",
+            current_hash=f"b{i}",
+            changed=True,
+        )
+        for i in range(8)
+    ]
+    assert len(build_competitor_facts(changes)) == 5

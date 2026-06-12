@@ -28,6 +28,7 @@ from loguru import logger
 
 from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT, get_settings
+from argos_ops.fleet_memory import FactDraft
 from argos_ops.notifications.discord import (
     GREEN,
     YELLOW,
@@ -98,6 +99,40 @@ def aggregate(items: list[dict[str, Any]]) -> list[FeedbackTheme]:
         )
     themes.sort(key=lambda t: t.count, reverse=True)
     return themes
+
+
+# =============================================================================
+# Mémoire de flotte
+# =============================================================================
+_FEEDBACK_FACT_TTL_DAYS = 90
+_MAX_FEEDBACK_FACTS_PER_RUN = 3
+_MIN_MENTIONS_FOR_FACT = 2
+
+
+def build_feedback_facts(themes: list[FeedbackTheme]) -> list[FactDraft]:
+    """Faits « feedback » pour les thèmes récurrents (≥ 2 mentions).
+
+    Consommés par EditorialBot / ChurnPredictor via le graphe d'accès — une
+    demande récurrente nourrit un angle de contenu ou explique un compte à
+    risque. Cap 3 faits/run, TTL 90 j.
+    """
+    facts: list[FactDraft] = []
+    recurring = [t for t in themes if t.count >= _MIN_MENTIONS_FOR_FACT]
+    for theme in recurring[:_MAX_FEEDBACK_FACTS_PER_RUN]:
+        clients = ", ".join(theme.customers[:3]) or "clients non identifiés"
+        facts.append(
+            FactDraft(
+                body=(
+                    f"Demande client récurrente : « {theme.topic} » "
+                    f"({theme.count} mentions — {clients})"
+                ),
+                kind="feedback",
+                confidence="medium",
+                tags=["product"],
+                ttl_days=_FEEDBACK_FACT_TTL_DAYS,
+            )
+        )
+    return facts
 
 
 def render_digest(report: FeedbackReport, *, today: date) -> str:
@@ -198,11 +233,18 @@ class FeedbackAggregator(BaseAgent):
             )
         ]
 
+        # Mémoire de flotte : les demandes récurrentes méritent d'être retenues.
+        extras: dict[str, object] = {}
+        facts = build_feedback_facts(themes)
+        if facts:
+            extras["fleet_facts"] = facts
+
         return RunResult(
             status="success",
             output_summary=report.summary(),
             inputs=inputs,
             outputs=outputs,
+            extras=extras,
         )
 
 
@@ -214,5 +256,6 @@ __all__ = [
     "FeedbackTheme",
     "aggregate",
     "build_feedback_embed",
+    "build_feedback_facts",
     "render_digest",
 ]

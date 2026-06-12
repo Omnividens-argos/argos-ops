@@ -43,6 +43,7 @@ from argos_ops.agents._fetcher_base import fetch
 from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
 from argos_ops.agents.base import BaseAgent, IOItem, RunResult
 from argos_ops.config import REPO_ROOT
+from argos_ops.fleet_memory import FactDraft
 from argos_ops.notifications.discord import GREEN, YELLOW, Embed, EmbedField
 
 DEFAULT_TARGETS_PATH: Path = REPO_ROOT / "data" / "competitors" / "targets.yaml"
@@ -104,9 +105,7 @@ def load_targets(path: Path = DEFAULT_TARGETS_PATH) -> list[CompetitorTarget]:
 # =============================================================================
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
-_SCRIPT_STYLE_RE = re.compile(
-    r"<(script|style|noscript)[^>]*>.*?</\1>", re.DOTALL | re.IGNORECASE
-)
+_SCRIPT_STYLE_RE = re.compile(r"<(script|style|noscript)[^>]*>.*?</\1>", re.DOTALL | re.IGNORECASE)
 
 
 def normalize_html(html: str) -> str:
@@ -147,9 +146,7 @@ def load_previous_hash(target: CompetitorTarget, base_dir: Path) -> str | None:
     return str(value) if isinstance(value, str) else None
 
 
-def save_snapshot_hash(
-    target: CompetitorTarget, *, hash_: str, base_dir: Path
-) -> None:
+def save_snapshot_hash(target: CompetitorTarget, *, hash_: str, base_dir: Path) -> None:
     base_dir.mkdir(parents=True, exist_ok=True)
     path = _snapshot_path(target, base_dir)
     path.write_text(
@@ -171,9 +168,7 @@ def save_snapshot_hash(
 # =============================================================================
 # Scrape + diff
 # =============================================================================
-async def compare_target(
-    target: CompetitorTarget, *, snapshot_dir: Path
-) -> CompetitorChange:
+async def compare_target(target: CompetitorTarget, *, snapshot_dir: Path) -> CompetitorChange:
     """Fetch (avec cache 24h) + hash + diff."""
     response = await fetch(target.url, service=SERVICE_NAME)
     current = content_hash(normalize_html(response.body))
@@ -194,9 +189,7 @@ def build_report(changes: list[CompetitorChange]) -> CompetitorReport:
     changed_count = sum(1 for c in changes if c.changed)
     if changed_count:
         alert_color = YELLOW
-        summary = (
-            f"{changed_count}/{len(changes)} pages concurrent ont bougé"
-        )
+        summary = f"{changed_count}/{len(changes)} pages concurrent ont bougé"
         should_alert = True
     else:
         alert_color = GREEN
@@ -210,9 +203,36 @@ def build_report(changes: list[CompetitorChange]) -> CompetitorReport:
     )
 
 
-def build_competitor_embed(
-    report: CompetitorReport, *, now: datetime | None = None
-) -> Embed:
+# =============================================================================
+# Mémoire de flotte
+# =============================================================================
+_COMPETITOR_FACT_TTL_DAYS = 60
+_MAX_COMPETITOR_FACTS_PER_RUN = 5
+
+
+def build_competitor_facts(changes: list[CompetitorChange]) -> list[FactDraft]:
+    """Faits « competitor » pour chaque page concurrent qui a bougé.
+
+    Consommés par ContentBot / EditorialBot / SEOBot / NewsletterBot via le
+    graphe d'accès (un changement de pricing concurrent = angle de contenu).
+    TTL 60 j : une veille périmée ne doit pas inspirer un post.
+    """
+    facts: list[FactDraft] = []
+    for change in [c for c in changes if c.changed][:_MAX_COMPETITOR_FACTS_PER_RUN]:
+        t = change.target
+        facts.append(
+            FactDraft(
+                body=f"Concurrent {t.name} a modifié sa page {t.section} — {t.url}",
+                kind="competitor",
+                confidence="high",
+                tags=["veille", t.section],
+                ttl_days=_COMPETITOR_FACT_TTL_DAYS,
+            )
+        )
+    return facts
+
+
+def build_competitor_embed(report: CompetitorReport, *, now: datetime | None = None) -> Embed:
     now = now or datetime.now(UTC)
     fields = [
         EmbedField(
@@ -254,9 +274,7 @@ class CompetitorWatcher(BaseAgent):
     async def run(self) -> RunResult:
         targets = load_targets(self._targets_path)
         if not targets:
-            logger.info(
-                f"CompetitorWatcher — aucune cible déclarée ({self._targets_path})"
-            )
+            logger.info(f"CompetitorWatcher — aucune cible déclarée ({self._targets_path})")
             return RunResult(
                 status="success",
                 output_summary="silence (aucune cible)",
@@ -269,8 +287,7 @@ class CompetitorWatcher(BaseAgent):
                 change = await compare_target(target, snapshot_dir=self._snapshot_dir)
             except Exception as exc:
                 logger.warning(
-                    f"CompetitorWatcher — fetch {target.name} échoué: "
-                    f"{type(exc).__name__}: {exc}"
+                    f"CompetitorWatcher — fetch {target.name} échoué: {type(exc).__name__}: {exc}"
                 )
                 continue
             changes.append(change)
@@ -278,9 +295,7 @@ class CompetitorWatcher(BaseAgent):
                 # On persiste à chaque fetch réussi : premier run = baseline,
                 # diff = on bascule sur le nouveau hash sans alerter à
                 # nouveau au prochain tour (politique « changement vu »).
-                save_snapshot_hash(
-                    target, hash_=change.current_hash, base_dir=self._snapshot_dir
-                )
+                save_snapshot_hash(target, hash_=change.current_hash, base_dir=self._snapshot_dir)
 
         report = build_report(changes)
         changed = [c for c in changes if c.changed]
@@ -303,20 +318,22 @@ class CompetitorWatcher(BaseAgent):
             IOItem(
                 label="Pages ayant changé",
                 kind="http",
-                detail=", ".join(
-                    f"{c.target.name}/{c.target.section}" for c in changed
-                )
-                or None,
+                detail=", ".join(f"{c.target.name}/{c.target.section}" for c in changed) or None,
                 count=len(changed),
             )
         ]
-        return await emit_alert_or_silence(
+        result = await emit_alert_or_silence(
             report,
             embed_builder=build_competitor_embed,
             agent_name=self.name,
             inputs=inputs,
             outputs=outputs,
         )
+        # Mémoire de flotte : un diff concurrent = signal pour le contenu.
+        facts = build_competitor_facts(changes)
+        if facts:
+            result.extras["fleet_facts"] = facts
+        return result
 
 
 __all__ = [
@@ -328,6 +345,7 @@ __all__ = [
     "CompetitorTarget",
     "CompetitorWatcher",
     "build_competitor_embed",
+    "build_competitor_facts",
     "build_report",
     "compare_target",
     "content_hash",

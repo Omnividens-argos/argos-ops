@@ -55,3 +55,21 @@ def test_build_feedback_embed_yellow_when_themes() -> None:
     report = FeedbackReport(items_total=2, themes=themes)
     embed = build_feedback_embed(report)
     assert embed.color == 0xF1C40F
+
+
+# =============================================================================
+# Mémoire de flotte (Axe 1) — thèmes récurrents retenus
+# =============================================================================
+def test_build_feedback_facts_recurring_only_capped() -> None:
+    from argos_ops.agents.feedback_aggregator import FeedbackTheme, build_feedback_facts
+
+    themes = [
+        FeedbackTheme(topic=f"Demande {i}", count=5 - i, sources=["email x 2"], customers=["acme"])
+        for i in range(4)
+    ] + [FeedbackTheme(topic="Unique", count=1, sources=["email x 1"], customers=[])]
+    facts = build_feedback_facts(themes)
+    # count=1 exclu (pas récurrent), cap à 3.
+    assert len(facts) == 3
+    assert all(f["kind"] == "feedback" for f in facts)
+    assert "Demande 0" in facts[0]["body"]
+    assert facts[0]["ttl_days"] == 90
