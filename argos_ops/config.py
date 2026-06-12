@@ -215,6 +215,12 @@ class Settings(BaseSettings):
     ops_atelier_enabled: bool = Field(default=False, alias="OPS_ATELIER_ENABLED")
     ops_atelier_claude_bin: str = Field(default="claude", alias="OPS_ATELIER_CLAUDE_BIN")
 
+    # --- Cerveau LLM des agents (Axe 2 audit) ---
+    # Les bots qui classifient/scorent consultent le CLI claude local en
+    # one-shot (argos_ops/brain.py). OFF par défaut : fallback heuristique
+    # systématique — aucun bot ne dépend du cerveau pour fonctionner.
+    ops_brain_enabled: bool = Field(default=False, alias="OPS_BRAIN_ENABLED")
+
     @property
     def async_database_url(self) -> str:
         """URL adaptée à SQLAlchemy async (driver psycopg v3).

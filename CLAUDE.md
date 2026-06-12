@@ -125,6 +125,19 @@ expose `should_alert: bool`, `alert_color: int`, `summary: str` (Protocol
 `WatcherReport`). Helpers de formatage : `format_age`, `format_duration`,
 `format_rate`, `color_title`.
 
+## Convention cerveau (Axe 2 audit)
+
+Un bot qui classifie/score peut consulter le **cerveau**
+([`argos_ops/brain.py`](argos_ops/brain.py) — CLI `claude -p` one-shot, D-017,
+flag `OPS_BRAIN_ENABLED` OFF par défaut) via `await think_json(prompt)`.
+Règles non négociables (« le LLM propose, Python tranche ») : **fallback
+heuristique** obligatoire si `answer.ok=False` (un bot ne crash jamais cerveau
+OFF), **override humain** prioritaire, sortie **validée côté Python**
+(enum/bornes/ids connus), contenu externe marqué **DONNÉE non fiable** dans le
+prompt (anti-injection), et le cerveau ne **déclasse jamais** un signal
+heuristique plus sévère. Référence : `EscalationRouter`
+(`classify_with_brain` + `_resolve_priority`).
+
 ---
 
 ## Slash commands installés
