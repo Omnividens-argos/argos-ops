@@ -119,3 +119,94 @@ def test_build_mining_embed_yellow_when_new() -> None:
     )
     assert embed.color == 0xF1C40F  # YELLOW
     assert any("Par source" in f.name for f in embed.fields)
+
+
+# =============================================================================
+# Cerveau (Axe 2) — extraction société + filtre ICP + fichier de revue
+# =============================================================================
+def _titles() -> list[tuple[ProspectSource, str]]:
+    return [
+        (ProspectSource.ANNONCES_LEGALES, "Acme SAS — création société (Paris)"),
+        (ProspectSource.LINKEDIN_JOBS, "RSSI / CISO H-F — Beta Santé (Lyon)"),
+        (ProspectSource.CRUNCHBASE_NEWS, "Weekly funding recap"),
+    ]
+
+
+def test_build_candidates_prompt_indexes_titles_and_guards_injection() -> None:
+    from argos_ops.agents.prospect_miner import build_candidates_prompt
+
+    prompt = build_candidates_prompt(_titles())
+    assert "index: 0" in prompt and "index: 2" in prompt
+    assert "DONNÉE non fiable" in prompt
+    assert '"candidates"' in prompt
+
+
+def test_parse_brain_candidates_keeps_relevant_filters_noise() -> None:
+    from argos_ops.agents.prospect_miner import parse_brain_candidates
+
+    titles = _titles()
+    data = {
+        "candidates": [
+            {"index": 0, "company": "Acme SAS", "relevance": "high", "rationale": "création SaaS"},
+            {
+                "index": 1,
+                "company": "Beta Santé",
+                "relevance": "medium",
+                "rationale": "embauche RSSI",
+            },
+            {"index": 2, "company": "", "relevance": "low", "rationale": "recap générique"},
+            {"index": 99, "company": "Hors batch", "relevance": "high", "rationale": "x"},
+            {"index": 0, "company": "X" * 200, "relevance": "high", "rationale": "trop long"},
+        ]
+    }
+    kept, filtered = parse_brain_candidates(data, titles)
+    assert [c.company for c in kept] == ["Acme SAS", "Beta Santé"]
+    assert kept[0].source == "annonces_legales"
+    assert kept[0].raw_signal.startswith("Acme SAS")
+    assert filtered == 1  # le low compté comme bruit
+
+
+def test_extract_candidates_falls_back_to_heuristic(monkeypatch) -> None:
+    import asyncio
+
+    from argos_ops.agents import prospect_miner as pm
+    from argos_ops.brain import BrainAnswer
+
+    async def fake_think(prompt: str, **_: object) -> BrainAnswer:
+        return BrainAnswer(ok=False, data=None, raw=None, engine="disabled", error="off")
+
+    monkeypatch.setattr(pm, "think_json", fake_think)
+    kept, filtered, engine = asyncio.run(pm.extract_candidates(_titles()))
+    assert engine == "disabled"
+    assert filtered == 0
+    # Heuristique : split sur le tiret, pas de filtre ICP.
+    companies = [c.company for c in kept]
+    assert "Acme SAS" in companies
+    assert all(c.relevance == "unknown" for c in kept)
+
+
+def test_persist_candidates_writes_review_yaml(tmp_path: Path) -> None:
+    from datetime import date
+
+    import yaml
+
+    from argos_ops.agents.prospect_miner import CompanyCandidate, persist_candidates
+
+    path = persist_candidates(
+        [
+            CompanyCandidate(
+                company="Acme SAS",
+                source="annonces_legales",
+                raw_signal="Acme SAS — création société",
+                relevance="high",
+                rationale="création SaaS",
+            )
+        ],
+        candidates_dir=tmp_path,
+        day=date(2026, 6, 12),
+        engine="claude",
+    )
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert raw["extraction_engine"] == "claude"
+    assert raw["candidates"][0]["company"] == "Acme SAS"
+    assert raw["candidates"][0]["relevance"] == "high"
