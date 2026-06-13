@@ -73,11 +73,21 @@ _PATTERNS: Final[list[tuple[re.Pattern[str], str]]] = [
 ]
 
 
-def _redact(value: str) -> str:
-    """Applique tous les patterns en cascade. Pure fonction, testable."""
+def redact_secrets(value: str) -> str:
+    """Applique tous les patterns secrets en cascade. Pure fonction, testable.
+
+    API publique réutilisable hors loguru (ex. journal d'audit atelier,
+    retour MCP ``run_bot``) : appliquer sur toute chaîne avant de l'écrire
+    quelque part d'autre qu'un sink loguru (le filtre loguru ne couvre QUE
+    les sinks loguru, pas un ``open().write`` direct ni un retour d'API).
+    """
     for pattern, replacement in _PATTERNS:
         value = pattern.sub(replacement, value)
     return value
+
+
+# Alias interne historique (utilisé par les sinks loguru ci-dessous).
+_redact = redact_secrets
 
 
 def _patch_record(record: Record) -> bool:
@@ -106,4 +116,4 @@ def install_secret_filter() -> None:
     )
 
 
-__all__ = ["install_secret_filter"]
+__all__ = ["install_secret_filter", "redact_secrets"]

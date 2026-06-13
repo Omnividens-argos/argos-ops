@@ -126,6 +126,15 @@ export function Atelier() {
       else if (msg.type === "turn_complete") {
         setStatus("ready");
         refreshSessions();
+      } else if (msg.type === "busy") {
+        // Rejet serveur (rate-limit Axe 4) : un tour est DÉJÀ en cours. On
+        // reflète la réalité ("running" → on garde le bouton Stop et l'indicateur)
+        // et on signale juste que CE message a été ignoré.
+        setStatus("running");
+        pushEvent({
+          kind: "error",
+          message: "Un tour est déjà en cours — message ignoré, réessaie après.",
+        });
       } else if (msg.type === "event" && msg.event) pushEvent(msg.event);
     };
     ws.onclose = () => {

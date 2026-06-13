@@ -6,9 +6,12 @@ l'intégration (non testés ici, pas de binaire claude en CI)."""
 
 from __future__ import annotations
 
+import pytest
+
 from argos_ops.config import Settings
 from argos_ops.ops_dashboard import auth
 from argos_ops.ops_dashboard.atelier import (
+    AtelierSession,
     build_claude_argv,
     normalize_event,
     ws_authorized,
@@ -168,3 +171,38 @@ def test_ws_accepts_valid_bearer_token_via_query() -> None:
     )
     token = auth.issue_session_token("admin", s)
     assert ws_authorized(client_ip="127.0.0.1", authorization=None, token=token, settings=s) is True
+
+
+# =============================================================================
+# AtelierSession — rate-limit « 1 tour in-flight » (Axe 4)
+# =============================================================================
+@pytest.mark.asyncio
+async def test_session_rejects_concurrent_turn_with_busy() -> None:
+    """Un 2e tour pendant qu'un tour est in-flight est REJETÉ (busy), sans
+    lancer de subprocess claude (pas de file d'attente, quota borné à 1)."""
+    session = AtelierSession(claude_bin="claude")
+    session._busy = True  # simule un tour déjà en cours
+    events = [ev async for ev in session.send("salut", permission_mode="read")]
+    assert events == [{"kind": "busy", "message": "Un tour est déjà en cours."}]
+    # Le verrou n'a pas été touché (on a rejeté avant de l'acquérir).
+    assert session._busy is True
+
+
+@pytest.mark.asyncio
+async def test_session_releases_busy_after_turn(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Le verrou ``_busy`` est pris pendant le tour puis relâché par le finally —
+    un tour suivant est de nouveau accepté (pas de blocage permanent)."""
+    session = AtelierSession(claude_bin="claude")
+
+    async def fake_run_turn(prompt: str, *, permission_mode: str = "read") -> object:
+        assert session._busy is True  # verrou pris pendant le tour
+        yield {"kind": "text", "text": "hi"}
+
+    monkeypatch.setattr(session, "_run_turn", fake_run_turn)
+    events = [ev async for ev in session.send("salut")]
+    assert events == [{"kind": "text", "text": "hi"}]
+    assert session._busy is False  # relâché par le finally
+
+    # Un 2e tour repart (le slot a bien été rouvert).
+    events2 = [ev async for ev in session.send("encore")]
+    assert events2 == [{"kind": "text", "text": "hi"}]

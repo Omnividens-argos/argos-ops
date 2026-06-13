@@ -4,7 +4,18 @@ from __future__ import annotations
 
 import pytest
 
+from argos_ops import config
 from argos_ops.config import Settings
+
+
+def test_refresh_settings_returns_fresh_instance() -> None:
+    """``refresh_settings`` relit .env/.env.local à chaud (Axe 4) : chaque appel
+    crée une nouvelle instance et la promeut en singleton."""
+    a = config.refresh_settings()
+    b = config.refresh_settings()
+    assert isinstance(a, Settings)
+    assert a is not b  # relecture → nouvelle instance à chaque appel
+    assert config.get_settings() is b  # le singleton = dernière relecture
 
 
 def test_settings_async_url_rewrites_postgresql() -> None:

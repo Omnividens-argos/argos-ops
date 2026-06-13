@@ -1598,6 +1598,59 @@ politique silence-si-vert reste déléguée à `emit_alert_or_silence`.
 
 ---
 
+## D-032 — Durcissement de l'atelier embarqué (Axe 4) : audit, rate-limit, IN/OUT redactés, badge à chaud
+
+**Date :** 2026-06-13
+**Partie :** Audit qualité flotte — Axe 4 « durcir l'atelier » (prolonge D-029)
+
+**Décision :** Quatre durcissements de l'atelier libre embarqué (RCE-par-conception,
+local-only) — sans toucher au cœur (lecture-seule / pilotage flotte / allowlist
+d'écriture scopée à `data/`) :
+
+1. **Journal d'audit** append-only `data/atelier_audit/atelier-YYYY-MM-DD.jsonl`
+   (gitignoré, rotation journalière, best-effort) : chaque action irréversible ou
+   semi-sensible (`console_act`, tour atelier, MCP `run_bot` / `remember_fact`) y
+   laisse une ligne JSON **redactée** (la ligne ENTIÈRE passe par `redact_secrets`,
+   le filtre loguru ne couvrant pas un `open().write` direct).
+2. **Rate-limit** « 1 subprocess `claude` in-flight par session » : `AtelierSession`
+   **rejette** (`busy`) un 2e tour concurrent au lieu de l'empiler — pas de file
+   d'attente (sinon un spam de messages enchaînerait N runs et brûlerait le quota
+   Pro/Max).
+3. **MCP `run_bot`** expose désormais les `inputs` / `outputs` du run
+   (`label` / `kind` / `detail` / `count`, **redactés**, `ref` NON exposé) au lieu du
+   seul `{status, output_summary, error}` — l'atelier voit le travail réel sans
+   surface de fuite (le peek fichier whitelisté reste réservé au cockpit HTTP).
+4. **Badge LIVE/SHADOW** relu à chaud : `ConsoleTab` poll le statut (`usePolling`
+   15 s) au lieu d'un fetch figé au montage, et `console_act` appelle
+   `config.refresh_settings()` avant d'agir → le badge ne ment jamais sur ce que le
+   bot va réellement faire (cohérence badge↔action sans redémarrer le panel).
+
+**Pourquoi :** l'atelier est un RCE assumé (D-029) ; ces garde-fous ajoutent
+auditabilité (« qui a approuvé quoi »), bornage des ressources, réduction de surface
+de fuite et fiabilité de l'affichage de sécurité — défense en profondeur, pas
+nouvelle fonctionnalité.
+
+**Implication technique :**
+
+- Nouveau : `argos_ops/ops_dashboard/atelier_audit.py` (+ `tests/test_atelier_audit.py`),
+  `data/atelier_audit/` gitignoré, `argos_ops.logging.redact_secrets` (alias public de
+  `_redact`), `argos_ops.config.refresh_settings`, `console.read_live_status`.
+- Modifié : `fleet_server.run_bot` (IN/OUT redactés + audit), `atelier.AtelierSession`
+  (verrou `_busy`, `send` → `_run_turn`), `app.py` (`console_act` refresh + audit,
+  `atelier_ws` busy + audit + reset après interrupt, `console/status` lecture fraîche),
+  frontends `ConsoleTab.tsx` (poll) + `Atelier.tsx` (event `busy`).
+- Aucune migration ; flag `OPS_ATELIER_ENABLED` inchangé (OFF par défaut).
+
+**Annule :** rien — prolonge D-029.
+
+**Action de suivi :**
+
+- [ ] (optionnel) Hot-reload plus large : refléter un changement de
+  `ops_atelier_enabled` sans restart (aujourd'hui seul le badge live se rafraîchit à
+  chaud ; le master switch reste lu au connect WS).
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown

@@ -245,4 +245,18 @@ def get_settings() -> Settings:
     return _settings
 
 
-__all__ = ["REPO_ROOT", "Settings", "get_settings"]
+def refresh_settings() -> Settings:
+    """Force la relecture des Settings (.env / .env.local) — remplace le singleton.
+
+    À appeler au point d'AGIR (``console_act``, Axe 4) pour qu'un flip d'un flag
+    live (``OUTBOUND_LIVE_MODE`` / ``ADS_LIVE_MODE``) soit pris en compte sans
+    redémarrer le panel : le badge SHADOW/LIVE lit déjà à chaud, et l'action
+    réelle doit refléter le même état. Le reste du process repassera par
+    ``get_settings()`` (re-créé au prochain appel) → cohérence globale.
+    """
+    global _settings
+    _settings = Settings()
+    return _settings
+
+
+__all__ = ["REPO_ROOT", "Settings", "get_settings", "refresh_settings"]

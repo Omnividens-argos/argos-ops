@@ -26,7 +26,7 @@ from typing import Any
 import anyio
 from mcp.server.fastmcp import FastMCP
 
-from argos_ops.agents.base import RunResult, run_agent
+from argos_ops.agents.base import IOItem, RunResult, run_agent
 from argos_ops.fleet_memory import (
     DEFAULT_FACT_TTL_DAYS,
     Confidence,
@@ -36,6 +36,8 @@ from argos_ops.fleet_memory import (
     visible_memory,
 )
 from argos_ops.fleet_memory import list_bots as fm_list_bots
+from argos_ops.logging import redact_secrets
+from argos_ops.ops_dashboard import atelier_audit
 from argos_ops.ops_dashboard.app import KNOWN_AGENTS, RUNNABLE_AGENTS, _build_agent
 
 mcp = FastMCP("argos-fleet")
@@ -53,6 +55,21 @@ def _fact_dict(fact: Fact) -> dict[str, Any]:
         "pinned": fact.pinned,
         "created_at": fact.created_at.isoformat(),
         "run_id": fact.run_id,
+    }
+
+
+def _io_dict(item: IOItem) -> dict[str, Any]:
+    """Sérialise un IOItem pour l'atelier — texte redacté, ``ref`` non exposé.
+
+    ``ref`` (chemin/URL, parfois signée/tokenisée) est volontairement omis : le
+    chef d'orchestre n'en a pas besoin et c'est une surface de fuite. Le peek
+    fichier whitelisté reste réservé au cockpit HTTP authentifié (IODetailModal).
+    """
+    return {
+        "label": redact_secrets(item.label),
+        "kind": item.kind,
+        "detail": redact_secrets(item.detail) if item.detail else None,
+        "count": item.count,
     }
 
 
@@ -86,18 +103,38 @@ async def run_bot(name: str) -> dict[str, Any]:
 
     Respecte les garde-fous runtime (breaker tripped / désactivé / pause /
     quota journalier) et les flags shadow/live propres au bot. Retourne
-    ``{status, output_summary, error}``.
+    ``{status, output_summary, error, inputs, outputs}`` où ``inputs`` /
+    ``outputs`` sont des listes de ``{label, kind, detail, count}`` déjà
+    rédigées anti-secret (``ref`` non exposé).
     """
     if name not in RUNNABLE_AGENTS:
+        atelier_audit.record(
+            atelier_audit.AuditEvent(
+                action="mcp_run_bot", mode="fleet", bot=name, acted=False, outcome="not_runnable"
+            )
+        )
         return {
             "status": "error",
             "error": f"Bot non lançable : {name}. Utilise list_bots() pour les noms valides.",
         }
     result: RunResult = await anyio.to_thread.run_sync(_run_bot_blocking, name)
+    atelier_audit.record(
+        atelier_audit.AuditEvent(
+            action="mcp_run_bot",
+            mode="fleet",
+            bot=name,
+            acted=True,
+            outcome="executed",
+            result_status=result.status,
+            result_error=result.error,
+        )
+    )
     return {
         "status": result.status,
-        "output_summary": result.output_summary,
-        "error": result.error,
+        "output_summary": redact_secrets(result.output_summary) if result.output_summary else None,
+        "error": redact_secrets(result.error) if result.error else None,
+        "inputs": [_io_dict(i) for i in result.inputs],
+        "outputs": [_io_dict(o) for o in result.outputs],
     }
 
 
@@ -150,6 +187,16 @@ async def remember_fact(
         tags=tuple(tags or ()),
         ttl_days=ttl_days,
         pinned=pinned,
+    )
+    atelier_audit.record(
+        atelier_audit.AuditEvent(
+            action="mcp_remember_fact",
+            mode="fleet",
+            bot=bot,
+            acted=True,
+            outcome="executed",
+            prompt_excerpt=atelier_audit.excerpt(body),
+        )
     )
     return {"status": "ok", "fact": _fact_dict(fact)}
 
