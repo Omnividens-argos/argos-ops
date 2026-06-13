@@ -1,26 +1,23 @@
-"""BotHealthBot — SRE de la flotte Argos Ops (P22.B Meta-Ops core).
+"""Section *santé / freshness* du FleetWatchdog (ex-``BotHealthBot``, Axe 3.2).
 
-Surveille uptime + freshness de chaque agent actif. Pour chaque bot du
-catalogue Python :
+Pour chaque bot du catalogue :class:`MONITORED_AGENTS` :
 - ``last_run_at`` (dernier run en DB)
 - ``last_run_status`` (success / failed / killed_by_breaker / skipped_*)
 - durée moyenne sur 7 j
 - flag ``stale`` si pas de run depuis ``max_age_hours`` (paramétrable
   par agent, defaults dans :mod:`argos_ops.health`)
 
-Politique de notification (anti-spam) :
-- **Silence** si tout est vert (Discord ne reçoit rien)
-- **Embed jaune** si ≥1 agent est ``stale`` (jamais run, ou en retard)
-- **Embed rouge** si ≥1 agent a un ``last_run_status`` en échec sur 24h,
-  ou si ≥1 breaker est tripped
+Politique de couleur (agrégée par FleetWatchdog avec les 3 autres sections) :
+- **vert**  si tout est ok
+- **jaune** si ≥1 agent est ``stale`` (jamais run, ou en retard)
+- **rouge** si ≥1 agent a un ``last_run_status`` en échec sur 24 h, ou si
+  ≥1 breaker est tripped
 
-Mutualisation : on importe :func:`argos_ops.health.check_agent_freshness`
-et :func:`argos_ops.health.check_tripped_breakers` plutôt que de
-dupliquer la logique. BotHealthBot raffine simplement le rendu et la
-politique « silence vert » (vs ``scripts/health_check.py`` qui est un
-diagnostic complet quotidien et émet un embed même si tout va bien).
+Ce module expose aussi :data:`MONITORED_AGENTS` et :data:`ERROR_STATUSES`,
+réutilisés par :mod:`argos_ops.agents._watchdog.perf` (source unique du
+catalogue d'agents observés).
 
-Cf. plan ``docs/ARGOS_OPS_PLAN.md`` Annexe D § 12 Meta-Ops, Sprint 1.
+Cf. plan ``docs/ARGOS_OPS_PLAN.md`` Annexe D § 12 Meta-Ops.
 """
 
 from __future__ import annotations
@@ -36,17 +33,11 @@ from sqlmodel import col
 
 from argos_ops.agents._watcher_base import (
     color_title,
-    emit_alert_or_silence,
     format_age,
     format_duration,
 )
-from argos_ops.agents.base import BaseAgent, IOItem, RunResult
-from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun, Breaker
-from argos_ops.crm.repository import (
-    get_last_run_per_agent,
-    list_tripped_breakers,
-)
+from argos_ops.crm.repository import get_last_run_per_agent
 from argos_ops.health import DEFAULT_AGENT_MAX_AGE_HOURS
 from argos_ops.notifications.discord import (
     GREEN,
@@ -61,6 +52,17 @@ AgentHealthStatus = Literal["ok", "stale", "error"]
 ERROR_STATUSES: frozenset[str] = frozenset({"failed", "killed_by_breaker"})
 LOOKBACK_DURATION_DAYS = 7
 ERROR_WINDOW_HOURS = 24
+
+# Catalogue Python des agents avec cadence cron attendue. Reste
+# volontairement minimal et indépendant du frontend `agentCatalog.ts` :
+# côté Python on n'a besoin que des bots qui ont une cadence régulière
+# (SupportBot interactif est omis). À enrichir quand un nouveau bot
+# planifié rejoint la flotte.
+MONITORED_AGENTS: tuple[str, ...] = (
+    "DigestBuilder",
+    "EmailBot",
+    "FinanceBot",
+)
 
 
 @dataclass(frozen=True)
@@ -79,7 +81,7 @@ class BotHealthSnapshot:
 
 @dataclass(frozen=True)
 class BotHealthReport:
-    """Résultat agrégé du run BotHealthBot."""
+    """Résultat agrégé de la section santé."""
 
     snapshots: list[BotHealthSnapshot]
     tripped_breakers: list[Breaker]
@@ -255,11 +257,9 @@ def _format_snapshot_value(snap: BotHealthSnapshot) -> str:
     return " · ".join(parts)
 
 
-def build_health_embed(report: BotHealthReport, *, now: datetime | None = None) -> Embed:
-    """Construit l'embed Discord — un field par agent + un field breakers
-    si nécessaire."""
-    now = now or datetime.now(UTC)
-
+def health_fields(report: BotHealthReport) -> list[EmbedField]:
+    """Champs Discord de la section santé — un field par agent + un field
+    breakers si nécessaire. Réutilisé par l'embed combiné FleetWatchdog."""
     fields: list[EmbedField] = []
     for snap in report.snapshots:
         fields.append(
@@ -282,98 +282,21 @@ def build_health_embed(report: BotHealthReport, *, now: datetime | None = None) 
                 inline=False,
             )
         )
+    return fields
 
+
+def build_health_embed(report: BotHealthReport, *, now: datetime | None = None) -> Embed:
+    """Construit l'embed Discord autonome de la section santé."""
+    now = now or datetime.now(UTC)
     title_status = color_title(report.alert_color, green=GREEN, yellow=YELLOW, red=RED)
     return Embed(
         title=f"BotHealthBot — {title_status}",
         description=report.summary,
         color=report.alert_color,
-        fields=fields,
+        fields=health_fields(report),
         footer="Argos Ops • BotHealthBot",
         timestamp=now.isoformat(),
     )
-
-
-# =============================================================================
-# Agent
-# =============================================================================
-# Catalogue Python des agents avec cadence cron attendue. Reste
-# volontairement minimal et indépendant du frontend `agentCatalog.ts` :
-# côté Python on n'a besoin que des bots qui ont une cadence régulière
-# (SupportBot interactif est omis). À enrichir quand un nouveau bot
-# planifié rejoint la flotte.
-MONITORED_AGENTS: tuple[str, ...] = (
-    "DigestBuilder",
-    "EmailBot",
-    "FinanceBot",
-)
-
-
-class BotHealthBot(BaseAgent):
-    """SRE de la flotte — surveille uptime + erreurs des bots actifs."""
-
-    name = "BotHealthBot"
-    command = "/run-bot-health"
-    breaker_name = None  # pas de breaker dédié : c'est lui qui les observe
-    ai_act_risk_class = "minimal"
-
-    def __init__(
-        self,
-        *,
-        agent_names: Iterable[str] | None = None,
-        max_age_hours: dict[str, float] | None = None,
-    ) -> None:
-        self._agent_names = tuple(agent_names or MONITORED_AGENTS)
-        self._max_age_hours = max_age_hours
-
-    async def run(self) -> RunResult:
-        async with session_scope() as session:
-            snapshots = await collect_snapshots(
-                session,
-                agent_names=self._agent_names,
-                max_age_hours=self._max_age_hours,
-            )
-            tripped = await list_tripped_breakers(session)
-
-        report = build_report(snapshots, tripped)
-        stale = [s for s in snapshots if s.status == "stale"]
-        errored = [s for s in snapshots if s.status == "error"]
-        inputs = [
-            IOItem(
-                label="État des agents surveillés",
-                kind="db",
-                detail="agent_runs (dernier run + erreurs 24 h)",
-                count=len(snapshots),
-            ),
-            IOItem(label="Circuit breakers", kind="db", detail="état tripped"),
-        ]
-        outputs = [
-            IOItem(
-                label="Agents stale (en retard)",
-                kind="memory",
-                detail=", ".join(s.agent_name for s in stale) or None,
-                count=len(stale),
-            ),
-            IOItem(
-                label="Agents en erreur",
-                kind="memory",
-                detail=", ".join(s.agent_name for s in errored) or None,
-                count=len(errored),
-            ),
-            IOItem(
-                label="Breakers tripped",
-                kind="memory",
-                detail=", ".join(br.name for br in tripped) or None,
-                count=len(tripped),
-            ),
-        ]
-        return await emit_alert_or_silence(
-            report,
-            embed_builder=build_health_embed,
-            agent_name=self.name,
-            inputs=inputs,
-            outputs=outputs,
-        )
 
 
 __all__ = [
@@ -382,10 +305,10 @@ __all__ = [
     "LOOKBACK_DURATION_DAYS",
     "MONITORED_AGENTS",
     "AgentHealthStatus",
-    "BotHealthBot",
     "BotHealthReport",
     "BotHealthSnapshot",
     "build_health_embed",
     "build_report",
     "collect_snapshots",
+    "health_fields",
 ]

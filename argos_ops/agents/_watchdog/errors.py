@@ -1,21 +1,20 @@
-"""ErrorTriageBot — Bot Ops de la flotte (P22.C Meta-Ops Sprint 2).
+"""Section *triage des erreurs* du FleetWatchdog (ex-``ErrorTriageBot``, Axe 3.2).
 
 Lit ``agent_runs`` sur les dernières 24 h, regroupe par **signature
-d'erreur** (type d'exception + premier mot du message) et alerte
-Discord si ≥ :data:`MIN_OCCURRENCES_TO_ALERT` (3 par défaut) pour une
-même signature.
+d'erreur** (type d'exception + premier mot du message) et alerte si
+≥ :data:`MIN_OCCURRENCES_TO_ALERT` (3 par défaut) pour une même signature.
 
-Une signature = clé canonique extraite de ``agent_runs.error`` au
-format typique ``"ConnectionError: connection refused on host..."``.
-On garde ``"ConnectionError"`` comme signature primaire, et un échantillon
-du message pour donner du contexte dans l'embed.
+Une signature = clé canonique extraite de ``agent_runs.error`` au format
+typique ``"ConnectionError: connection refused on host..."``. On garde
+``"ConnectionError"`` comme signature primaire, et un échantillon du
+message pour donner du contexte dans l'embed.
 
-Politique anti-spam :
-- **Silence** si aucune signature ne dépasse le seuil
-- **Embed jaune** si ≥1 signature à 3-9 occurrences
-- **Embed rouge** si ≥1 signature à ≥10 occurrences (= crise probable)
+Politique de couleur (agrégée par FleetWatchdog) :
+- **vert**  si aucune signature ne dépasse le seuil
+- **jaune** si ≥1 signature à 3-9 occurrences
+- **rouge** si ≥1 signature à ≥10 occurrences (= crise probable)
 
-Cf. plan ``docs/ARGOS_OPS_PLAN.md`` Annexe D § 12 Meta-Ops, Sprint 2.
+Cf. plan ``docs/ARGOS_OPS_PLAN.md`` Annexe D § 12 Meta-Ops.
 """
 
 from __future__ import annotations
@@ -30,9 +29,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
-from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, IOItem, RunResult
-from argos_ops.crm.db import session_scope
+from argos_ops.agents._watcher_base import color_title
 from argos_ops.crm.models import AgentRun
 from argos_ops.notifications.discord import (
     GREEN,
@@ -66,7 +63,7 @@ class ErrorCluster:
 
 @dataclass(frozen=True)
 class TriageReport:
-    """Résultat agrégé du run ErrorTriageBot."""
+    """Résultat agrégé de la section triage des erreurs."""
 
     clusters: list[ErrorCluster]
     total_errors: int
@@ -93,9 +90,7 @@ def extract_signature(error_message: str | None) -> str:
     return match.group(1)
 
 
-async def _fetch_errors(
-    session: AsyncSession, *, since: datetime
-) -> list[tuple[str, str, str]]:
+async def _fetch_errors(session: AsyncSession, *, since: datetime) -> list[tuple[str, str, str]]:
     """Retourne ``[(agent_name, error_message, status), ...]`` depuis ``since``."""
     stmt = (
         select(AgentRun)
@@ -192,10 +187,10 @@ def _format_cluster_value(cluster: ErrorCluster) -> str:
     return f"x{cluster.count} · agents: {agents}\n`{sample}`"
 
 
-def build_triage_embed(report: TriageReport, *, now: datetime | None = None) -> Embed:
-    """Construit l'embed Discord — un field par cluster au-dessus du seuil."""
-    now = now or datetime.now(UTC)
-    fields = [
+def triage_fields(report: TriageReport) -> list[EmbedField]:
+    """Champs Discord de la section triage — un field par cluster au-dessus
+    du seuil. Réutilisé par l'embed combiné FleetWatchdog."""
+    return [
         EmbedField(
             name=f"[{cluster.count}] {cluster.signature}",
             value=_format_cluster_value(cluster)[:1020],
@@ -203,58 +198,20 @@ def build_triage_embed(report: TriageReport, *, now: datetime | None = None) -> 
         )
         for cluster in report.clusters
     ]
+
+
+def build_triage_embed(report: TriageReport, *, now: datetime | None = None) -> Embed:
+    """Construit l'embed Discord autonome de la section triage."""
+    now = now or datetime.now(UTC)
     title_status = color_title(report.alert_color, green=GREEN, yellow=YELLOW, red=RED)
     return Embed(
         title=f"ErrorTriageBot — {title_status}",
         description=report.summary,
         color=report.alert_color,
-        fields=fields,
+        fields=triage_fields(report),
         footer="Argos Ops • ErrorTriageBot",
         timestamp=now.isoformat(),
     )
-
-
-# =============================================================================
-# Agent
-# =============================================================================
-class ErrorTriageBot(BaseAgent):
-    """Bot Ops — trie les erreurs runtime, alerte si rafale."""
-
-    name = "ErrorTriageBot"
-    command = "/run-error-triage"
-    breaker_name = None
-    ai_act_risk_class = "minimal"
-
-    async def run(self) -> RunResult:
-        async with session_scope() as session:
-            clusters, total = await collect_clusters(session)
-        report = build_report(clusters, total)
-        inputs = [
-            IOItem(
-                label="Erreurs runtime",
-                kind="db",
-                detail=f"agent_runs.error sur {WINDOW_HOURS}h",
-                count=total,
-            ),
-        ]
-        outputs = [
-            IOItem(
-                label=f"Clusters d'erreurs (>= {MIN_OCCURRENCES_TO_ALERT})",
-                kind="other",
-                detail=", ".join(
-                    f"{c.signature} x{c.count}" for c in report.clusters
-                )
-                or None,
-                count=len(report.clusters),
-            ),
-        ]
-        return await emit_alert_or_silence(
-            report,
-            embed_builder=build_triage_embed,
-            agent_name=self.name,
-            inputs=inputs,
-            outputs=outputs,
-        )
 
 
 __all__ = [
@@ -262,11 +219,11 @@ __all__ = [
     "MIN_OCCURRENCES_TO_ALERT",
     "WINDOW_HOURS",
     "ErrorCluster",
-    "ErrorTriageBot",
     "TriageReport",
     "TriageSeverity",
     "build_report",
     "build_triage_embed",
     "collect_clusters",
     "extract_signature",
+    "triage_fields",
 ]

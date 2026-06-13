@@ -2249,7 +2249,7 @@ Le frontend Admin Panel range les bots par service avec status pill.
 - [x] ✅ **BackupVerifier** · DevOps · Vérifie backup Postgres récent < 24h. *P22.C livré 2026-05-23.*
 - [x] ✅ **SSLExpirer** · IT Security · Alerte certif SSL expirant < 30j. *P22.C livré 2026-05-23.*
 - [x] ✅ **SecretRotator** · Security Engineer · Alerte secrets > 90j. *P22.C livré 2026-05-23.*
-- [x] ✅ **LogAnomalyDetector** · SRE Observability · Pics d'erreurs dans logs serveur. *P22.D livré 2026-05-23.*
+- [x] ✅ **LogAnomalyDetector** *(fusionné dans FleetWatchdog — D-031)* · SRE Observability · Pics d'erreurs dans logs serveur. *P22.D livré 2026-05-23, fusionné 2026-06-13.*
 - [x] ✅ **DNSGuard** · IT Network · Changements DNS suspects sur omnividens.fr. *P22.D livré 2026-05-23.*
 - [x] ✅ **CIFlakeTracker** · DevOps Lead · Tests CI flaky → issue auto. *P22.D livré 2026-05-23.*
 
@@ -2297,9 +2297,10 @@ Le frontend Admin Panel range les bots par service avec status pill.
 - [x] ✅ **DigestBuilder** · Reporting Officer · Récap quotidien Discord 8h Paris. *P4 livré 2026-05-08.*
 - [x] ✅ **ClaudeJudge** *(skill)* · QA des bots · Audite outputs (factual / tone / legal). *P14 livré 2026-05-14.*
 - [x] ✅ **OrchestratorBot** · Chef de fleet · Route / priorise jobs entre bots (dry-run par défaut). *P22.B livré 2026-05-23.*
-- [x] ✅ **BotHealthBot** · SRE de la flotte · Surveille uptime + dernier run par agent. *P22.B livré 2026-05-23.*
-- [x] ✅ **BotPerfAnalyzer** · Performance Engineer · Durée P50/P95 + taux d'erreur 7j par bot vs baseline. *P22.C livré 2026-05-23.*
-- [x] ✅ **ErrorTriageBot** · Bot Ops · Regroupe erreurs 24h par signature, alerte si ≥3 occurrences. *P22.C livré 2026-05-23.*
+- [x] ✅ **FleetWatchdog** · SRE unifié de la flotte · Fusionne santé/freshness + perf P50/P95 + triage erreurs + anomalies de volume en 1 passe sur `agent_runs` (1 embed multi-sections, cron 6h). *Fusion Axe 3.2 / D-031, 2026-06-13.*
+- [x] ✅ **BotHealthBot** *(fusionné dans FleetWatchdog — D-031)* · SRE de la flotte · Surveille uptime + dernier run par agent. *P22.B livré 2026-05-23, fusionné 2026-06-13.*
+- [x] ✅ **BotPerfAnalyzer** *(fusionné dans FleetWatchdog — D-031)* · Performance Engineer · Durée P50/P95 + taux d'erreur 7j vs baseline. *P22.C livré 2026-05-23, fusionné 2026-06-13.*
+- [x] ✅ **ErrorTriageBot** *(fusionné dans FleetWatchdog — D-031)* · Bot Ops · Regroupe erreurs 24h par signature, alerte si ≥3 occurrences. *P22.C livré 2026-05-23, fusionné 2026-06-13.*
 - [x] ✅ **KillSwitchOperator** · Safety Officer · Enforce breakers P15 + guide reset. *P22.C livré 2026-05-23.*
 - [x] ✅ **BotConfigManager** · Config Ops · Diff agent_config DB vs baseline.yaml, alerte drifts. *P22.C livré 2026-05-23.*
 - [ ] ⬜ **CapabilityRouter** · Capability Manager · Route demandes vers bot qualifié (Capabilities P21). *Bloqué sur P21.A.*

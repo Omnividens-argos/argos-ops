@@ -117,7 +117,7 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "EmailBot",
     "SupportBot",
     "FinanceBot",
-    "BotHealthBot",
+    "FleetWatchdog",
     "OrchestratorBot",
     # Direction & Stratégie (P22.E)
     "StrategyBot",
@@ -179,7 +179,6 @@ KNOWN_AGENTS: tuple[str, ...] = (
     # Tech / SRE / Sécurité IT (P22.C/D)
     "UptimeMonitor",
     "DependencyAuditor",
-    "LogAnomalyDetector",
     "BackupVerifier",
     "SSLExpirer",
     "DNSGuard",
@@ -206,10 +205,8 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "DocLinter",
     "DiagramGenerator",
     "ADRWriter",
-    # Meta-Ops (P22.B/C) — DigestBuilder/BotHealthBot/OrchestratorBot
-    # deja en tete de tuple (P4/P22.B historiques)
-    "BotPerfAnalyzer",
-    "ErrorTriageBot",
+    # Meta-Ops (P22.B/C + Axe 3.2) — DigestBuilder/FleetWatchdog/OrchestratorBot
+    # deja en tete de tuple (P4/P22.B + fusion D-031 des 4 watchers agent_runs)
     "KillSwitchOperator",
     "BotConfigManager",
     "MemoryCurator",
@@ -230,7 +227,7 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "DigestBuilder",
         "EmailBot",
         "FinanceBot",
-        "BotHealthBot",
+        "FleetWatchdog",
         "OrchestratorBot",
         # Direction & Stratégie (P22.E) — bots non-interactifs.
         # DecisionLogger.run() est un health-check passif (compte les
@@ -302,7 +299,6 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         # (pas de slash) mais leur "Run now" reste utile pour debug ponctuel.
         "UptimeMonitor",
         "DependencyAuditor",
-        "LogAnomalyDetector",
         "BackupVerifier",
         "SSLExpirer",
         "DNSGuard",
@@ -336,11 +332,10 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         # de contexte (cf. clause "documenté pourquoi : interactif" de
         # la checklist QA).
         "DocLinter",
-        # Meta-Ops (P22.B/C) — DigestBuilder/BotHealthBot/OrchestratorBot
-        # deja runnable depuis P4/P22.B. Les 4 watchers tournent en
-        # Task Scheduler mais "Run now" reste utile pour debug ponctuel.
-        "BotPerfAnalyzer",
-        "ErrorTriageBot",
+        # Meta-Ops (P22.B/C + Axe 3.2) — DigestBuilder/FleetWatchdog/OrchestratorBot
+        # deja runnable depuis P4/P22.B. FleetWatchdog (fusion D-031 des 4 watchers
+        # agent_runs) tourne en Task Scheduler toutes les 6h mais "Run now" reste
+        # utile pour debug ponctuel.
         "KillSwitchOperator",
         "BotConfigManager",
         "MemoryCurator",
@@ -363,10 +358,10 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.finance_bot import FinanceBot
 
         return FinanceBot()
-    if name == "BotHealthBot":
-        from argos_ops.agents.bot_health import BotHealthBot
+    if name == "FleetWatchdog":
+        from argos_ops.agents.fleet_watchdog import FleetWatchdog
 
-        return BotHealthBot()
+        return FleetWatchdog()
     if name == "OrchestratorBot":
         # Run now depuis le panel = dry-run par défaut (garde-fou) ;
         # le live mode passe par CLI explicite `scripts/run_orchestrator.py --live`.
@@ -563,10 +558,6 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.dependency_auditor import DependencyAuditor
 
         return DependencyAuditor()
-    if name == "LogAnomalyDetector":
-        from argos_ops.agents.log_anomaly import LogAnomalyDetector
-
-        return LogAnomalyDetector()
     if name == "BackupVerifier":
         from argos_ops.agents.backup_verifier import BackupVerifier
 
@@ -649,14 +640,6 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.doc_linter import DocLinter
 
         return DocLinter()
-    if name == "BotPerfAnalyzer":
-        from argos_ops.agents.bot_perf_analyzer import BotPerfAnalyzer
-
-        return BotPerfAnalyzer()
-    if name == "ErrorTriageBot":
-        from argos_ops.agents.error_triage import ErrorTriageBot
-
-        return ErrorTriageBot()
     if name == "KillSwitchOperator":
         from argos_ops.agents.kill_switch import KillSwitchOperator
 

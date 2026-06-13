@@ -146,7 +146,6 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     # Tech / SRE / Sécurité IT (P22.C/D) — cron via setup_watchers_tasks.ps1 :
     #   - UptimeMonitor       : every 5 min                → 1h slack
     #   - DependencyAuditor   : hebdo lundi 07:00          → 172h slack
-    #   - LogAnomalyDetector  : quotidien 04:00            → 26h slack
     #   - BackupVerifier      : quotidien 05:00            → 26h slack
     #   - SSLExpirer          : mensuel 1er 06:00          → 756h slack
     #   - DNSGuard            : quotidien 13:00            → 26h slack
@@ -154,7 +153,6 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     #   - CIFlakeTracker      : quotidien 21:00 (post-CI)  → 26h slack
     "UptimeMonitor": 1.0,
     "DependencyAuditor": 172.0,
-    "LogAnomalyDetector": 26.0,
     "BackupVerifier": 26.0,
     "SSLExpirer": 756.0,
     "DNSGuard": 26.0,
@@ -195,15 +193,13 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     #   - DiagramGenerator : reactif (slash /gen-diagram <slug>) → skip
     #   - ADRWriter        : reactif (slash /write-adr <slug>) → skip
     "DocLinter": 172.0,
-    # Meta-Ops (P22.B/C) — cron via setup_watchers_tasks.ps1 + setup_bot_health_task.ps1 :
-    #   - BotPerfAnalyzer   : lundi 05:00 (hebdo)        → 172h slack
-    #   - ErrorTriageBot    : toutes les 6h              → 7h slack
+    # Meta-Ops (P22.B/C + Axe 3.2) — cron via setup_watchers_tasks.ps1 :
+    #   - FleetWatchdog     : toutes les 6h (fusion D-031) → 7h slack
     #   - KillSwitchOperator: 09:00 + 17:00 (2x/jour)    → 9h slack
     #   - BotConfigManager  : quotidien 04:00            → 26h slack
-    #   - DigestBuilder/EmailBot/BotHealthBot deja presents (P4/P5/P22.B)
+    #   - DigestBuilder/EmailBot deja presents (P4/P5)
     #   - OrchestratorBot   : slash-triggered, pas de cadence cron → skip
-    "BotPerfAnalyzer": 172.0,
-    "ErrorTriageBot": 7.0,
+    "FleetWatchdog": 7.0,
     "KillSwitchOperator": 9.0,
     "BotConfigManager": 26.0,
 }

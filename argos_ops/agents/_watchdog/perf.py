@@ -1,23 +1,23 @@
-"""BotPerfAnalyzer — Performance Engineer de la flotte (P22.C Meta-Ops Sprint 2).
+"""Section *performance* du FleetWatchdog (ex-``BotPerfAnalyzer``, Axe 3.2).
 
 Surveille la **latence** (durée P50 / P95) et le **taux d'erreur** de
 chaque agent monitoré sur une fenêtre courte (7 j courants), comparés à
 une fenêtre baseline (7 j précédents, J-14 → J-7).
 
-Politique anti-spam (cohérente avec ``BotHealthBot``) :
-- **Silence** Discord si aucune régression
-- **Embed jaune** si ≥1 régression « warn » détectée (P95 entre 1.5x et 2x
-  baseline OU error_rate entre 1.5x et 2x baseline)
-- **Embed rouge** si ≥1 régression critique (≥2x baseline)
+Politique de couleur (agrégée par FleetWatchdog) :
+- **vert**  si aucune régression
+- **jaune** si ≥1 régression « warn » (P95 entre 1.5x et 2x baseline OU
+  error_rate entre 1.5x et 2x baseline)
+- **rouge** si ≥1 régression critique (≥2x baseline)
 
 On utilise la même politique de seuil multiplicatif pour la latence et
 les erreurs : un facteur 2 sur la durée comme sur le taux d'erreur est
-le signal canonique d'une dérive (cf. plan Annexe D § 12 Sprint 2).
+le signal canonique d'une dérive.
 
-Mutualise avec BotHealthBot la liste ``MONITORED_AGENTS`` (re-exportée
-ici) pour éviter de désynchroniser deux catalogues d'agents observés.
+Réutilise :data:`MONITORED_AGENTS` et :data:`ERROR_STATUSES` de
+:mod:`argos_ops.agents._watchdog.health` (source unique du catalogue).
 
-Cf. plan ``docs/ARGOS_OPS_PLAN.md`` Annexe D § 12 Meta-Ops, Sprint 2.
+Cf. plan ``docs/ARGOS_OPS_PLAN.md`` Annexe D § 12 Meta-Ops.
 """
 
 from __future__ import annotations
@@ -31,15 +31,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
+from argos_ops.agents._watchdog.health import ERROR_STATUSES
 from argos_ops.agents._watcher_base import (
     color_title,
-    emit_alert_or_silence,
     format_duration,
     format_rate,
 )
-from argos_ops.agents.base import BaseAgent, IOItem, RunResult
-from argos_ops.agents.bot_health import ERROR_STATUSES, MONITORED_AGENTS
-from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentRun
 from argos_ops.notifications.discord import (
     GREEN,
@@ -82,7 +79,7 @@ class PerfSnapshot:
 
 @dataclass(frozen=True)
 class PerfReport:
-    """Résultat agrégé du run BotPerfAnalyzer."""
+    """Résultat agrégé de la section performance."""
 
     snapshots: list[PerfSnapshot]
     should_alert: bool
@@ -153,12 +150,8 @@ async def _compute_stats(
     errors = int((await session.execute(stmt_errors)).scalar() or 0)
     error_rate = errors / sample_size if sample_size > 0 else None
 
-    p50 = await _percentile_duration(
-        session, agent_name, since=since, until=until, percentile=0.50
-    )
-    p95 = await _percentile_duration(
-        session, agent_name, since=since, until=until, percentile=0.95
-    )
+    p50 = await _percentile_duration(session, agent_name, since=since, until=until, percentile=0.50)
+    p95 = await _percentile_duration(session, agent_name, since=since, until=until, percentile=0.95)
     return PerfStats(
         p50_seconds=p50,
         p95_seconds=p95,
@@ -319,10 +312,10 @@ def _format_snapshot_value(snap: PerfSnapshot) -> str:
     return " · ".join(parts)
 
 
-def build_perf_embed(report: PerfReport, *, now: datetime | None = None) -> Embed:
-    """Construit l'embed Discord — un field par agent."""
-    now = now or datetime.now(UTC)
-    fields = [
+def perf_fields(report: PerfReport) -> list[EmbedField]:
+    """Champs Discord de la section perf — un field par agent. Réutilisé
+    par l'embed combiné FleetWatchdog."""
+    return [
         EmbedField(
             name=f"{_STATUS_ICON[snap.status]} {snap.agent_name}",
             value=_format_snapshot_value(snap),
@@ -330,67 +323,20 @@ def build_perf_embed(report: PerfReport, *, now: datetime | None = None) -> Embe
         )
         for snap in report.snapshots
     ]
+
+
+def build_perf_embed(report: PerfReport, *, now: datetime | None = None) -> Embed:
+    """Construit l'embed Discord autonome de la section perf."""
+    now = now or datetime.now(UTC)
     title_status = color_title(report.alert_color, green=GREEN, yellow=YELLOW, red=RED)
     return Embed(
         title=f"BotPerfAnalyzer — {title_status}",
         description=report.summary,
         color=report.alert_color,
-        fields=fields,
+        fields=perf_fields(report),
         footer="Argos Ops • BotPerfAnalyzer",
         timestamp=now.isoformat(),
     )
-
-
-# =============================================================================
-# Agent
-# =============================================================================
-class BotPerfAnalyzer(BaseAgent):
-    """Performance Engineer — surveille latence + taux d'erreur des bots."""
-
-    name = "BotPerfAnalyzer"
-    command = "/run-bot-perf"
-    breaker_name = None
-    ai_act_risk_class = "minimal"
-
-    def __init__(self, *, agent_names: Iterable[str] | None = None) -> None:
-        self._agent_names = tuple(agent_names or MONITORED_AGENTS)
-
-    async def run(self) -> RunResult:
-        async with session_scope() as session:
-            snapshots = await collect_snapshots(session, agent_names=self._agent_names)
-        report = build_report(snapshots)
-        regressions = [s for s in snapshots if s.status == "regression"]
-        warns = [s for s in snapshots if s.status == "warn"]
-        inputs = [
-            IOItem(
-                label="Durées + erreurs des agents",
-                kind="db",
-                detail="agent_runs (fenêtre 7j courante vs baseline J-14→J-7)",
-                count=len(snapshots),
-            )
-        ]
-        outputs = [
-            IOItem(
-                label="Agents en régression (>=2x baseline)",
-                kind="other",
-                detail=", ".join(f"{s.agent_name} ({s.reason})" for s in regressions)
-                or None,
-                count=len(regressions),
-            ),
-            IOItem(
-                label="Agents en dérive (>=1.5x baseline)",
-                kind="other",
-                detail=", ".join(f"{s.agent_name} ({s.reason})" for s in warns) or None,
-                count=len(warns),
-            ),
-        ]
-        return await emit_alert_or_silence(
-            report,
-            embed_builder=build_perf_embed,
-            agent_name=self.name,
-            inputs=inputs,
-            outputs=outputs,
-        )
 
 
 __all__ = [
@@ -398,7 +344,6 @@ __all__ = [
     "REGRESSION_FACTOR",
     "WARN_FACTOR",
     "WINDOW_DAYS",
-    "BotPerfAnalyzer",
     "PerfReport",
     "PerfSnapshot",
     "PerfStats",
@@ -406,4 +351,5 @@ __all__ = [
     "build_perf_embed",
     "build_report",
     "collect_snapshots",
+    "perf_fields",
 ]

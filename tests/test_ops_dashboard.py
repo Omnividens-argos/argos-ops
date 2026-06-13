@@ -99,7 +99,7 @@ def test_list_agents_returns_known_agents(client: TestClient) -> None:
         "EmailBot",
         "SupportBot",
         "FinanceBot",
-        "BotHealthBot",
+        "FleetWatchdog",
         "OrchestratorBot",
     ):
         assert canonical in names

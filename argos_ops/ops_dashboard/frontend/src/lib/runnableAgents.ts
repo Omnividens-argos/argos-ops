@@ -8,7 +8,7 @@ export const RUNNABLE_AGENTS: ReadonlySet<string> = new Set<string>([
   "DigestBuilder",
   "EmailBot",
   "FinanceBot",
-  "BotHealthBot",
+  "FleetWatchdog",
   "OrchestratorBot",
   // Direction & Stratégie (P22.E).
   "StrategyBot",
@@ -64,7 +64,6 @@ export const RUNNABLE_AGENTS: ReadonlySet<string> = new Set<string>([
   // Tech / SRE / Sécurité IT (P22.C/D).
   "UptimeMonitor",
   "DependencyAuditor",
-  "LogAnomalyDetector",
   "BackupVerifier",
   "SSLExpirer",
   "DNSGuard",
@@ -89,9 +88,7 @@ export const RUNNABLE_AGENTS: ReadonlySet<string> = new Set<string>([
   "BrandGuardBot",
   // Documentation (P22.M) — DiagramGenerator/ADRWriter exclus (input slug requis).
   "DocLinter",
-  // Meta-Ops (P22.B/C).
-  "BotPerfAnalyzer",
-  "ErrorTriageBot",
+  // Meta-Ops (P22.B/C + Axe 3.2 : FleetWatchdog déjà en tête).
   "KillSwitchOperator",
   "BotConfigManager",
 ]);

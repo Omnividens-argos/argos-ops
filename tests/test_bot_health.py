@@ -1,4 +1,4 @@
-"""Tests unitaires de :mod:`argos_ops.agents.bot_health` (P22.B).
+"""Tests unitaires de :mod:`argos_ops.agents._watchdog.health` (ex-bot_health, P22.B).
 
 Couvrent la logique déterministe :
 - ``collect_snapshots`` : classification ok / stale / error par agent
@@ -16,8 +16,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from argos_ops.agents import bot_health
-from argos_ops.agents.bot_health import (
+from argos_ops.agents._watchdog import health as bot_health
+from argos_ops.agents._watchdog.health import (
     BotHealthSnapshot,
     build_health_embed,
     build_report,

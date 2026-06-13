@@ -6,19 +6,17 @@
   Enregistre (ou met à jour) 12 tâches planifiées pour la flotte de
   watchers Argos Ops :
 
-  Meta-Ops Sprint 2 (4 bots) :
-    - argos-ops-bot-perf          : hebdo (lundi 5h)
-    - argos-ops-error-triage      : toutes les 6h
+  Meta-Ops (Axe 3.2 — FleetWatchdog fusionne BotHealth/BotPerf/ErrorTriage/LogAnomaly) :
+    - argos-ops-fleet-watchdog    : toutes les 6h (sante + perf + triage + anomalie)
     - argos-ops-kill-switch       : 2x/jour (9h et 17h)
     - argos-ops-config-drift      : quotidien (4h)
 
-  Tech/SRE Sprint 4 (8 bots) :
+  Tech/SRE Sprint 4 (7 bots) :
     - argos-ops-uptime            : toutes les 5 min
     - argos-ops-ssl-expirer       : mensuel (1er du mois 6h)
     - argos-ops-secret-rotator    : hebdo (lundi 6h)
     - argos-ops-dep-audit         : hebdo (lundi 7h)
     - argos-ops-backup-verifier   : quotidien (5h)
-    - argos-ops-log-anomaly       : quotidien (4h)
     - argos-ops-dns-guard         : quotidien (13h)
     - argos-ops-ci-flake-tracker  : quotidien (21h, post-CI)
 
@@ -58,7 +56,7 @@
   PS> .\scripts\setup_watchers_tasks.ps1 -DryRun
   Affiche le plan sans toucher au Task Scheduler.
 
-  PS> .\scripts\setup_watchers_tasks.ps1 -Only argos-ops-uptime,argos-ops-error-triage
+  PS> .\scripts\setup_watchers_tasks.ps1 -Only argos-ops-uptime,argos-ops-fleet-watchdog
   Ne configure que les tâches listées.
 
 .NOTES
@@ -90,8 +88,7 @@ Write-Host "[i] uv resolu vers : $UvCommand" -ForegroundColor DarkGray
 # Catalogue des taches : (Name, Script, TriggerType, TriggerArg, Description)
 # TriggerType : "Every5Min" / "Hourly:N" / "Daily:HH:MM" / "Weekly:DayOfWeek:HH:MM" / "Monthly:DayOfMonth:HH:MM"
 $Tasks = @(
-    @{ Name = "argos-ops-bot-perf";         Script = "run_bot_perf.py";          Trigger = "Weekly:Monday:05:00";  Description = "BotPerfAnalyzer hebdo (lundi 5h)" }
-    @{ Name = "argos-ops-error-triage";     Script = "run_error_triage.py";      Trigger = "Hourly:6";              Description = "ErrorTriageBot toutes les 6h" }
+    @{ Name = "argos-ops-fleet-watchdog";   Script = "run_fleet_watchdog.py";    Trigger = "Hourly:6";              Description = "FleetWatchdog toutes les 6h (sante+perf+triage+anomalie, fusion Axe 3.2)" }
     @{ Name = "argos-ops-kill-switch";      Script = "run_kill_switch.py";       Trigger = "DailyTwice:09:00:17:00"; Description = "KillSwitchOperator 9h et 17h" }
     @{ Name = "argos-ops-config-drift";     Script = "run_bot_config_manager.py"; Trigger = "Daily:04:00";          Description = "BotConfigManager quotidien (4h)" }
     @{ Name = "argos-ops-uptime";           Script = "run_uptime_monitor.py";    Trigger = "Every5Min";              Description = "UptimeMonitor toutes les 5 min" }
@@ -99,7 +96,6 @@ $Tasks = @(
     @{ Name = "argos-ops-secret-rotator";   Script = "run_secret_rotator.py";    Trigger = "Weekly:Monday:06:00";  Description = "SecretRotator hebdo (lundi 6h)" }
     @{ Name = "argos-ops-dep-audit";        Script = "run_dependency_auditor.py"; Trigger = "Weekly:Monday:07:00"; Description = "DependencyAuditor hebdo (lundi 7h)" }
     @{ Name = "argos-ops-backup-verifier";  Script = "run_backup_verifier.py";   Trigger = "Daily:05:00";          Description = "BackupVerifier quotidien (5h)" }
-    @{ Name = "argos-ops-log-anomaly";      Script = "run_log_anomaly.py";       Trigger = "Daily:04:00";          Description = "LogAnomalyDetector quotidien (4h)" }
     @{ Name = "argos-ops-dns-guard";        Script = "run_dns_guard.py";         Trigger = "Daily:13:00";          Description = "DNSGuard quotidien (13h)" }
     @{ Name = "argos-ops-ci-flake-tracker"; Script = "run_ci_flake_tracker.py";  Trigger = "Daily:21:00";          Description = "CIFlakeTracker quotidien (21h post-CI)" }
     @{ Name = "argos-ops-competitor-watch"; Script = "run_competitor_watcher.py"; Trigger = "Weekly:Monday:12:00"; Description = "CompetitorWatcher hebdo (lundi 12h)" }

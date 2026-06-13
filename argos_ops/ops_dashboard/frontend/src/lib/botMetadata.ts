@@ -387,13 +387,6 @@ export const BOT_METADATA: Record<string, BotMetadata> = {
     slashCommand: "run-dep-audit",
     schedule: "Quotidien 7h00",
   },
-  LogAnomalyDetector: {
-    aiActRisk: "minimal",
-    handlesPII: false,
-    pythonModule: "argos_ops/agents/log_anomaly.py",
-    slashCommand: "run-log-anomalies",
-    schedule: "Toutes les heures",
-  },
   BackupVerifier: {
     aiActRisk: "minimal",
     handlesPII: false,
@@ -571,12 +564,12 @@ export const BOT_METADATA: Record<string, BotMetadata> = {
     slashCommand: "morning-digest",
     schedule: "Quotidien 8h00 Paris",
   },
-  BotHealthBot: {
+  FleetWatchdog: {
     aiActRisk: "minimal",
     handlesPII: false,
-    pythonModule: "argos_ops/agents/bot_health.py",
-    slashCommand: "run-bot-health",
-    schedule: "Toutes les 2 h",
+    pythonModule: "argos_ops/agents/fleet_watchdog.py",
+    slashCommand: "run-fleet-watchdog",
+    schedule: "Toutes les 6 h",
   },
   OrchestratorBot: {
     aiActRisk: "minimal",
@@ -584,20 +577,6 @@ export const BOT_METADATA: Record<string, BotMetadata> = {
     configFile: "data/agent_config/baseline.yaml",
     pythonModule: "argos_ops/agents/orchestrator.py",
     slashCommand: "orchestrate",
-  },
-  BotPerfAnalyzer: {
-    aiActRisk: "minimal",
-    handlesPII: false,
-    pythonModule: "argos_ops/agents/bot_perf_analyzer.py",
-    slashCommand: "run-bot-perf",
-    schedule: "Lundi 10h00",
-  },
-  ErrorTriageBot: {
-    aiActRisk: "minimal",
-    handlesPII: false,
-    pythonModule: "argos_ops/agents/error_triage.py",
-    slashCommand: "run-error-triage",
-    schedule: "Quotidien 8h15",
   },
   KillSwitchOperator: {
     aiActRisk: "minimal",
