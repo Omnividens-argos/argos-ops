@@ -161,6 +161,13 @@ Ubuntu 24.04, mutualisé) :
 **Couche calcul agents IA — ordi fondateur** (D-017) :
 
 - Cron / Windows Task Scheduler invoque Claude Code (slash commands)
+- Tâches Task Scheduler en **exécution silencieuse** : principal `S4U`
+  (« exécuter même si l'utilisateur n'est pas connecté », sans mot de passe
+  stocké) → exécution en session 0 non-interactive, **aucune fenêtre
+  console** à chaque tir. Les `scripts/setup_*_tasks.ps1` posent ce principal
+  à l'enregistrement ; `scripts/make_tasks_silent.ps1` bascule d'un coup
+  toutes les tâches `argos-ops-*` déjà créées (idempotent, `-DryRun` /
+  `-Revert`). À lancer une fois en PowerShell admin.
 - Modèle d'embedding `multilingual-e5-base` (CPU, ONNX, ~280 MB)
 - Connexion Postgres / Redis distants vers le serveur SecHunter via
   `psycopg` async / `redis-py` async (TLS)
