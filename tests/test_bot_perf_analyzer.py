@@ -1,4 +1,4 @@
-"""Tests unitaires de :mod:`argos_ops.agents.bot_perf_analyzer` (P22.C).
+"""Tests unitaires de :mod:`argos_ops.agents._watchdog.perf` (ex-bot_perf_analyzer, P22.C).
 
 Couvre la logique pure :
 - ``_ratio`` : protection division par zero / None
@@ -13,8 +13,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from argos_ops.agents import bot_perf_analyzer
-from argos_ops.agents.bot_perf_analyzer import (
+from argos_ops.agents._watchdog import perf as bot_perf_analyzer
+from argos_ops.agents._watchdog.perf import (
     PerfSnapshot,
     PerfStats,
     _classify,

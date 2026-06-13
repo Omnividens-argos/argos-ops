@@ -1,4 +1,4 @@
-"""Tests unitaires de :mod:`argos_ops.agents.log_anomaly` (P22.D).
+"""Tests unitaires de :mod:`argos_ops.agents._watchdog.anomaly` (ex-log_anomaly, P22.D).
 
 Couvre la logique pure : classification, build_report, embed.
 Pas d'I/O DB ici — la requête ``agent_runs`` est testée indirectement
@@ -7,7 +7,7 @@ via ``classify``/``build_report`` qui prennent les compteurs en entrée.
 
 from __future__ import annotations
 
-from argos_ops.agents.log_anomaly import (
+from argos_ops.agents._watchdog.anomaly import (
     SPIKE_ABSOLUTE_CRITICAL,
     SPIKE_ABSOLUTE_MIN,
     build_anomaly_embed,

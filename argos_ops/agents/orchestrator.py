@@ -42,10 +42,10 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from argos_ops.agents.base import BaseAgent, IOItem, RunResult, run_agent
-from argos_ops.agents.bot_health import BotHealthBot
 from argos_ops.agents.digest_builder import DigestBuilder
 from argos_ops.agents.email_bot import EmailBot
 from argos_ops.agents.finance_bot import FinanceBot
+from argos_ops.agents.fleet_watchdog import FleetWatchdog
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.repository import (
     count_runs_today,
@@ -143,7 +143,7 @@ class ExecutionOutcome:
 # - DigestBuilder : 24 h (cron 0 8 * * *)
 # - EmailBot      : 0.25 h (cron */15 8-22 * * *)
 # - FinanceBot    : 24 h (cron 0 6 * * *)
-# - BotHealthBot  : 2 h (cron Task Scheduler P22.B)
+# - FleetWatchdog : 6 h (cron Task Scheduler, fusion Axe 3.2 / D-031)
 #
 # SupportBot est interactif (slash) — pas de cadence donc absent.
 # Quand un nouveau bot planifié rejoint la flotte, l'ajouter ici.
@@ -167,9 +167,9 @@ AGENT_FLEET: tuple[FleetEntry, ...] = (
         breaker_name="stripe_api_error_burst",
     ),
     FleetEntry(
-        name="BotHealthBot",
-        interval_hours=2.0,
-        factory=BotHealthBot,
+        name="FleetWatchdog",
+        interval_hours=6.0,
+        factory=FleetWatchdog,
         breaker_name=None,
     ),
 )

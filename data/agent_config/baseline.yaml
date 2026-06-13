@@ -29,10 +29,10 @@ agents:
     enabled: true
     intensity_level: 5
     daily_limit: null  # interactif, slash uniquement
-  BotHealthBot:
+  FleetWatchdog:
     enabled: true
     intensity_level: 5
-    daily_limit: null  # cron toutes les 2h
+    daily_limit: null  # cron toutes les 6h (fusion Axe 3.2 / D-031)
   OrchestratorBot:
     enabled: true
     intensity_level: 5

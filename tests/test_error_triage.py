@@ -1,4 +1,4 @@
-"""Tests unitaires de :mod:`argos_ops.agents.error_triage` (P22.C).
+"""Tests unitaires de :mod:`argos_ops.agents._watchdog.errors` (ex-error_triage, P22.C).
 
 Couvre :
 - ``extract_signature`` : parsing du préfixe d'erreur
@@ -12,8 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from argos_ops.agents import error_triage
-from argos_ops.agents.error_triage import (
+from argos_ops.agents._watchdog import errors as error_triage
+from argos_ops.agents._watchdog.errors import (
     ErrorCluster,
     build_report,
     collect_clusters,

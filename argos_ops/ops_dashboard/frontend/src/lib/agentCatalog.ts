@@ -474,13 +474,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         status: "active",
       },
       {
-        name: "LogAnomalyDetector",
-        displayName: "LogAnomalyDetector",
-        shortLabel: "SRE Observability",
-        description: "Repère les pics d'erreurs dans les logs serveur.",
-        status: "active",
-      },
-      {
         name: "BackupVerifier",
         displayName: "BackupVerifier",
         shortLabel: "DevOps",
@@ -709,17 +702,10 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         status: "active",
       },
       {
-        name: "BotHealthBot",
-        displayName: "BotHealthBot",
-        shortLabel: "SRE de la flotte",
-        description: "Surveille uptime + erreurs récentes des bots actifs, alerte Discord si stale ou échec.",
-        status: "active",
-      },
-      {
-        name: "BotPerfAnalyzer",
-        displayName: "BotPerfAnalyzer",
-        shortLabel: "Performance Engineer",
-        description: "Mesure P50/P95 et taux d'erreur 7j vs baseline, alerte si dérive >= 1.5x.",
+        name: "FleetWatchdog",
+        displayName: "FleetWatchdog",
+        shortLabel: "SRE unifié de la flotte",
+        description: "Santé + perf + triage erreurs + anomalies de volume en une seule passe sur agent_runs (fusion des 4 watchers, cron 6h).",
         status: "active",
       },
       {
@@ -738,13 +724,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
           "Nettoie la mémoire de flotte : archive le périmé (TTL), purge le très vieux, protège l'important.",
         status: "active",
         roadmapRef: "P20 livré 2026-06-07",
-      },
-      {
-        name: "ErrorTriageBot",
-        displayName: "ErrorTriageBot",
-        shortLabel: "Bot Ops",
-        description: "Regroupe les erreurs runtime 24h par signature, alerte si >= 3 occurrences.",
-        status: "active",
       },
       {
         name: "KillSwitchOperator",

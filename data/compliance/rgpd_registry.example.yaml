@@ -157,7 +157,6 @@ bots_sans_pii:
     paths:
       - argos_ops/agents/uptime_monitor.py          # HTTP 200/404 sur endpoints publics
       - argos_ops/agents/dependency_auditor.py      # CVE OSV.dev (catalogue public)
-      - argos_ops/agents/log_anomaly.py             # agent_runs status counts (no PII)
       - argos_ops/agents/backup_verifier.py         # FS scan /backups (filenames only)
       - argos_ops/agents/ssl_expirer.py             # TLS cert metadata publique
       - argos_ops/agents/dns_guard.py               # DNS records publics omnividens.fr
@@ -195,12 +194,11 @@ bots_sans_pii:
       - argos_ops/agents/adr_writer.py              # ADR scaffold MADR
 
   - nom: "Meta-Ops (P22.B/C) — orchestration interne de la flotte"
-    motif: "Orchestration et observabilité interne pure de la flotte Argos Ops elle-même. DigestBuilder agrège les KPIs J-1 (aucune PII). OrchestratorBot lit agent_config pour décider quels bots tourner. BotHealthBot/BotPerfAnalyzer surveillent agent_runs (nom + status + duration, pas de PII). ErrorTriageBot regroupe erreurs par signature. KillSwitchOperator gère les circuit breakers. BotConfigManager audit drift config baseline. Aucun bot ne touche à de la donnée client — uniquement métadonnées techniques de la flotte."
+    motif: "Orchestration et observabilité interne pure de la flotte Argos Ops elle-même. DigestBuilder agrège les KPIs J-1 (aucune PII). OrchestratorBot lit agent_config pour décider quels bots tourner. FleetWatchdog surveille agent_runs (nom + status + duration, pas de PII : freshness, perf, signatures d'erreur, pics de volume). KillSwitchOperator gère les circuit breakers. BotConfigManager audit drift config baseline. Aucun bot ne touche à de la donnée client — uniquement métadonnées techniques de la flotte."
     paths:
       - argos_ops/agents/digest_builder.py          # agrégation KPIs J-1
       - argos_ops/agents/orchestrator.py            # décision quels bots lancer
-      - argos_ops/agents/bot_health.py              # uptime + dernier run
-      - argos_ops/agents/bot_perf_analyzer.py       # latence + taux erreur baseline
-      - argos_ops/agents/error_triage.py            # clusters erreurs runtime
+      - argos_ops/agents/fleet_watchdog.py          # SRE unifié agent_runs (D-031)
+      - argos_ops/agents/_watchdog/                 # logique santé/perf/erreurs/anomalie
       - argos_ops/agents/kill_switch.py             # enforce circuit breakers P15
       - argos_ops/agents/bot_config_manager.py      # drift agent_config vs baseline

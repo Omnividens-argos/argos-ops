@@ -419,7 +419,7 @@ def test_real_fleet_contains_active_sprint1_bots() -> None:
     """Sanity check du catalogue Python — change ce test si on ajoute
     intentionnellement un nouveau bot à la fleet."""
     names = {entry.name for entry in AGENT_FLEET}
-    assert {"DigestBuilder", "EmailBot", "FinanceBot", "BotHealthBot"} <= names
+    assert {"DigestBuilder", "EmailBot", "FinanceBot", "FleetWatchdog"} <= names
 
 
 def test_real_fleet_intervals_are_positive() -> None:

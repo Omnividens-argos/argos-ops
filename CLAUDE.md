@@ -192,15 +192,17 @@ heuristique plus sévère. Référence : `EscalationRouter`
   `outbound-personalizer` + `claude-judge`. Garde-fous email perso
   disqualifié, BANT < 40 refusé, footer opt-out HMAC obligatoire. Cf.
   [`.claude/commands/draft-outbound.md`](.claude/commands/draft-outbound.md)
-- **`/run-bot-health`** (P22.B) — lance `BotHealthBot`, SRE de la
-  flotte. Lit `agent_runs` + breakers, alerte Discord (webhook
-  `DISCORD_WEBHOOK_OPS_LOGS`) uniquement si ≥1 agent est stale ou
-  ≥1 erreur 24h ou ≥1 breaker tripped. Silence si tout vert
-  (anti-spam toutes les 2h). Task Scheduler dédié
-  `argos-ops-bot-health`. Cf.
-  [`.claude/commands/run-bot-health.md`](.claude/commands/run-bot-health.md)
-- **`/run-bot-perf`** (P22.C) — `BotPerfAnalyzer`, durée P50/P95 + taux d'erreur 7j par bot vs baseline (jaune ≥1.5x, rouge ≥2x).
-- **`/run-error-triage`** (P22.C) — `ErrorTriageBot`, regroupe `agent_runs.error` 24h par signature, alerte si ≥3 occurrences.
+- **`/run-fleet-watchdog`** (Axe 3.2, [D-031](docs/DECISIONS.md)) — lance
+  `FleetWatchdog`, **SRE unifié** qui fusionne les 4 anciens watchers
+  `agent_runs` (BotHealthBot + BotPerfAnalyzer + ErrorTriageBot +
+  LogAnomalyDetector) : 1 passe DB, 4 sections (santé/freshness · perf
+  P50/P95 · triage erreurs par signature · anomalie de volume), **1 embed
+  multi-sections** sur `DISCORD_WEBHOOK_OPS_LOGS`, silence si les 4 sections
+  sont vertes (couleur globale = la plus sévère). Task Scheduler
+  `argos-ops-fleet-watchdog` toutes les 6h. Remplace `/run-bot-health`,
+  `/run-bot-perf`, `/run-error-triage`, `/run-log-anomalies`. Logique pure
+  des 4 sections dans `argos_ops/agents/_watchdog/`. Cf.
+  [`.claude/commands/run-fleet-watchdog.md`](.claude/commands/run-fleet-watchdog.md)
 - **`/run-config-drift`** (P22.C) — `BotConfigManager`, diff `agent_config` DB vs `data/agent_config/baseline.yaml`.
 - **`/run-uptime`** (P22.C) — `UptimeMonitor`, ping endpoints `data/uptime/endpoints.yaml`.
 - **`/run-secret-audit`** (P22.C) — `SecretRotator`, alerte secrets > 90j depuis `data/secrets/rotation_log.yaml` (fichier en exception `.gitignore`, jamais de valeurs).

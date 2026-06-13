@@ -1542,6 +1542,62 @@ jamais alimentés en données réelles.
 
 ---
 
+## D-031 — Fusion des 4 watchers `agent_runs` en un seul FleetWatchdog (Axe 3.2)
+
+**Date :** 2026-06-13
+**Partie :** Audit qualité flotte — Axe 3.2 « 1 watcher au lieu de 4 »
+
+**Décision :** Fusion des **4 watchers qui lisaient tous la table `agent_runs`**
+— `BotHealthBot` (freshness/uptime), `BotPerfAnalyzer` (latence P50/P95 + taux
+d'erreur), `ErrorTriageBot` (clustering par signature) et `LogAnomalyDetector`
+(pic de volume) — en **un seul agent `FleetWatchdog`**. Une session DB, 4
+sous-sections réutilisant la logique pure d'origine
+(`argos_ops/agents/_watchdog/{health,perf,errors,anomaly}.py`), un rapport
+agrégé (`should_alert` = OR, couleur = la plus sévère RED > YELLOW > GREEN),
+**1 embed Discord multi-sections** et **1 cron** (`argos-ops-fleet-watchdog`,
+toutes les 6 h) au lieu de 4 agents / 4 crons / 4 embeds.
+
+**Pourquoi :** les 4 watchers lisaient la même table avec des fenêtres et des
+angles différents → 4 connexions DB, 4 tâches planifiées, jusqu'à 4 embeds
+séparés sur `DISCORD_WEBHOOK_OPS_LOGS` pour des signaux corrélés. Un seul
+watcher = moins de surface de maintenance, un seul point d'entrée cockpit, un
+embed unique qui ne déplie que les sections en alerte (moins de spam). La
+logique métier (seuils, fenêtres, tests) est **conservée à l'identique** : les
+48 tests unitaires des 4 sections restent verts (imports re-pointés), la
+politique silence-si-vert reste déléguée à `emit_alert_or_silence`.
+
+**Implication technique :**
+
+- Nouveau : `argos_ops/agents/fleet_watchdog.py` (agent + agrégation + embed
+  combiné), package `argos_ops/agents/_watchdog/` (logique pure relocalisée),
+  `scripts/run_fleet_watchdog.py`, `.claude/commands/run-fleet-watchdog.md`,
+  `tests/test_fleet_watchdog.py`.
+- Supprimé : `argos_ops/agents/{bot_health,bot_perf_analyzer,error_triage,log_anomaly}.py`,
+  4 `scripts/run_*.py`, `scripts/setup_bot_health_task.ps1`, 4 slashs
+  `.claude/commands/`.
+- Références mises à jour : `KNOWN_AGENTS` / `RUNNABLE_AGENTS` / `_build_agent`
+  (`app.py`), `AGENT_FLEET` (`orchestrator.py`), `DEFAULT_AGENT_MAX_AGE_HOURS`
+  (`health.py`, FleetWatchdog @ 7 h), `baseline.yaml`, frontend
+  (`agentCatalog.ts`, `runnableAgents.ts`, `botMetadata.ts`),
+  `setup_watchers_tasks.ps1`, tests impactés.
+- Cadence retenue : **6 h fixe** (vs 2h/6h/quotidien/hebdo des 4 watchers) —
+  les seuils stale (14-26 h) tolèrent 6 h de granularité ; la section perf ne
+  re-alerte que sur régression réelle (silence-si-vert).
+
+**Annule :** prolonge D-030 (élagage Axe 3) ; rend caducs les crons
+`argos-ops-bot-health`, `argos-ops-bot-perf`, `argos-ops-error-triage`,
+`argos-ops-log-anomaly`.
+
+**Action de suivi :**
+
+- [ ] Founder : désinscrire les 4 tâches Task Scheduler des anciens watchers
+  (`Unregister-ScheduledTask -TaskName argos-ops-bot-health,argos-ops-bot-perf,argos-ops-error-triage,argos-ops-log-anomaly -Confirm:$false`),
+  puis ré-enregistrer via `scripts/setup_watchers_tasks.ps1` (crée
+  `argos-ops-fleet-watchdog`).
+- [ ] Annexe D du plan : refléter la fusion (4 watchers → FleetWatchdog).
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown

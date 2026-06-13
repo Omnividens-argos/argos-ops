@@ -1,28 +1,27 @@
-"""LogAnomalyDetector — SRE Observability (P22.D Tech/SRE Sprint 4).
+"""Section *anomalie de volume* du FleetWatchdog (ex-``LogAnomalyDetector``, Axe 3.2).
 
 Détecte les **pics** d'erreurs dans ``agent_runs`` (les logs Loguru des
-agents sont déjà persistés là par ``run_agent()``). Complémentaire de
-``ErrorTriageBot`` :
+agents sont déjà persistés là par ``run_agent()``). Complémentaire de la
+section triage :
 
-- ``ErrorTriageBot`` répond à la question *"quelles erreurs reviennent
-  souvent ?"* (clusters par signature, seuil ≥3 occurrences/24 h)
-- ``LogAnomalyDetector`` répond à *"sommes-nous dans une dérive
-  anormale ?"* (volume d'erreurs sur la dernière heure vs baseline)
+- la section triage répond à *"quelles erreurs reviennent souvent ?"*
+  (clusters par signature, seuil ≥3 occurrences/24 h)
+- cette section répond à *"sommes-nous dans une dérive anormale ?"*
+  (volume d'erreurs sur la dernière heure vs baseline)
 
-Politique anti-spam :
-- **Silence** si volume horaire < :data:`SPIKE_ABSOLUTE_MIN` (le bruit
-  de fond, pas anormal en soi) **et** ratio current/baseline <
-  :data:`SPIKE_WARN_RATIO`
-- **Embed jaune** si current ≥ :data:`SPIKE_WARN_RATIO` x baseline
-- **Embed rouge** si current ≥ :data:`SPIKE_CRITICAL_RATIO` x baseline
-  ou current ≥ :data:`SPIKE_ABSOLUTE_CRITICAL`
+Politique de couleur (agrégée par FleetWatchdog) :
+- **vert**  si volume horaire < :data:`SPIKE_ABSOLUTE_MIN` (bruit de fond)
+  **et** ratio current/baseline < :data:`SPIKE_WARN_RATIO`
+- **jaune** si current ≥ :data:`SPIKE_WARN_RATIO` x baseline
+- **rouge** si current ≥ :data:`SPIKE_CRITICAL_RATIO` x baseline ou
+  current ≥ :data:`SPIKE_ABSOLUTE_CRITICAL`
 
 Le baseline = nombre moyen d'erreurs par heure sur les
 :data:`BASELINE_HOURS` heures précédant la dernière heure (avec un
 plancher :data:`BASELINE_FLOOR` pour éviter qu'un baseline à 0 ne fasse
 exploser le ratio).
 
-Cf. plan ``docs/ARGOS_OPS_PLAN.md`` Annexe D § 7 Tech/SRE, Sprint 4.
+Cf. plan ``docs/ARGOS_OPS_PLAN.md`` Annexe D § 7 Tech/SRE.
 """
 
 from __future__ import annotations
@@ -35,9 +34,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
-from argos_ops.agents._watcher_base import color_title, emit_alert_or_silence
-from argos_ops.agents.base import BaseAgent, IOItem, RunResult
-from argos_ops.crm.db import session_scope
+from argos_ops.agents._watcher_base import color_title
 from argos_ops.crm.models import AgentRun
 from argos_ops.notifications.discord import GREEN, RED, YELLOW, Embed, EmbedField
 
@@ -54,7 +51,7 @@ SPIKE_ABSOLUTE_CRITICAL = 50  # même si ratio modeste, c'est un volume critique
 
 @dataclass(frozen=True)
 class AnomalyReport:
-    """Résultat agrégé du run LogAnomalyDetector."""
+    """Résultat agrégé de la section anomalie de volume."""
 
     current_count: int
     baseline_hourly: float
@@ -132,10 +129,7 @@ def build_report(
     else:
         alert_color = GREEN
 
-    summary = (
-        f"{current_count} erreurs/1h · baseline {baseline_hourly:.1f}/h · "
-        f"ratio {ratio:.1f}x"
-    )
+    summary = f"{current_count} erreurs/1h · baseline {baseline_hourly:.1f}/h · ratio {ratio:.1f}x"
 
     return AnomalyReport(
         current_count=current_count,
@@ -149,9 +143,30 @@ def build_report(
     )
 
 
-def build_anomaly_embed(report: AnomalyReport, *, now: datetime | None = None) -> Embed:
-    """Embed Discord — un field récap + un field par top agent."""
+async def collect_anomaly(session: AsyncSession, *, now: datetime | None = None) -> AnomalyReport:
+    """Orchestration DB de la section anomalie : compte les erreurs de la
+    dernière heure vs baseline 24 h et construit le report.
+
+    Extrait du ``run()`` de l'ancien ``LogAnomalyDetector`` pour que
+    FleetWatchdog l'appelle en une ligne sur la session partagée.
+    """
     now = now or datetime.now(UTC)
+    current_start = now - timedelta(hours=CURRENT_WINDOW_HOURS)
+    baseline_start = now - timedelta(hours=CURRENT_WINDOW_HOURS + BASELINE_HOURS)
+
+    current_count = await _count_errors_in_window(session, since=current_start, until=now)
+    baseline_count = await _count_errors_in_window(
+        session, since=baseline_start, until=current_start
+    )
+    top_agents = await _top_agents_in_window(session, since=current_start, until=now)
+
+    baseline_hourly = baseline_count / BASELINE_HOURS
+    return build_report(current_count, baseline_hourly, top_agents)
+
+
+def anomaly_fields(report: AnomalyReport) -> list[EmbedField]:
+    """Champs Discord de la section anomalie — un field récap + un field par
+    top agent. Réutilisé par l'embed combiné FleetWatchdog."""
     fields: list[EmbedField] = [
         EmbedField(
             name="Volume",
@@ -171,79 +186,21 @@ def build_anomaly_embed(report: AnomalyReport, *, now: datetime | None = None) -
                 inline=False,
             )
         )
+    return fields
+
+
+def build_anomaly_embed(report: AnomalyReport, *, now: datetime | None = None) -> Embed:
+    """Construit l'embed Discord autonome de la section anomalie."""
+    now = now or datetime.now(UTC)
     title_status = color_title(report.alert_color, green=GREEN, yellow=YELLOW, red=RED)
     return Embed(
         title=f"LogAnomalyDetector — {title_status}",
         description=report.summary,
         color=report.alert_color,
-        fields=fields,
+        fields=anomaly_fields(report),
         footer="Argos Ops • LogAnomalyDetector",
         timestamp=now.isoformat(),
     )
-
-
-class LogAnomalyDetector(BaseAgent):
-    """SRE Observability — détecte les pics d'erreurs dans ``agent_runs``."""
-
-    name = "LogAnomalyDetector"
-    command = "/run-log-anomalies"
-    breaker_name = None
-    ai_act_risk_class = "minimal"
-
-    async def run(self) -> RunResult:
-        now = datetime.now(UTC)
-        current_start = now - timedelta(hours=CURRENT_WINDOW_HOURS)
-        baseline_start = now - timedelta(hours=CURRENT_WINDOW_HOURS + BASELINE_HOURS)
-
-        async with session_scope() as session:
-            current_count = await _count_errors_in_window(
-                session, since=current_start, until=now
-            )
-            baseline_count = await _count_errors_in_window(
-                session, since=baseline_start, until=current_start
-            )
-            top_agents = await _top_agents_in_window(
-                session, since=current_start, until=now
-            )
-
-        baseline_hourly = baseline_count / BASELINE_HOURS
-        report = build_report(current_count, baseline_hourly, top_agents)
-        inputs = [
-            IOItem(
-                label="Erreurs dernière heure",
-                kind="db",
-                detail=f"agent_runs.error sur {CURRENT_WINDOW_HOURS}h",
-                count=current_count,
-            ),
-            IOItem(
-                label="Baseline erreurs",
-                kind="db",
-                detail=f"moyenne sur {BASELINE_HOURS}h ({baseline_hourly:.1f}/h)",
-                count=baseline_count,
-            ),
-        ]
-        outputs = [
-            IOItem(
-                label=f"Pic d'erreurs ({report.status})",
-                kind="other",
-                detail=f"ratio {report.ratio:.1f}x vs baseline",
-                count=current_count,
-            ),
-            IOItem(
-                label="Top agents en erreur",
-                kind="other",
-                detail=", ".join(f"{name} ({n})" for name, n in top_agents)
-                or None,
-                count=len(top_agents),
-            ),
-        ]
-        return await emit_alert_or_silence(
-            report,
-            embed_builder=build_anomaly_embed,
-            agent_name=self.name,
-            inputs=inputs,
-            outputs=outputs,
-        )
 
 
 __all__ = [
@@ -256,8 +213,9 @@ __all__ = [
     "SPIKE_WARN_RATIO",
     "AnomalyReport",
     "AnomalyStatus",
-    "LogAnomalyDetector",
+    "anomaly_fields",
     "build_anomaly_embed",
     "build_report",
     "classify",
+    "collect_anomaly",
 ]
