@@ -16,17 +16,36 @@ from argos_ops.config import Settings
 from argos_ops.fleet_memory import append_fact
 from argos_ops.ops_dashboard import app as app_module
 from argos_ops.ops_dashboard.app import app
+from argos_ops.ops_dashboard.atelier_audit import AuditEvent
 from argos_ops.ops_dashboard.console import (
     build_generate_prompt,
     can_act,
     compose_in,
     is_bot_live,
     parse_generation,
+    read_live_status,
 )
 
 
 def _settings(**kw: object) -> Settings:
     return Settings(_env_file=None, **kw)  # type: ignore[call-arg]
+
+
+# =============================================================================
+# read_live_status — badge LIVE/SHADOW relu à chaud (Axe 4)
+# =============================================================================
+def test_read_live_status_conservative_for_unknown_bot() -> None:
+    # Bot hors table _LIVE_FLAG_BY_BOT → SHADOW (jamais LIVE par erreur).
+    assert read_live_status("DigestBuilder") is False
+
+
+def test_read_live_status_reflects_env_hot(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Relecture fraîche : un flip de OUTBOUND_LIVE_MODE est pris en compte sans
+    # passer par le singleton get_settings() (hot-reload du badge).
+    monkeypatch.setenv("OUTBOUND_LIVE_MODE", "true")
+    assert read_live_status("OutboundBot") is True
+    monkeypatch.setenv("OUTBOUND_LIVE_MODE", "false")
+    assert read_live_status("OutboundBot") is False
 
 
 # =============================================================================
@@ -206,3 +225,73 @@ def test_console_act_runs_when_approved() -> None:
     assert body["acted"] is True
     assert body["status"] == "success"
     run.assert_awaited_once()
+
+
+# =============================================================================
+# Axe 4 — audit de console_act (toutes branches) + hot-reload badge↔action
+# =============================================================================
+def test_console_act_audits_every_branch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """L'audit (chantier 2) doit tracer les 4 issues de console_act, refus
+    inclus — sinon une suppression d'un record() passerait inaperçue."""
+    events: list[AuditEvent] = []
+    monkeypatch.setattr(app_module.atelier_audit, "record", lambda e, **k: events.append(e))
+    fake_result = MagicMock(status="success", output_summary="ok", error=None)
+    with (
+        patch.object(app_module, "run_agent", AsyncMock(return_value=fake_result)),
+        patch.object(app_module, "_build_agent", MagicMock()),
+    ):
+        client = TestClient(app)
+        client.post(
+            "/api/agents/EmailBot/console/act", json={"verdict": "killed", "approved": True}
+        )
+        client.post(
+            "/api/agents/EmailBot/console/act", json={"verdict": "queued", "approved": False}
+        )
+        # KNOWN mais NON runnable (writer interactif) → not_runnable.
+        client.post(
+            "/api/agents/LinkedInWriter/console/act",
+            json={"verdict": "auto_send", "approved": True},
+        )
+        client.post(
+            "/api/agents/EmailBot/console/act", json={"verdict": "auto_send", "approved": True}
+        )
+
+    outcomes = {e.outcome for e in events}
+    assert {"blocked_killed", "blocked_not_approved", "not_runnable", "executed"} <= outcomes
+    executed = next(e for e in events if e.outcome == "executed")
+    assert executed.acted is True
+    assert executed.bot == "EmailBot"
+    assert executed.verdict == "auto_send"
+    assert executed.approved is True
+
+
+def test_console_status_live_reflects_env_flip(monkeypatch: pytest.MonkeyPatch) -> None:
+    """GET /console/status relit le mode LIVE à chaud : un flip d'env est reflété
+    sans recréer le client ni redémarrer (chantier 4)."""
+    client = TestClient(app)
+    monkeypatch.setenv("OUTBOUND_LIVE_MODE", "false")
+    assert client.get("/api/agents/OutboundBot/console/status").json()["live"] is False
+    monkeypatch.setenv("OUTBOUND_LIVE_MODE", "true")
+    assert client.get("/api/agents/OutboundBot/console/status").json()["live"] is True
+
+
+def test_console_act_live_consistent_via_refresh(monkeypatch: pytest.MonkeyPatch) -> None:
+    """console_act rafraîchit les Settings avant d'agir → son champ ``live``
+    reflète le flip d'env (cohérence badge↔action sans redémarrage)."""
+    from argos_ops import config
+
+    monkeypatch.setattr(app_module.atelier_audit, "record", lambda e, **k: None)
+    monkeypatch.setenv("OUTBOUND_LIVE_MODE", "true")
+    fake_result = MagicMock(status="success", output_summary="ok", error=None)
+    try:
+        with (
+            patch.object(app_module, "run_agent", AsyncMock(return_value=fake_result)),
+            patch.object(app_module, "_build_agent", MagicMock()),
+        ):
+            r = TestClient(app).post(
+                "/api/agents/OutboundBot/console/act",
+                json={"verdict": "auto_send", "approved": True},
+            )
+        assert r.json()["live"] is True  # refresh_settings() a capté le flip
+    finally:
+        config._settings = None  # purge le singleton pollué par refresh_settings

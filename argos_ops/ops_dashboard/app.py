@@ -37,10 +37,10 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from argos_ops import fleet_memory
-from argos_ops.agents.base import BaseAgent, run_agent
+from argos_ops.agents.base import BaseAgent, RunResult, run_agent
 from argos_ops.breakers import reset as reset_breaker_facade
 from argos_ops.breakers import trip as trip_breaker_facade
-from argos_ops.config import get_settings
+from argos_ops.config import get_settings, refresh_settings
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.models import AgentConfig, AgentRun, Breaker
 from argos_ops.crm.repository import (
@@ -54,7 +54,8 @@ from argos_ops.crm.repository import (
     sum_active_mrr_eur,
     update_agent_config,
 )
-from argos_ops.ops_dashboard import atelier, atelier_history, auth, console
+from argos_ops.logging import redact_secrets
+from argos_ops.ops_dashboard import atelier, atelier_audit, atelier_history, auth, console
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
 from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
@@ -1147,10 +1148,12 @@ async def get_console_status(name: str) -> ConsoleStatusResponse:
     """État de la console : moteur génération dispo + SHADOW/LIVE + runnable."""
     if name not in KNOWN_AGENTS:
         raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
-    settings = get_settings()
+    # ``live`` relu à chaud (Settings fraîches) → le badge SHADOW/LIVE reflète un
+    # flip de flag sans redémarrer le panel (Axe 4). ``engine_enabled`` reste sur
+    # le singleton (cohérent avec le gate des WS atelier).
     return ConsoleStatusResponse(
-        engine_enabled=settings.ops_atelier_enabled,
-        live=console.is_bot_live(name, settings),
+        engine_enabled=get_settings().ops_atelier_enabled,
+        live=console.read_live_status(name),
         runnable=name in RUNNABLE_AGENTS,
     )
 
@@ -1238,29 +1241,51 @@ async def console_act(name: str, payload: ConsoleActPayload) -> ConsoleActRespon
     vs shadow dépend du flag live propre au bot (cf. ``is_bot_live``)."""
     if name not in KNOWN_AGENTS:
         raise HTTPException(status_code=404, detail=f"Agent inconnu : {name}")
-    settings = get_settings()
+    # AGIR = point de vérité : on rafraîchit le singleton Settings pour qu'un flip
+    # de flag live reflété par le badge le soit AUSSI par le bot lancé ci-dessous
+    # (cohérence badge↔action sans redémarrage, Axe 4).
+    settings = refresh_settings()
     live = console.is_bot_live(name, settings)
 
-    if not console.can_act(payload.verdict, human_approved=payload.approved):
-        reason = (
-            "verdict killed — action bloquée"
-            if payload.verdict == "killed"
-            else "approbation humaine requise"
+    def _audit(*, acted: bool, outcome: str, result: RunResult | None = None) -> None:
+        atelier_audit.record(
+            atelier_audit.AuditEvent(
+                action="console_act",
+                mode="console",
+                bot=name,
+                verdict=payload.verdict,
+                approved=payload.approved,
+                acted=acted,
+                live=live,
+                outcome=outcome,
+                result_status=result.status if result else None,
+                result_error=result.error if result else None,
+            )
         )
+
+    if not console.can_act(payload.verdict, human_approved=payload.approved):
+        killed = payload.verdict == "killed"
+        reason = "verdict killed — action bloquée" if killed else "approbation humaine requise"
+        _audit(acted=False, outcome="blocked_killed" if killed else "blocked_not_approved")
         return ConsoleActResponse(acted=False, live=live, reason=reason)
 
     if name not in RUNNABLE_AGENTS:
+        _audit(acted=False, outcome="not_runnable")
         return ConsoleActResponse(
             acted=False, live=live, reason=f"{name} non lançable (interactif / watcher)"
         )
 
     result = await run_agent(_build_agent(name))
+    _audit(acted=True, outcome="executed", result=result)
+    # Redaction homogène avec le retour MCP run_bot : un bot mal écrit qui
+    # mettrait un secret dans output_summary/error ne le fait pas fuiter dans
+    # le navigateur cockpit (défense en profondeur, Axe 4).
     return ConsoleActResponse(
         acted=True,
         live=live,
         status=result.status,
-        output_summary=result.output_summary,
-        error=result.error,
+        output_summary=redact_secrets(result.output_summary) if result.output_summary else None,
+        error=redact_secrets(result.error) if result.error else None,
     )
 
 
@@ -1340,6 +1365,11 @@ async def atelier_ws(websocket: WebSocket) -> None:
             msg = await websocket.receive_json()
             mtype = msg.get("type")
             if mtype == "interrupt":
+                # Tue le proc ; on NE cancel PAS current_turn : la sentinelle du
+                # _pump clôt le tour naturellement quand le proc est réellement
+                # mort → le verrou _busy reste pris jusque-là (invariant strict
+                # « 1 subprocess à la fois », sans fenêtre 2-process). La Task
+                # devient .done() d'elle-même et rouvre le slot (Axe 4).
                 session.interrupt()
             elif mtype == "resume":
                 # Rouvre une ancienne conversation : le prochain tour reprendra
@@ -1348,15 +1378,30 @@ async def atelier_ws(websocket: WebSocket) -> None:
                 if isinstance(sid, str) and sid:
                     session.session_id = sid
                     await websocket.send_json({"type": "resumed", "session_id": sid})
-            elif mtype == "user" and (current_turn is None or current_turn.done()):
+            elif mtype == "user":
                 text = str(msg.get("text", "")).strip()
                 mode = msg.get("permission_mode", "read")
                 if mode not in ("read", "fleet"):
                     mode = "read"
-                if text:
-                    current_turn = asyncio.create_task(
-                        _stream_atelier_turn(websocket, session, text, mode)
+                if not text:
+                    continue
+                if current_turn is not None and not current_turn.done():
+                    # Un tour est déjà in-flight : on REJETTE (rate-limit Axe 4),
+                    # pas de file d'attente — l'humain renverra après le tour.
+                    await websocket.send_json({"type": "busy"})
+                    continue
+                atelier_audit.record(
+                    atelier_audit.AuditEvent(
+                        action="atelier_turn",
+                        mode=mode,
+                        prompt_excerpt=atelier_audit.excerpt(text),
+                        session_id=session.session_id,
+                        client_ip=client_ip,
                     )
+                )
+                current_turn = asyncio.create_task(
+                    _stream_atelier_turn(websocket, session, text, mode)
+                )
     except WebSocketDisconnect:
         session.interrupt()
         if current_turn is not None:

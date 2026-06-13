@@ -49,6 +49,8 @@ data/strategy/digest-*.md
 data/strategy/board-*.md
 # Outputs EditorialBot (Sprint contenu) — queue regénérée à chaque run
 data/editorial/queue-*.yaml
+# Journal d'audit atelier (Axe 4) — prompts + IP locaux, jamais committé
+data/atelier_audit/
 logs/
 *.db
 *.sqlite

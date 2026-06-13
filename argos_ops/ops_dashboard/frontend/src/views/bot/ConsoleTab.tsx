@@ -16,12 +16,12 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type ConsoleInResponse,
-  type ConsoleStatus,
   type ConsoleVerdict,
   consoleAct,
   fetchConsoleIn,
   fetchConsoleStatus,
 } from "../../api";
+import { usePolling } from "../../hooks/usePolling";
 import { MarkdownPreview } from "../../components/MarkdownPreview";
 import { useToast } from "../../components/Toast";
 import { Badge, Button } from "../../components/ui";
@@ -97,7 +97,14 @@ function consoleWsUrl(name: string): string {
 
 export function ConsoleTab({ botName, meta }: { botName: string; meta: BotMetadata }) {
   const toast = useToast();
-  const [status, setStatus] = useState<ConsoleStatus | null>(null);
+  const statusFetcher = useCallback(
+    (signal?: AbortSignal) => fetchConsoleStatus(botName, signal),
+    [botName],
+  );
+  // Badge SHADOW/LIVE rafraîchi en continu (Axe 4) au lieu d'un fetch one-shot
+  // figé au montage : 15 s suffisent (la donnée ne bouge qu'à un flip de flag /
+  // restart backend). Le badge survit aussi à un échec réseau transitoire.
+  const { data: status } = usePolling(statusFetcher, 15000);
   const [inData, setInData] = useState<ConsoleInResponse | null>(null);
 
   // Cases du IN.
@@ -110,12 +117,6 @@ export function ConsoleTab({ botName, meta }: { botName: string; meta: BotMetada
   const [gen, setGen] = useState<GenState>(EMPTY_GEN);
   const [acting, setActing] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
-
-  useEffect(() => {
-    const c = new AbortController();
-    fetchConsoleStatus(botName, c.signal).then(setStatus).catch(() => undefined);
-    return () => c.abort();
-  }, [botName]);
 
   // Compteurs du IN (mémoire) recomposés quand on coche/décoche.
   useEffect(() => {
@@ -190,7 +191,17 @@ export function ConsoleTab({ botName, meta }: { botName: string; meta: BotMetada
 
   const act = async () => {
     if (!gen.verdict) return;
-    if (status?.live) {
+    // Relit le statut À CHAUD juste avant d'agir : le badge polled peut avoir
+    // jusqu'à 15 s de retard, on ne veut pas rater l'avertissement LIVE si un
+    // flag a basculé entre 2 polls (Axe 4 — « jamais agir en croyant être en
+    // dry-run »). Fallback conservateur sur le badge connu si le refresh échoue.
+    let liveNow = !!status?.live;
+    try {
+      liveNow = !!(await statusFetcher()).live;
+    } catch {
+      /* refresh KO → on garde le badge connu */
+    }
+    if (liveNow) {
       const ok = window.confirm(
         "⚠️ Ce bot est en mode LIVE : « Agir » déclenche une action RÉELLE et irréversible. Continuer ?",
       );

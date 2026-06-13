@@ -251,6 +251,10 @@ class AtelierSession:
         self._claude_bin = claude_bin
         self._repo_root = repo_root
         self._proc: subprocess.Popen[str] | None = None
+        # Verrou « 1 tour in-flight par session » (Axe 4). Posé/relâché DANS la
+        # coroutine ``send`` (pas dans le thread _pump) → atomique sous l'event
+        # loop, pas de course thread/loop. Source de vérité du rejet « busy ».
+        self._busy = False
 
     @property
     def running(self) -> bool:
@@ -273,7 +277,26 @@ class AtelierSession:
         supporte pas les sous-process asyncio. Le thread pousse les events dans
         une queue asyncio. Un process en échec remonte ``error`` puis
         ``turn_done`` ; ``session_id`` est capté au 1er event ``system``.
+
+        Rate-limit (Axe 4) : si un tour est déjà in-flight sur cette session,
+        ``send`` **rejette** immédiatement (yield ``busy`` puis ``return``) au
+        lieu de lancer un 2e subprocess — pas de file d'attente, le quota reste
+        borné à 1 run par session.
         """
+        if self._busy:
+            yield {"kind": "busy", "message": "Un tour est déjà en cours."}
+            return
+        self._busy = True
+        try:
+            async for event in self._run_turn(prompt, permission_mode=permission_mode):
+                yield event
+        finally:
+            self._busy = False
+
+    async def _run_turn(
+        self, prompt: str, *, permission_mode: PermissionMode = "read"
+    ) -> AsyncIterator[dict[str, Any]]:
+        """Corps du tour (subprocess + drain). Appelé sous le verrou ``_busy``."""
         argv = build_claude_argv(
             prompt,
             claude_bin=self._claude_bin,

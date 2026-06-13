@@ -221,6 +221,17 @@ def is_bot_live(name: str, settings: Settings) -> bool:
     return bool(getattr(settings, attr, False)) if attr else False
 
 
+def read_live_status(name: str) -> bool:
+    """Lit l'état LIVE/SHADOW À CHAUD pour le badge (affichage seul, Axe 4).
+
+    Relit les Settings (.env / .env.local) via une instance fraîche à chaque
+    appel : le badge reflète un flip de flag sans redémarrer le panel. La
+    primitive testable reste :func:`is_bot_live` (Settings injectés) ; l'action
+    réelle (``console_act``) rafraîchit le singleton avant d'agir.
+    """
+    return is_bot_live(name, Settings())
+
+
 __all__ = [
     "GenerationResult",
     "InComposition",
@@ -230,4 +241,5 @@ __all__ = [
     "compose_in",
     "is_bot_live",
     "parse_generation",
+    "read_live_status",
 ]
