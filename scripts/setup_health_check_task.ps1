@@ -100,6 +100,13 @@ Register-ScheduledTask `
     -Settings $settings `
     -Description $Description | Out-Null
 
+# Mode silencieux : aucune fenetre console au declenchement du cron.
+# Principal S4U = la tache tourne dans la session 0 (non-interactive).
+# cf. scripts\make_tasks_silent.ps1
+$silentPrincipal = New-ScheduledTaskPrincipal `
+    -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType S4U -RunLevel Limited
+Set-ScheduledTask -TaskName $TaskName -Principal $silentPrincipal | Out-Null
+
 Write-Host "[OK] Tâche '$TaskName' enregistrée." -ForegroundColor Green
 
 # Vérification

@@ -221,6 +221,22 @@ foreach ($task in $Tasks) {
     Write-Host "  [OK] enregistree" -ForegroundColor Green
 }
 
+# -----------------------------------------------------------------------------
+# Mode silencieux : aucune fenetre console au declenchement du cron.
+# Bascule chaque tache argos-ops-* en principal S4U (session 0, non-interactif).
+# cf. scripts\make_tasks_silent.ps1
+# -----------------------------------------------------------------------------
+if (-not $DryRun) {
+    $silentPrincipal = New-ScheduledTaskPrincipal `
+        -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType S4U -RunLevel Limited
+    foreach ($silentTask in @(Get-ScheduledTask -TaskName "argos-ops-*" -ErrorAction SilentlyContinue)) {
+        if ([string]$silentTask.Principal.LogonType -ne "S4U") {
+            Set-ScheduledTask -TaskName $silentTask.TaskName -Principal $silentPrincipal | Out-Null
+        }
+    }
+    Write-Host "[i] Taches argos-ops-* passees en mode silencieux (S4U)." -ForegroundColor DarkGray
+}
+
 Write-Host ""
 Write-Host "Fini. Pour lister :" -ForegroundColor Cyan
 Write-Host "  Get-ScheduledTask -TaskName 'argos-ops-*' | Format-Table TaskName, State, NextRunTime"
