@@ -28,7 +28,6 @@
     - argos-ops-regulatory-watch  : quotidien (7h)
     - argos-ops-cve-monitor       : quotidien (7h30)
     - argos-ops-dw-monitor        : quotidien (12h30)
-    - argos-ops-bounty-radar      : mensuel (1er du mois 12h)
 
   Juridique & Compliance (P22.K, 4 bots cron + 1 interactif) :
     - argos-ops-rgpd-audit        : hebdo (lundi 13h)
@@ -37,11 +36,11 @@
     - argos-ops-bloctel-guard     : mensuel (1er du mois 13h)
     - IncidentLogger              : interactif (slash /log-incident, pas cron)
 
-  Communication (P22.L, 3 watchers cron + 4 reactifs slash) :
+  Communication (P22.L, 3 watchers cron + 1 reactif slash) :
     - argos-ops-press-monitor     : quotidien (10h30)
     - argos-ops-media-list        : hebdo (lundi 14h)
     - argos-ops-brand-audit       : hebdo (lundi 14h30)
-    - ReplyBot / PressReleaseDrafter / CrisisCommBot / SpokespersonPrep : slash only
+    - ReplyBot : slash only (/draft-replies)
 
   Documentation & Knowledge interne (P22.M, 1 watcher cron + 2 reactifs) :
     - argos-ops-doc-lint          : hebdo (lundi 15h)
@@ -108,7 +107,6 @@ $Tasks = @(
     @{ Name = "argos-ops-regulatory-watch"; Script = "run_regulatory_watcher.py"; Trigger = "Daily:07:00";         Description = "RegulatoryWatcher quotidien (7h)" }
     @{ Name = "argos-ops-cve-monitor";      Script = "run_cve_monitor.py";       Trigger = "Daily:07:30";          Description = "CVEMonitor quotidien (7h30)" }
     @{ Name = "argos-ops-dw-monitor";       Script = "run_dw_monitor.py";        Trigger = "Daily:12:30";          Description = "DarkWebMonitor quotidien (12h30)" }
-    @{ Name = "argos-ops-bounty-radar";     Script = "run_bounty_radar.py";      Trigger = "Monthly:1:12:00";      Description = "BountyRadar mensuel (1er 12h)" }
     @{ Name = "argos-ops-rgpd-audit";       Script = "run_rgpd_auditor.py";      Trigger = "Weekly:Monday:13:00";  Description = "RGPDAuditor hebdo (lundi 13h)" }
     @{ Name = "argos-ops-ai-act-audit";     Script = "run_ai_act_compliance.py"; Trigger = "Weekly:Monday:13:30";  Description = "AIActComplianceBot hebdo (lundi 13h30)" }
     @{ Name = "argos-ops-contract-deadlines"; Script = "run_contract_deadlines.py"; Trigger = "Daily:14:00";        Description = "ContractDeadlineBot quotidien (14h)" }

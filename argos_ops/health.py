@@ -97,22 +97,17 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     #   - AdBot              : quotidien 09:00  → 26h slack
     #   - TrendSpotter       : quotidien 07:30  → 26h slack
     #   - SocialAnalytics    : lundi 09:00 (hebdo) → 172h slack
-    #   - BacklinkOutreach   : jeudi 09:00 (hebdo) → 172h slack
     #   - KeywordRadar       : lundi 09:15 (hebdo) → 172h slack
     #   - LandingOptimizer   : mardi 09:00 (hebdo) → 172h slack
-    #   - WebinarPromoter    : mercredi 09:00 (hebdo) → 172h slack
     #   - TestimonialHunter  : quotidien 15:00  → 26h slack
     #   - NewsletterBot      : 1er du mois 10:00 (mensuel) → 756h slack
-    #   - CaseStudyDrafter   : réactif (slash) → skip cadence
     #   - SEOBot             : réactif (slash + health-check) → skip cadence
     "ContentBot": 3.0,
     "AdBot": 26.0,
     "TrendSpotter": 26.0,
     "SocialAnalytics": 172.0,
-    "BacklinkOutreach": 172.0,
     "KeywordRadar": 172.0,
     "LandingOptimizer": 172.0,
-    "WebinarPromoter": 172.0,
     "TestimonialHunter": 26.0,
     "NewsletterBot": 756.0,
     # Sprint contenu — pas de cadence cron (on-demand) → skip :
@@ -171,13 +166,11 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     #   - RegulatoryWatcher  : quotidien 07:00             → 26h slack
     #   - CVEMonitor         : quotidien 07:30             → 26h slack
     #   - DarkWebMonitor     : quotidien 12:30             → 26h slack
-    #   - BountyRadar        : 1er du mois 12:00 (mensuel) → 756h slack
     "CompetitorWatcher": 172.0,
     "BreachWatcher": 26.0,
     "RegulatoryWatcher": 26.0,
     "CVEMonitor": 26.0,
     "DarkWebMonitor": 26.0,
-    "BountyRadar": 756.0,
     # Juridique & Compliance (P22.K) — cron via setup_watchers_tasks.ps1 :
     #   - RGPDAuditor          : lundi 13:00 (hebdo)         → 172h slack
     #   - AIActComplianceBot   : lundi 13:30 (hebdo)         → 172h slack
@@ -193,9 +186,6 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     #   - MediaListBuilder   : lundi 14:00 (hebdo)           → 172h slack
     #   - BrandGuardBot      : lundi 14:30 (hebdo)           → 172h slack
     #   - ReplyBot           : reactif (slash /draft-replies) → skip
-    #   - PressReleaseDrafter: reactif (slash) → skip
-    #   - CrisisCommBot      : reactif (slash) → skip
-    #   - SpokespersonPrep   : reactif (slash) → skip
     #   - EmailBot           : deja present (toutes 15 min, ligne 70 ci-dessus)
     "PressMonitor": 26.0,
     "MediaListBuilder": 172.0,

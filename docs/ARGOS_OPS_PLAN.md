@@ -2212,12 +2212,12 @@ Le frontend Admin Panel range les bots par service avec status pill.
 - [x] ✅ **TrendSpotter** · Trend Analyst · Tendances cyber → SEOBot / ContentBot. *P22i livré 2026-05-23.*
 - [x] ✅ **NewsletterBot** · Email Marketing · Newsletter mensuelle depuis blog + actu cyber. *P22i livré 2026-05-23.*
 - [x] ✅ **SocialAnalytics** · Community Analytics · Reporting hebdo engagement par canal. *P22i livré 2026-05-23.*
-- [x] ✅ **BacklinkOutreach** · SEO Off-page · Prospecte sites cyber pour échanges de liens. *P22i livré 2026-05-23.*
+- [~] 🗑️ **BacklinkOutreach** · SEO Off-page · Prospecte sites cyber pour échanges de liens. *P22i livré 2026-05-23.* **Retiré par [D-030](DECISIONS.md#d-030) le 2026-06-13 (template/stub sans valeur).**
 - [x] ✅ **KeywordRadar** · SEO Specialist · Surveille positions SERP + opportunités longue traîne. *P22i livré 2026-05-23.*
 - [x] ✅ **LandingOptimizer** · CRO Specialist · Analyse heatmaps + propose variantes A/B. *P22i livré 2026-05-23.*
-- [x] ✅ **WebinarPromoter** · Field Marketing · Promote webinar + replay edit. *P22i livré 2026-05-23.*
+- [~] 🗑️ **WebinarPromoter** · Field Marketing · Promote webinar + replay edit. *P22i livré 2026-05-23.* **Retiré par [D-030](DECISIONS.md#d-030) le 2026-06-13 (template/stub sans valeur).**
 - [x] ✅ **TestimonialHunter** · Customer Marketing · Verbatims post-NPS positif. *P22i livré 2026-05-23.*
-- [x] ✅ **CaseStudyDrafter** · Content Senior · Case study depuis compte référence. *P22i livré 2026-05-23.*
+- [~] 🗑️ **CaseStudyDrafter** · Content Senior · Case study depuis compte référence. *P22i livré 2026-05-23.* **Retiré par [D-030](DECISIONS.md#d-030) le 2026-06-13 (template/stub sans valeur).**
 
 ### 5. Customer Success & Support
 *Onboarding, rétention, support technique.*
@@ -2261,7 +2261,7 @@ Le frontend Admin Panel range les bots par service avec status pill.
 - [x] ✅ **RegulatoryWatcher** · Compliance Watch · Évolutions RGPD / AI Act / NIS2 / DORA. *P22.D livré 2026-05-23.*
 - [x] ✅ **CVEMonitor** · Threat Intel · CVE critiques sur stack clients déclarée. *P22.D livré 2026-05-23.*
 - [x] ✅ **DarkWebMonitor** · Threat Intel Senior · Mentions domaines clients sur dark web. *P22.D livré 2026-05-23 (MVP HIBP).*
-- [x] ✅ **BountyRadar** · Bug Bounty Manager · Programmes bounty pertinents à positionner. *P22.D livré 2026-05-23.*
+- [~] 🗑️ **BountyRadar** · Bug Bounty Manager · Programmes bounty pertinents à positionner. *P22.D livré 2026-05-23.* **Retiré par [D-030](DECISIONS.md#d-030) le 2026-06-13 (template/stub sans valeur).**
 
 ### 9. Juridique & Compliance
 *RGPD, AI Act, Bloctel, contrats clients.*
@@ -2278,10 +2278,10 @@ Le frontend Admin Panel range les bots par service avec status pill.
 - [x] ✅ **EmailBot** · Standardiste Inbox · Pull IMAP 15 min + ingestion CRM + notif Discord. *P5 livré 2026-05-09.*
 - [x] ✅ **ReplyBot** · Community Manager · Réponses mentions LinkedIn / Mastodon (humain-validé). *P22i livré 2026-05-23.*
 - [x] ✅ **PressMonitor** · Veille presse · Mentions Argos / Omnividens / SecHunter sur le web. *P22i livré 2026-05-23.*
-- [x] ✅ **PressReleaseDrafter** · RP Manager · Communiqué de presse annonces produit / finance. *P22i livré 2026-05-23.*
+- [~] 🗑️ **PressReleaseDrafter** · RP Manager · Communiqué de presse annonces produit / finance. *P22i livré 2026-05-23.* **Retiré par [D-030](DECISIONS.md#d-030) le 2026-06-13 (template/stub sans valeur).**
 - [x] ✅ **MediaListBuilder** · Attaché de presse · DB journalistes / médias cyber pertinents. *P22i livré 2026-05-23.*
-- [x] ✅ **CrisisCommBot** · Comm de crise · Réponse type prête en cas d'incident public. *P22i livré 2026-05-23.*
-- [x] ✅ **SpokespersonPrep** · Media Training · Q&A briefs interviews founder. *P22i livré 2026-05-23.*
+- [~] 🗑️ **CrisisCommBot** · Comm de crise · Réponse type prête en cas d'incident public. *P22i livré 2026-05-23.* **Retiré par [D-030](DECISIONS.md#d-030) le 2026-06-13 (template/stub sans valeur).**
+- [~] 🗑️ **SpokespersonPrep** · Media Training · Q&A briefs interviews founder. *P22i livré 2026-05-23.* **Retiré par [D-030](DECISIONS.md#d-030) le 2026-06-13 (template/stub sans valeur).**
 - [x] ✅ **BrandGuardBot** · Brand Manager · Cohérence ton / tagline / signature sur drafts sortants. *P22i livré 2026-05-23.*
 
 ### 11. Documentation & Knowledge interne

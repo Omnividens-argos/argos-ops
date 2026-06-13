@@ -234,12 +234,9 @@ Omnividens, sans dupliquer ce que la couche déterministe
 
 ### Quand l'inclure dans la réponse JSON
 
-- Draft généré par : ContentBot, NewsletterBot, PressReleaseDrafter,
-  CaseStudyDrafter, BacklinkOutreach, TestimonialHunter, AdBot,
-  CrisisCommBot
+- Draft généré par : ContentBot, NewsletterBot, TestimonialHunter, AdBot
 - **Pas** nécessaire pour les drafts internes (digest, alertes
-  Discord, briefs Q&A SpokespersonPrep) — ces canaux ne sont pas
-  exposés au public
+  Discord) — ces canaux ne sont pas exposés au public
 
 ### Règles canoniques brand (à pondérer dans la note 0-100)
 

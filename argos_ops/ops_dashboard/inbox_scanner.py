@@ -9,7 +9,7 @@ Catégories scannées :
   - social    : data/content/drafts (LinkedIn, Mastodon)
   - proposal  : data/proposals, data/contracts
   - seo       : data/seo/briefs, data/blog/drafts
-  - press     : data/comm/press_releases, data/comm/crisis_responses
+  - press     : (réservé — drafters presse retirés par D-030, kind conservé pour compat)
   - doc       : docs/adr (status=draft), data/release_notes/drafts
 
 Filtrés OUT : status ∈ {validated, posted, sent, published, signed}.
@@ -226,15 +226,6 @@ def _scan_all_sources(*, include_all_statuses: bool) -> list[InboxDraft]:
             include_all_statuses=include_all_statuses,
         )
     )
-    out.extend(
-        _scan_directory(
-            root,
-            "data/blog/drafts/*.md",
-            kind="seo",
-            agent_name="CaseStudyDrafter",
-            include_all_statuses=include_all_statuses,
-        )
-    )
 
     # Proposals / contracts
     out.extend(
@@ -252,26 +243,6 @@ def _scan_all_sources(*, include_all_statuses: bool) -> list[InboxDraft]:
             "data/contracts/**/*.md",
             kind="proposal",
             agent_name="ContractGenerator",
-            include_all_statuses=include_all_statuses,
-        )
-    )
-
-    # Press / crisis
-    out.extend(
-        _scan_directory(
-            root,
-            "data/comm/press_releases/**/*.md",
-            kind="press",
-            agent_name="PressReleaseDrafter",
-            include_all_statuses=include_all_statuses,
-        )
-    )
-    out.extend(
-        _scan_directory(
-            root,
-            "data/comm/crisis_responses/**/*.md",
-            kind="press",
-            agent_name="CrisisCommBot",
             include_all_statuses=include_all_statuses,
         )
     )

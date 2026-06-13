@@ -148,12 +148,9 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "TrendSpotter",
     "NewsletterBot",
     "SocialAnalytics",
-    "BacklinkOutreach",
     "KeywordRadar",
     "LandingOptimizer",
-    "WebinarPromoter",
     "TestimonialHunter",
-    "CaseStudyDrafter",
     # Sprint contenu — writers multi-canal (skills humain-in-the-loop,
     # invoqués via /draft-* : non-runnables) + EditorialBot (orchestrateur,
     # runnable). Cf. argos_ops/social/ + argos_ops/agents/editorial_bot.py.
@@ -194,7 +191,6 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "RegulatoryWatcher",
     "CVEMonitor",
     "DarkWebMonitor",
-    "BountyRadar",
     # Juridique & Compliance (P22.K)
     "RGPDAuditor",
     "AIActComplianceBot",
@@ -204,10 +200,7 @@ KNOWN_AGENTS: tuple[str, ...] = (
     # Communication (P22.L) — EmailBot deja en tete de tuple (P5 historique)
     "ReplyBot",
     "PressMonitor",
-    "PressReleaseDrafter",
     "MediaListBuilder",
-    "CrisisCommBot",
-    "SpokespersonPrep",
     "BrandGuardBot",
     # Documentation & Knowledge interne (P22.M)
     "DocLinter",
@@ -277,12 +270,9 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "TrendSpotter",
         "NewsletterBot",
         "SocialAnalytics",
-        "BacklinkOutreach",
         "KeywordRadar",
         "LandingOptimizer",
-        "WebinarPromoter",
         "TestimonialHunter",
-        "CaseStudyDrafter",
         # Sprint contenu — EditorialBot est runnable (lit le digest TrendSpotter
         # et écrit une queue de recommandations). Les 6 writers (LinkedInWriter,
         # MastodonWriter, BlueskyWriter, MetaWriter, XWriter, TruthSocialWriter)
@@ -319,13 +309,11 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "SecretRotator",
         "CIFlakeTracker",
         # Veille & Threat Intelligence (P22.D) — watchers veille publique.
-        # BountyRadar est cron-only par design (command=None).
         "CompetitorWatcher",
         "BreachWatcher",
         "RegulatoryWatcher",
         "CVEMonitor",
         "DarkWebMonitor",
-        "BountyRadar",
         # Juridique & Compliance (P22.K) — bots audit-only / interactif.
         # IncidentLogger.run() est un health-check passif (l'append du
         # post-mortem se fait via slash /log-incident).
@@ -336,14 +324,10 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "ContractDeadlineBot",
         "IncidentLogger",
         # Communication (P22.L) — EmailBot deja runnable depuis P5/P16.B.
-        # ReplyBot/PressReleaseDrafter/CrisisCommBot/SpokespersonPrep
-        # draftent du contenu (humain-in-the-loop).
+        # ReplyBot drafte du contenu (humain-in-the-loop).
         "ReplyBot",
         "PressMonitor",
-        "PressReleaseDrafter",
         "MediaListBuilder",
-        "CrisisCommBot",
-        "SpokespersonPrep",
         "BrandGuardBot",
         # Documentation & Knowledge interne (P22.M).
         # DocLinter audit-only sans input. DiagramGenerator + ADRWriter
@@ -501,10 +485,6 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.social_analytics import SocialAnalytics
 
         return SocialAnalytics()
-    if name == "BacklinkOutreach":
-        from argos_ops.agents.backlink_outreach import BacklinkOutreach
-
-        return BacklinkOutreach()
     if name == "KeywordRadar":
         from argos_ops.agents.keyword_radar import KeywordRadar
 
@@ -513,18 +493,10 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.landing_optimizer import LandingOptimizer
 
         return LandingOptimizer()
-    if name == "WebinarPromoter":
-        from argos_ops.agents.webinar_promoter import WebinarPromoter
-
-        return WebinarPromoter()
     if name == "TestimonialHunter":
         from argos_ops.agents.testimonial_hunter import TestimonialHunter
 
         return TestimonialHunter()
-    if name == "CaseStudyDrafter":
-        from argos_ops.agents.case_study_drafter import CaseStudyDrafter
-
-        return CaseStudyDrafter()
     if name == "SupportBot":
         # Run now = health-check passif (compte chunks KB indexés).
         # Le RAG Tier 1 interactif passe par /run-support-tier1 + skill kb-rag.
@@ -635,10 +607,6 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.dw_monitor import DarkWebMonitor
 
         return DarkWebMonitor()
-    if name == "BountyRadar":
-        from argos_ops.agents.bounty_radar import BountyRadar
-
-        return BountyRadar()
     if name == "RGPDAuditor":
         from argos_ops.agents.rgpd_auditor import RGPDAuditor
 
@@ -669,22 +637,10 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.press_monitor import PressMonitor
 
         return PressMonitor()
-    if name == "PressReleaseDrafter":
-        from argos_ops.agents.press_release_drafter import PressReleaseDrafter
-
-        return PressReleaseDrafter()
     if name == "MediaListBuilder":
         from argos_ops.agents.media_list_builder import MediaListBuilder
 
         return MediaListBuilder()
-    if name == "CrisisCommBot":
-        from argos_ops.agents.crisis_comm import CrisisCommBot
-
-        return CrisisCommBot()
-    if name == "SpokespersonPrep":
-        from argos_ops.agents.spokesperson_prep import SpokespersonPrep
-
-        return SpokespersonPrep()
     if name == "BrandGuardBot":
         from argos_ops.agents.brand_guard import BrandGuardBot
 

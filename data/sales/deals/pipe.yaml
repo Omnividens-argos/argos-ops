@@ -1,0 +1,16 @@
+# Pipeline commercial Argos — source de DealRiskScorer + page Pipeline cockpit.
+#
+# Saisi à la main par le fondateur (read-only côté bots). DealRiskScorer
+# score chaque deal et flag les stalled (inactivité > seuil par stade).
+#
+# Schéma : cf. argos_ops/ops_dashboard/pipeline_reader.py.
+# stage : discovery | demo | proposal | contract | won | lost
+
+deals:
+  - deal_id: "DEAL-2026-0001"
+    company: "Exemple SA"
+    stage: "demo"
+    amount_eur: 8000                     # MRR annualisé estimé (optionnel)
+    last_activity_at: "2026-06-09"       # dernière interaction (sert au scoring stalled)
+    owner: "fondateur"
+    notes: "RSSI intéressé après la démo, attend un devis pour ~50 scans/mois."

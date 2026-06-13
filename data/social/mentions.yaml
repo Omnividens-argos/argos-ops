@@ -1,0 +1,19 @@
+# Mentions sociales Argos — source de ReplyBot (drafting de réponses).
+#
+# Alimenté par export manuel ou futur fetch LinkedIn/Mastodon. ReplyBot
+# drafte une réponse par mention status=pending dans data/social/reply_drafts/
+# (pas de publish auto). Si OPS_BRAIN_ENABLED, le cerveau lit le texte réel,
+# infère le sentiment et rédige une réponse contextuelle ; sinon template.
+#
+# Schéma : cf. argos_ops/agents/reply_bot.py:load_mentions.
+
+mentions:
+  - id: "ldn-2026-0001"
+    platform: "linkedin"                 # linkedin | mastodon
+    author: "Prénom Nom"
+    mention_url: "https://www.linkedin.com/feed/update/exemple"
+    original_text: >
+      Je teste Argos depuis 2 semaines, le rapport de scan est vraiment
+      clair comparé à ce qu'on avait avant. Bravo à l'équipe !
+    sentiment: "neutral"                 # optionnel — positive | neutral | negative (le cerveau infère sinon)
+    status: "pending"                    # pending = à traiter ; autre = ignoré

@@ -1,0 +1,27 @@
+# Comptes clients Argos — source unique des bots Customer Success.
+#
+# Lu par : HealthScoreBot, UpsellSpotter, ChurnPredictor, OnboardingBot,
+# NPSCollector, ReviewBot, KBUpdater. Saisi à la main par le fondateur :
+# ces bots ne réécrivent jamais ce fichier (sauf NPSCollector qui patche
+# last_nps_at après drafting).
+#
+# Schéma : cf. argos_ops/cs/loader.py:load_customers.
+# Remplace/complète l'exemple ci-dessous par tes vrais comptes.
+
+customers:
+  - customer_id: "exemple-sa"          # slug stable (sert de clé partout)
+    name: "Exemple SA"
+    contact_email: "contact@exemple.fr"
+    contact_name: "Prénom Nom"
+    plan: "pro"                          # starter | pro | enterprise
+    signup_date: "2026-05-01"
+    onboarding_done_at: "2026-05-15"     # optionnel — null si onboarding en cours
+    last_renew_at: "2026-05-01"          # optionnel
+    last_nps_at: "2026-05-30"            # optionnel — date du dernier NPS collecté
+    last_nps: 9                          # optionnel — score 0-10 (≥9 promoteur, ≤6 détracteur)
+    last_review_at: null                 # optionnel — date dernière demande d'avis G2/Capterra
+    tickets_30d: 0                       # nb de tickets ouverts sur 30j (défaut 0)
+    usage:
+      scans_this_month: 80
+      scans_quota: 200                   # 0 = plan sans quota (enterprise sur mesure)
+      last_login_days_ago: 2             # null = jamais loggé

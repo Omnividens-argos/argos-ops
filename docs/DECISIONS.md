@@ -1493,6 +1493,55 @@ Retire le mode `acceptEdits` (remplacé par `pilotage flotte`).
 
 ---
 
+## D-030 — Élagage de la flotte : retrait de 7 bots à faible valeur (Axe 3 audit)
+
+**Date :** 2026-06-13
+**Partie :** Audit qualité flotte — Axe 3 « tailler le gras »
+
+**Décision :** Suppression définitive (code + tests + scripts + slashs + crons)
+de **7 bots** identifiés par l'audit comme produisant peu ou pas de valeur :
+
+- **6 template-drafters** : `PressReleaseDrafter`, `SpokespersonPrep`,
+  `WebinarPromoter`, `CrisisCommBot`, `BacklinkOutreach`, `CaseStudyDrafter`.
+  Ils remplissaient des templates statiques à trous présentés comme du
+  « drafting » — boilerplate générique que le fondateur devait réécrire
+  entièrement, sans aucun input réel (`data/comm/*.yaml`, `data/marketing/
+  webinars.yaml`, `data/crm/case_study_candidates.yaml`… tous absents du disque).
+- **BountyRadar** : le parseur HackerOne était un **stub vide** (`return []`)
+  avec un commentaire d'excuse ; seul YesWeHack fonctionnait. La veille bounty
+  mensuelle n'a produit qu'1 fichier. Tué plutôt que d'entretenir un menteur.
+
+**Pourquoi :** garder un agent qui simule un travail (template générique) ou
+qui ment sur ses capacités (stub) coûte en surface de maintenance, en bruit
+dans le catalogue cockpit, et en confusion (« ce bot existe donc le travail
+est couvert » alors qu'il ne l'est pas). Le retrait est réversible via git si
+un besoin réel (presse, webinar) émerge — et à ce moment-là le bot serait
+recâblé sur le **cerveau** (D-017 + brain.py) au lieu d'un template.
+
+**Implication technique :**
+
+- 27 fichiers supprimés : 7 `argos_ops/agents/*.py`, 7 `tests/test_*.py`,
+  7 `scripts/run_*.py`, 6 slashs `.claude/commands/*.md`.
+- Références nettoyées : `KNOWN_AGENTS` / `RUNNABLE_AGENTS` / `_build_agent`
+  (`app.py`), `EXPECTED_CADENCE_HOURS` (`health.py`), fixtures `test_health.py`,
+  `inbox_scanner.py` (scans press/crisis/blog), frontend (`agentCatalog.ts`,
+  `botMetadata.ts`, `runnableAgents.ts`, `Inbox.tsx`), crons
+  (`setup_watchers_tasks.ps1`, `setup_marketing_tasks.ps1`), registre RGPD
+  example, skill `claude-judge` (enum brand channels).
+- Le fondateur doit **désinscrire les tâches planifiées** orphelines :
+  `Unregister-ScheduledTask -TaskName argos-ops-webinar-promoter,
+  argos-ops-backlink-outreach, argos-ops-bounty-radar -Confirm:$false`.
+
+**Annule :** rien de structurant — ces 7 bots étaient livrés en P22.I/D mais
+jamais alimentés en données réelles.
+
+**Action de suivi :**
+
+- [ ] Founder : désinscrire les 3 tâches Task Scheduler orphelines (ci-dessus).
+- [ ] Annexe D du plan : marquer ces 7 bots comme retirés (D-030).
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown

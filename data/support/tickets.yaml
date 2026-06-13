@@ -1,0 +1,21 @@
+# Tickets support Argos — source de EscalationRouter (triage P0/P1/P2 + SLA).
+#
+# Saisi à la main ou ingéré depuis l'EmailBot. EscalationRouter est read-only
+# sur ce fichier : il écrit son triage dans data/support/triage_<date>.yaml.
+# Si OPS_BRAIN_ENABLED, le cerveau classe chaque ticket (sinon mots-clés).
+#
+# Schéma : cf. argos_ops/cs/loader.py:load_tickets.
+# Le customer_id doit exister dans data/cs/customers.yaml.
+
+tickets:
+  - ticket_id: "TCK-2026-0001"
+    customer_id: "exemple-sa"
+    subject: "Le scan reste bloqué sur l'API GraphQL"
+    body: >
+      Quand on cible l'endpoint /graphql, le scan ne se termine jamais
+      et reste à 80 % pendant des heures. Reproductible à chaque run.
+    opened_at: "2026-06-10"
+    plan: "pro"                          # starter | pro | enterprise
+    priority: null                       # null = à classifier (P0/P1/P2 auto) ; sinon override humain
+    status: "open"                       # open | in_progress | resolved
+    last_response_at: null               # date de la 1re réponse (null = SLA encore en cours)

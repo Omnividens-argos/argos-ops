@@ -267,13 +267,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         status: "active",
       },
       {
-        name: "BacklinkOutreach",
-        displayName: "BacklinkOutreach",
-        shortLabel: "SEO Off-page",
-        description: "Prospecte les sites cyber pour proposer des échanges de liens.",
-        status: "active",
-      },
-      {
         name: "KeywordRadar",
         displayName: "KeywordRadar",
         shortLabel: "SEO Specialist",
@@ -288,24 +281,10 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         status: "active",
       },
       {
-        name: "WebinarPromoter",
-        displayName: "WebinarPromoter",
-        shortLabel: "Field Marketing",
-        description: "Promote un webinar (teaser LinkedIn, replay edit, mail de relance).",
-        status: "active",
-      },
-      {
         name: "TestimonialHunter",
         displayName: "TestimonialHunter",
         shortLabel: "Customer Marketing",
         description: "Collecte les verbatims clients après chaque NPS positif.",
-        status: "active",
-      },
-      {
-        name: "CaseStudyDrafter",
-        displayName: "CaseStudyDrafter",
-        shortLabel: "Content Senior",
-        description: "Drafte un case study à partir d'un compte référence accepté.",
         status: "active",
       },
       {
@@ -579,13 +558,6 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         description: "Cherche les mentions des domaines clients sur le dark web (sell point ICP, MVP HIBP).",
         status: "active",
       },
-      {
-        name: "BountyRadar",
-        displayName: "BountyRadar",
-        shortLabel: "Bug Bounty Manager",
-        description: "Repère les programmes bug bounty pertinents pour positionner Argos.",
-        status: "active",
-      },
     ],
   },
   {
@@ -664,31 +636,10 @@ export const AGENT_CATEGORIES: CatalogCategory[] = [
         status: "active",
       },
       {
-        name: "PressReleaseDrafter",
-        displayName: "PressReleaseDrafter",
-        shortLabel: "RP Manager",
-        description: "Drafte un communiqué de presse pour chaque annonce produit ou finance.",
-        status: "active",
-      },
-      {
         name: "MediaListBuilder",
         displayName: "MediaListBuilder",
         shortLabel: "Attaché de presse",
         description: "Maintient la base de journalistes et médias cyber pertinents.",
-        status: "active",
-      },
-      {
-        name: "CrisisCommBot",
-        displayName: "CrisisCommBot",
-        shortLabel: "Comm de crise",
-        description: "Drafte une réponse type prête à dégainer en cas d'incident public.",
-        status: "active",
-      },
-      {
-        name: "SpokespersonPrep",
-        displayName: "SpokespersonPrep",
-        shortLabel: "Media Training",
-        description: "Prépare un brief Q&A pour chaque interview du fondateur.",
         status: "active",
       },
       {
