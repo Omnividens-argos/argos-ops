@@ -18,15 +18,14 @@
   - argos-ops-social-analytics   - lundi 09:00       - engagement 7j
   - argos-ops-keyword-radar      - lundi 09:15       - SERP movements
   - argos-ops-landing-optim      - mardi 09:00       - A/B hypotheses
-  - argos-ops-webinar-promoter   - mercredi 09:00    - promo webinar J-14/7/1
-  - argos-ops-backlink-outreach  - jeudi 09:00       - drafte cold emails SEO
 
   Cadence mensuelle :
   - argos-ops-newsletter         - 1er du mois 10:00 - drafte newsletter
 
   Reactifs (slash only, pas dans Task Scheduler) :
   - SEOBot              : /generate-seo-brief (humain-in-the-loop)
-  - CaseStudyDrafter    : /draft-case-study (humain-in-the-loop)
+
+  (WebinarPromoter / BacklinkOutreach / CaseStudyDrafter retires par D-030.)
 
   Idempotent - relancer ecrase les taches existantes.
 
@@ -189,26 +188,6 @@ Register-MarketingTask `
     -Description "LandingOptimizer - A/B hypotheses (P22.I), mardi 09:00"
 
 # -----------------------------------------------------------------------------
-# WebinarPromoter - hebdo mercredi 09:00
-# -----------------------------------------------------------------------------
-$webinarTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Wednesday -At "09:00"
-Register-MarketingTask `
-    -TaskName "argos-ops-webinar-promoter" `
-    -ScriptRelPath "scripts\run_webinar_promoter.py" `
-    -Trigger $webinarTrigger `
-    -Description "WebinarPromoter - promo J-14/7/1 (P22.I), mercredi 09:00"
-
-# -----------------------------------------------------------------------------
-# BacklinkOutreach - hebdo jeudi 09:00
-# -----------------------------------------------------------------------------
-$backlinkTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Thursday -At "09:00"
-Register-MarketingTask `
-    -TaskName "argos-ops-backlink-outreach" `
-    -ScriptRelPath "scripts\run_backlink_outreach.py" `
-    -Trigger $backlinkTrigger `
-    -Description "BacklinkOutreach - drafte cold emails SEO (P22.I), jeudi 09:00"
-
-# -----------------------------------------------------------------------------
 # NewsletterBot - mensuel le 1er a 10:00 (via XML CalendarTrigger)
 # -----------------------------------------------------------------------------
 $newsletterTaskName = "argos-ops-newsletter"
@@ -284,8 +263,7 @@ if (-not $DryRun) {
         -TaskName "argos-ops-content-publish", "argos-ops-trend-spot", `
                   "argos-ops-ad-campaign", "argos-ops-testimonial", `
                   "argos-ops-social-analytics", "argos-ops-keyword-radar", `
-                  "argos-ops-landing-optim", "argos-ops-webinar-promoter", `
-                  "argos-ops-backlink-outreach", "argos-ops-newsletter" `
+                  "argos-ops-landing-optim", "argos-ops-newsletter" `
         | Get-ScheduledTaskInfo `
         | Format-Table TaskName, LastRunTime, LastTaskResult, NextRunTime
 }
@@ -297,4 +275,3 @@ Write-Host "    Start-ScheduledTask -TaskName 'argos-ops-social-analytics'"
 Write-Host ""
 Write-Host "[i] Bots reactifs (slash only) :"
 Write-Host "    /generate-seo-brief   (SEOBot)"
-Write-Host "    /draft-case-study     (CaseStudyDrafter)"

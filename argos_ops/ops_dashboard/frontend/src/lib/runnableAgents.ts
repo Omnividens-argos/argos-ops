@@ -39,12 +39,9 @@ export const RUNNABLE_AGENTS: ReadonlySet<string> = new Set<string>([
   "TrendSpotter",
   "NewsletterBot",
   "SocialAnalytics",
-  "BacklinkOutreach",
   "KeywordRadar",
   "LandingOptimizer",
-  "WebinarPromoter",
   "TestimonialHunter",
-  "CaseStudyDrafter",
   // Sprint contenu — EditorialBot runnable. Les 6 writers (LinkedInWriter…)
   // sont des skills /draft-* humain-in-the-loop → NON runnables (pas ici).
   "EditorialBot",
@@ -79,7 +76,6 @@ export const RUNNABLE_AGENTS: ReadonlySet<string> = new Set<string>([
   "RegulatoryWatcher",
   "CVEMonitor",
   "DarkWebMonitor",
-  "BountyRadar",
   // Juridique & Compliance (P22.K).
   "RGPDAuditor",
   "AIActComplianceBot",
@@ -89,10 +85,7 @@ export const RUNNABLE_AGENTS: ReadonlySet<string> = new Set<string>([
   // Communication (P22.L) — EmailBot déjà en tête.
   "ReplyBot",
   "PressMonitor",
-  "PressReleaseDrafter",
   "MediaListBuilder",
-  "CrisisCommBot",
-  "SpokespersonPrep",
   "BrandGuardBot",
   // Documentation (P22.M) — DiagramGenerator/ADRWriter exclus (input slug requis).
   "DocLinter",

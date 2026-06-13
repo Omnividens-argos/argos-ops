@@ -247,13 +247,6 @@ export const BOT_METADATA: Record<string, BotMetadata> = {
     slashCommand: "run-social-analytics",
     schedule: "Lundi 8h45",
   },
-  BacklinkOutreach: {
-    aiActRisk: "limited",
-    handlesPII: true,
-    skills: ["claude-judge", "zimbra-ops"],
-    pythonModule: "argos_ops/agents/backlink_outreach.py",
-    slashCommand: "run-backlink-outreach",
-  },
   KeywordRadar: {
     aiActRisk: "minimal",
     handlesPII: false,
@@ -269,26 +262,12 @@ export const BOT_METADATA: Record<string, BotMetadata> = {
     slashCommand: "run-landing-optim",
     schedule: "Lundi 10h00",
   },
-  WebinarPromoter: {
-    aiActRisk: "limited",
-    handlesPII: false,
-    skills: ["claude-judge"],
-    pythonModule: "argos_ops/agents/webinar_promoter.py",
-    slashCommand: "promote-webinar",
-  },
   TestimonialHunter: {
     aiActRisk: "limited",
     handlesPII: true,
     skills: ["claude-judge", "zimbra-ops"],
     pythonModule: "argos_ops/agents/testimonial_hunter.py",
     slashCommand: "draft-testimonial-request",
-  },
-  CaseStudyDrafter: {
-    aiActRisk: "limited",
-    handlesPII: true,
-    skills: ["claude-judge"],
-    pythonModule: "argos_ops/agents/case_study_drafter.py",
-    slashCommand: "draft-case-study",
   },
 
   // ===== CS / Support =====
@@ -486,11 +465,6 @@ export const BOT_METADATA: Record<string, BotMetadata> = {
     slashCommand: "run-dw-monitor",
     schedule: "Quotidien 6h30",
   },
-  BountyRadar: {
-    aiActRisk: "minimal",
-    handlesPII: false,
-    pythonModule: "argos_ops/agents/bounty_radar.py",
-  },
 
   // ===== Juridique & Compliance =====
   RGPDAuditor: {
@@ -552,32 +526,12 @@ export const BOT_METADATA: Record<string, BotMetadata> = {
     slashCommand: "run-press-monitor",
     schedule: "Quotidien 7h00",
   },
-  PressReleaseDrafter: {
-    aiActRisk: "limited",
-    handlesPII: false,
-    skills: ["claude-judge"],
-    pythonModule: "argos_ops/agents/press_release_drafter.py",
-    slashCommand: "draft-press-release",
-  },
   MediaListBuilder: {
     aiActRisk: "limited",
     handlesPII: true,
     pythonModule: "argos_ops/agents/media_list_builder.py",
     slashCommand: "run-media-list-build",
     schedule: "Lundi 9h15",
-  },
-  CrisisCommBot: {
-    aiActRisk: "limited",
-    handlesPII: false,
-    skills: ["claude-judge"],
-    pythonModule: "argos_ops/agents/crisis_comm.py",
-    slashCommand: "draft-crisis-response",
-  },
-  SpokespersonPrep: {
-    aiActRisk: "limited",
-    handlesPII: false,
-    pythonModule: "argos_ops/agents/spokesperson_prep.py",
-    slashCommand: "prep-interview",
   },
   BrandGuardBot: {
     aiActRisk: "minimal",
