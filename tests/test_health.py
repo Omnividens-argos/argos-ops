@@ -160,8 +160,7 @@ async def test_freshness_green_when_all_recent() -> None:
                 "BurnRateMonitor": _make_run("BurnRateMonitor", hours_ago=10.0),
                 "VendorContractWatcher": _make_run("VendorContractWatcher", hours_ago=10.0),
                 "ProspectMiner": _make_run("ProspectMiner", hours_ago=4.0),
-                "LeadEnricher": _make_run("LeadEnricher", hours_ago=4.0)
-,
+                "LeadEnricher": _make_run("LeadEnricher", hours_ago=4.0),
                 "OutboundBot": _make_run("OutboundBot", hours_ago=4.0),
                 "IntentSignalsBot": _make_run("IntentSignalsBot", hours_ago=4.0),
                 "DealRiskScorer": _make_run("DealRiskScorer", hours_ago=24.0),
@@ -208,6 +207,7 @@ async def test_freshness_green_when_all_recent() -> None:
                 "DocLinter": _make_run("DocLinter", hours_ago=24.0),
                 "KillSwitchOperator": _make_run("KillSwitchOperator", hours_ago=1.0),
                 "BotConfigManager": _make_run("BotConfigManager", hours_ago=4.0),
+                "CapabilityRouter": _make_run("CapabilityRouter", hours_ago=24.0),
             }
         ),
     ):
@@ -303,6 +303,7 @@ async def test_freshness_yellow_at_80_percent_of_threshold() -> None:
                 "DocLinter": _make_run("DocLinter", hours_ago=24.0),
                 "KillSwitchOperator": _make_run("KillSwitchOperator", hours_ago=1.0),
                 "BotConfigManager": _make_run("BotConfigManager", hours_ago=4.0),
+                "CapabilityRouter": _make_run("CapabilityRouter", hours_ago=24.0),
             }
         ),
     ):

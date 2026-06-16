@@ -47,10 +47,15 @@ class ConfigError(ArgosOpsError):
     """Config manquante ou invalide (env var absente, valeur incohérente)."""
 
 
+class CapabilityDeniedError(ArgosOpsError):
+    """Un agent tente un ``write_back`` sans capability ``enabled`` (P21)."""
+
+
 __all__ = [
     "AgentDataSourceError",
     "AgentExecutionError",
     "AgentOutputError",
     "ArgosOpsError",
+    "CapabilityDeniedError",
     "ConfigError",
 ]

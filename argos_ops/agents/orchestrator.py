@@ -41,11 +41,13 @@ from typing import Any, Literal
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from argos_ops import fleet_memory
 from argos_ops.agents.base import BaseAgent, IOItem, RunResult, run_agent
 from argos_ops.agents.digest_builder import DigestBuilder
 from argos_ops.agents.email_bot import EmailBot
 from argos_ops.agents.finance_bot import FinanceBot
 from argos_ops.agents.fleet_watchdog import FleetWatchdog
+from argos_ops.capabilities import consume_capabilities
 from argos_ops.crm.db import session_scope
 from argos_ops.crm.repository import (
     count_runs_today,
@@ -178,27 +180,33 @@ DEFAULT_MAX_CONCURRENT = 2
 
 
 # =============================================================================
-# Hooks d'extension P20 / P21 (placeholders Sprint 1)
+# Hooks d'extension P20 / P21 (branchés file-based — D-028 / D-033)
 # =============================================================================
 async def _consume_memory(agent_name: str) -> dict[str, Any]:
-    """Hook P20 — Argos Memory (mémoire vivante partagée).
+    """Hook P20 — Argos Memory (mémoire de flotte, file-based D-028).
 
-    Retourne ``{}`` tant que P20.A n'est pas livré. Sera branché sur
-    le module ``argos_ops.memory`` pour fournir à chaque agent un
-    contexte mémoire (décisions passées, leads connus, conventions).
+    Retourne la mémoire visible de l'agent ``{bot: [faits]}`` via le graphe
+    d'accès. Best-effort : ne casse jamais une décision d'orchestration.
     """
-    return {}
+    try:
+        return dict(await fleet_memory.visible_memory(agent_name))
+    except Exception as exc:  # un hook ne doit jamais bloquer l'orchestrateur
+        logger.warning(f"Orchestrator — _consume_memory({agent_name}) : {exc}")
+        return {}
 
 
 async def _consume_capabilities(agent_name: str) -> dict[str, Any]:
-    """Hook P21 — Capabilities (routage pull-based).
+    """Hook P21 — Capabilities (routage pull-based, file-based D-033).
 
-    Retourne ``{}`` tant que P21 n'est pas livré. Sera branché sur
-    le registre de capabilities pour permettre à l'orchestrateur de
-    router une demande vers le bot le plus qualifié plutôt que de
-    suivre un planning statique.
+    Retourne les faits que l'agent a le droit de consommer chez les autres
+    bots, filtrés par les règles de ``data/agent_capabilities.yaml``.
+    Best-effort : ne casse jamais une décision d'orchestration.
     """
-    return {}
+    try:
+        return dict(await consume_capabilities(agent_name))
+    except Exception as exc:
+        logger.warning(f"Orchestrator — _consume_capabilities({agent_name}) : {exc}")
+        return {}
 
 
 # =============================================================================

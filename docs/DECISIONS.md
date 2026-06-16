@@ -1651,6 +1651,54 @@ nouvelle fonctionnalité.
 
 ---
 
+## D-033 — Capabilities P21 réalisées file-based (la migration DB du plan est abandonnée)
+
+**Date :** 2026-06-13
+**Partie :** 21 — Paramétrage inter-agents (capabilities pull-based)
+
+**Décision :** La **Partie 21** (CapabilityRouter + le « câblage » inter-agents)
+est implémentée **100 % fichiers**, pas via la migration DB
+`0008_capabilities.sql` décrite dans le plan. Concrètement :
+
+- module `argos_ops/capabilities/` : `load_capabilities()` (lit
+  `data/agent_capabilities.yaml`), `consume_capabilities(agent)` (read filtré
+  au-dessus du graphe d'accès), `write_back(from, to, advice_type, body)` ;
+- agent `CapabilityRouter` (slash `/run-capability-router`, cron hebdo) qui
+  **audite** le câblage (règles orphelines, câblages à vide, write_back actifs) ;
+- les hooks `_consume_memory` / `_consume_capabilities` de l'orchestrateur,
+  jusque-là placeholders `{}`, sont **branchés** sur la mémoire de flotte et le
+  module capabilities (best-effort).
+
+**Pourquoi :** **D-028** a rendu la mémoire 100 % fichiers et a explicitement
+abandonné la table `memory_items` de la Partie 20. Or P21.A (la conception du
+plan) **dépendait de cette table DB**. Reconstruire une migration
+`agent_capabilities` + un index DB serait incohérent avec D-028 et ré-introduirait
+une dépendance Postgres pour un besoin que le graphe d'accès fichier (`MEMORY.md`,
+`<!-- fleet-access-graph -->`) couvre déjà à 80 %. Le câblage file-based est
+versionnable, lisible, et zéro infra — cohérent avec « Argos Ops = outil local ».
+
+**Sémantique conservée du plan** : permission `read` (défaut ALLOW via graphe +
+deny-override `enabled:false`), `write_back` (défaut DENY, exige `enabled:true`,
+écrit un fait `advice.*`). `react` (push) reste hors v1 comme prévu.
+
+**Écart assumé** : la page frontend « Câblage » (P21.B — matrice éditable +
+export YAML) **n'est pas livrée**. Le câblage s'édite dans le YAML (versionné) et
+s'audite via CapabilityRouter ; une UE matrice est de la polish, non requise pour
+que les capabilities fonctionnent. Réouvrable plus tard si besoin.
+
+**Annule :** la migration `0008_capabilities.sql` et le schéma DB de la Partie 21
+(jamais appliqués). Marque P20/P21 du plan comme **réalisées autrement** (file-based,
+D-028 + D-033).
+
+**Action de suivi :**
+
+- [ ] Founder : `.\scripts\setup_watchers_tasks.ps1 -Only argos-ops-capability-router`
+  (enregistre l'audit hebdo).
+- [ ] (optionnel) Activer un write_back réel (ex. BurnRateMonitor → AdBot) en
+  passant sa règle `enabled: true` une fois la boucle validée.
+
+---
+
 ## Modèle pour les futures décisions
 
 ```markdown

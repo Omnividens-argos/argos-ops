@@ -199,9 +199,11 @@ DEFAULT_AGENT_MAX_AGE_HOURS: dict[str, float] = {
     #   - BotConfigManager  : quotidien 04:00            → 26h slack
     #   - DigestBuilder/EmailBot deja presents (P4/P5)
     #   - OrchestratorBot   : slash-triggered, pas de cadence cron → skip
+    #   - CapabilityRouter  : hebdo lundi 05:45 (audit câblage)   → 172h slack
     "FleetWatchdog": 7.0,
     "KillSwitchOperator": 9.0,
     "BotConfigManager": 26.0,
+    "CapabilityRouter": 172.0,
 }
 
 # Default thresholds

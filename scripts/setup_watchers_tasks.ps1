@@ -46,6 +46,7 @@
 
   Memoire de flotte (P20 / D-028) :
     - argos-ops-memory-curator    : hebdo (lundi 5h30) - TTL / stale / purge
+    - argos-ops-capability-router : hebdo (lundi 5h45) - audit cablage inter-agents (P21)
 
   Chaque tâche est idempotente — relancer écrase l'existante.
 
@@ -112,6 +113,7 @@ $Tasks = @(
     @{ Name = "argos-ops-brand-audit";      Script = "run_brand_guard.py";       Trigger = "Weekly:Monday:14:30";  Description = "BrandGuardBot hebdo (lundi 14h30)" }
     @{ Name = "argos-ops-doc-lint";         Script = "run_doc_linter.py";        Trigger = "Weekly:Monday:15:00";  Description = "DocLinter hebdo (lundi 15h)" }
     @{ Name = "argos-ops-memory-curator";   Script = "run_memory_curator.py";    Trigger = "Weekly:Monday:05:30";  Description = "MemoryCurator hebdo (lundi 5h30) - nettoyage memoire de flotte" }
+    @{ Name = "argos-ops-capability-router"; Script = "run_capability_router.py"; Trigger = "Weekly:Monday:05:45"; Description = "CapabilityRouter hebdo (lundi 5h45) - audit cablage inter-agents P21" }
 )
 
 if ($Only) {

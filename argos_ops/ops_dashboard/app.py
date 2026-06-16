@@ -211,6 +211,7 @@ KNOWN_AGENTS: tuple[str, ...] = (
     "KillSwitchOperator",
     "BotConfigManager",
     "MemoryCurator",
+    "CapabilityRouter",
 )
 
 # Racine de la mémoire de flotte (Cockpit LOT 2). Module-level pour que les
@@ -340,6 +341,7 @@ RUNNABLE_AGENTS: frozenset[str] = frozenset(
         "KillSwitchOperator",
         "BotConfigManager",
         "MemoryCurator",
+        "CapabilityRouter",
     }
 )
 
@@ -653,6 +655,10 @@ def _build_agent(name: str) -> BaseAgent:
         from argos_ops.agents.memory_curator import MemoryCurator
 
         return MemoryCurator()
+    if name == "CapabilityRouter":
+        from argos_ops.agents.capability_router import CapabilityRouter
+
+        return CapabilityRouter()
     raise HTTPException(status_code=404, detail=f"Agent inconnu ou non runnable : {name}")
 
 

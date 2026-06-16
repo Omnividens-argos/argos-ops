@@ -2142,10 +2142,21 @@ faire P20.A + P20.B **avant**, pour que ces agents naissent déjà
 
 ## Récap chiffres (auto-maintenu à chaque livraison)
 
-- ✅ **83 agents Python actifs** + **1 skill (ClaudeJudge)** = **84 livrés**
-- 🟡 **1 partiel** (OutboundBot — P13.A shadow + P22.H stage mode, live attend domaine secondaire D-023)
-- ⬜ **9 roadmap** (CapabilityRouter bloqué sur P21.A, MemoryCurator bloqué sur P20.A, **6 PlatformWriters** + **EditorialBot** prévus Sprint B contenu multi-plateforme)
-- **Total cible : 86 bots** répartis sur 12 services *(dépassé via 7 upgrades skills/shadow → agent Python full lors du méta-sprint P22.D-I, étendu en 2026-06 avec la flotte writers multi-plateformes).*
+- ✅ **88 livrés** (agents Python + 6 writers en skills + ClaudeJudge) — voir
+  les `[x] ✅` ci-dessous. Inclut MemoryCurator (D-028) et CapabilityRouter
+  (D-033), tous deux **réalisés file-based** et non via les migrations DB
+  P20.A / P21.A (abandonnées).
+- 🟡 **1 seul partiel restant** : **OutboundBot** — code complet (shadow +
+  stage), seul l'**envoi live** est gated sur le warm-up d'un domaine email
+  secondaire (D-023, action infra du fondateur). *AdBot live (budget D-026) et
+  la publication sociale live (tokens OAuth) sont aussi code-complets en shadow,
+  gated sur de l'externe — comptés ✅ au niveau drafting/shadow.*
+- ⬜ **0 bot roadmap** — la Partie 20 (Argos Memory) et la Partie 21
+  (Capabilities) sont **réalisées file-based** (D-028 / D-033), pas via les
+  migrations DB du plan. Seul écart assumé : la page frontend « Câblage » P21.B
+  (polish, non requise).
+- **Plan produit : terminé** côté périmètre. Le reste (OutboundBot/AdBot/social
+  live) attend des déblocages externes (domaine, budget, tokens), pas du code.
 
 Légende :
 - `[x] ✅` — livré et actif (Python agent en cron OU skill réutilisable)
@@ -2201,13 +2212,13 @@ Le frontend Admin Panel range les bots par service avec status pill.
 
 - [x] ✅ **SEOBot** · SEO Strategist · Briefs blog SEO structurés depuis KB. *P10-MVP livré 2026-05-12.*
 - [x] ✅ **ContentBot** · Content Manager · 2-5 posts/jour LinkedIn / Mastodon. *P22i livré 2026-05-23 (full agent Python + connecteurs P11). Shadow tant que LinkedIn / Mastodon tokens absents (D-024 / D-025).*
-- [ ] ⬜ **LinkedInWriter** · Content Writer LinkedIn · Drafte un post LinkedIn long-form B2B technique depuis topic + KB. Ne poste pas — transmet à ContentBot via `data/content/drafts/`. *Sprint B prévu (split de `content-writer`). Skill scaffoldé via `skill-creator`.*
-- [ ] ⬜ **MastodonWriter** · Content Writer Mastodon · Drafte un toot court tone infosec community (#infosec, #bugbounty) depuis topic + KB. Ne poste pas. *Sprint B prévu (split de `content-writer`). Skill scaffoldé via `skill-creator`.*
-- [ ] ⬜ **MetaWriter** · Content Writer Facebook · Drafte un post Facebook Page pour persona TPE/PME non-technique (anti-FUD, vocab grand public, CTA tier bas Argos). Ne poste pas. *Sprint B prévu — persona à part (cf. memo project_metawriter_smb_persona). Skill scaffoldé via `skill-creator`.*
-- [ ] ⬜ **XWriter** · Content Writer X · Drafte un tweet 280 chars / hook punchy / angle viral cyber depuis topic + KB. Ne poste pas. *Sprint B prévu — connecteur Python + API cost à arbitrer ($200/mois Basic ou Free 1500/mois). Skill scaffoldé via `skill-creator`.*
-- [ ] ⬜ **BlueskyWriter** · Content Writer Bluesky · Drafte un post Bluesky 300 chars tone tech early adopters depuis topic + KB. Ne poste pas. *Sprint B prévu — quick win (API AT Protocol gratuite illimitée). Skill scaffoldé via `skill-creator`.*
-- [ ] ⬜ **TruthSocialWriter** · Content Writer Truth Social · Drafte un post Truth Social (audience US conservative, API forked Mastodon) depuis topic + KB. Ne poste pas. *Sprint B prévu — demande d'accès API à soumettre. Skill scaffoldé via `skill-creator`.*
-- [ ] ⬜ **EditorialBot** · Editor-in-Chief · Lit TrendSpotter le matin, choisit angle + canal, dispatch automatiquement au writer adapté. Orchestre uniquement, ne crée ni ne publie de contenu lui-même. *Sprint B+1 — activable après 3 sem de drafts validés (sinon orchestration dans le vide).*
+- [x] ✅ **LinkedInWriter** · Content Writer LinkedIn · Drafte un post LinkedIn long-form B2B technique depuis topic + KB. Ne poste pas — transmet à ContentBot via `data/content/drafts/`. *Sprint B prévu (split de `content-writer`). Skill scaffoldé via `skill-creator`.* **✅ Livré comme skill `.claude/skills/*-writer/` + slash `/draft-*` + connecteur `argos_ops/social/` (2026-06-01). Drafting actif ; publication live gated sur tokens OAuth.**
+- [x] ✅ **MastodonWriter** · Content Writer Mastodon · Drafte un toot court tone infosec community (#infosec, #bugbounty) depuis topic + KB. Ne poste pas. *Sprint B prévu (split de `content-writer`). Skill scaffoldé via `skill-creator`.* **✅ Livré comme skill `.claude/skills/*-writer/` + slash `/draft-*` + connecteur `argos_ops/social/` (2026-06-01). Drafting actif ; publication live gated sur tokens OAuth.**
+- [x] ✅ **MetaWriter** · Content Writer Facebook · Drafte un post Facebook Page pour persona TPE/PME non-technique (anti-FUD, vocab grand public, CTA tier bas Argos). Ne poste pas. *Sprint B prévu — persona à part (cf. memo project_metawriter_smb_persona). Skill scaffoldé via `skill-creator`.* **✅ Livré comme skill `.claude/skills/*-writer/` + slash `/draft-*` + connecteur `argos_ops/social/` (2026-06-01). Drafting actif ; publication live gated sur tokens OAuth.**
+- [x] ✅ **XWriter** · Content Writer X · Drafte un tweet 280 chars / hook punchy / angle viral cyber depuis topic + KB. Ne poste pas. *Sprint B prévu — connecteur Python + API cost à arbitrer ($200/mois Basic ou Free 1500/mois). Skill scaffoldé via `skill-creator`.* **✅ Livré comme skill `.claude/skills/*-writer/` + slash `/draft-*` + connecteur `argos_ops/social/` (2026-06-01). Drafting actif ; publication live gated sur tokens OAuth.**
+- [x] ✅ **BlueskyWriter** · Content Writer Bluesky · Drafte un post Bluesky 300 chars tone tech early adopters depuis topic + KB. Ne poste pas. *Sprint B prévu — quick win (API AT Protocol gratuite illimitée). Skill scaffoldé via `skill-creator`.* **✅ Livré comme skill `.claude/skills/*-writer/` + slash `/draft-*` + connecteur `argos_ops/social/` (2026-06-01). Drafting actif ; publication live gated sur tokens OAuth.**
+- [x] ✅ **TruthSocialWriter** · Content Writer Truth Social · Drafte un post Truth Social (audience US conservative, API forked Mastodon) depuis topic + KB. Ne poste pas. *Sprint B prévu — demande d'accès API à soumettre. Skill scaffoldé via `skill-creator`.* **✅ Livré comme skill `.claude/skills/*-writer/` + slash `/draft-*` + connecteur `argos_ops/social/` (2026-06-01). Drafting actif ; publication live gated sur tokens OAuth.**
+- [x] ✅ **EditorialBot** · Editor-in-Chief · Lit TrendSpotter le matin, choisit angle + canal, dispatch automatiquement au writer adapté. Orchestre uniquement, ne crée ni ne publie de contenu lui-même. *Sprint B+1 — activable après 3 sem de drafts validés (sinon orchestration dans le vide).* **✅ Livré : `argos_ops/agents/editorial_bot.py` + slash `/run-editorial` (2026-06-01).**
 - [x] ✅ **AdBot** · Paid Acquisition · Pilotage Google / Meta / LinkedIn Ads. *P22i livré 2026-05-23 (live mode P12.B). Shadow tant que ADS_LIVE_MODE=false + budget pub validé (D-026).*
 - [x] ✅ **TrendSpotter** · Trend Analyst · Tendances cyber → SEOBot / ContentBot. *P22i livré 2026-05-23.*
 - [x] ✅ **NewsletterBot** · Email Marketing · Newsletter mensuelle depuis blog + actu cyber. *P22i livré 2026-05-23.*
@@ -2303,8 +2314,8 @@ Le frontend Admin Panel range les bots par service avec status pill.
 - [x] ✅ **ErrorTriageBot** *(fusionné dans FleetWatchdog — D-031)* · Bot Ops · Regroupe erreurs 24h par signature, alerte si ≥3 occurrences. *P22.C livré 2026-05-23, fusionné 2026-06-13.*
 - [x] ✅ **KillSwitchOperator** · Safety Officer · Enforce breakers P15 + guide reset. *P22.C livré 2026-05-23.*
 - [x] ✅ **BotConfigManager** · Config Ops · Diff agent_config DB vs baseline.yaml, alerte drifts. *P22.C livré 2026-05-23.*
-- [ ] ⬜ **CapabilityRouter** · Capability Manager · Route demandes vers bot qualifié (Capabilities P21). *Bloqué sur P21.A.*
-- [ ] ⬜ **MemoryCurator** · Memory Steward · Nettoie / dédup Argos Memory partagée. *Bloqué sur P20.A.*
+- [x] ✅ **CapabilityRouter** · Capability Manager · Route demandes vers bot qualifié (Capabilities P21). *Bloqué sur P21.A.* **✅ Livré file-based ([D-033](DECISIONS.md#d-033)) : module `argos_ops/capabilities/` + agent audit + slash `/run-capability-router`. La migration DB P21.A est abandonnée.**
+- [x] ✅ **MemoryCurator** · Memory Steward · Nettoie / dédup Argos Memory partagée. *Bloqué sur P20.A.* **✅ Livré ([D-028](DECISIONS.md#d-028)) : `argos_ops/agents/memory_curator.py`, cron hebdo. Mémoire file-based, pas la DB P20.A.**
 
 ---
 
@@ -2329,13 +2340,15 @@ demain ». Il sert à :
 ## Sprints pressentis (ordre d'attaque conseillé)
 
 - **Sprint 1** ✅ : Meta-Ops core (OrchestratorBot + BotHealthBot) — done P22.B.
-- **Sprint 2** 🟡 partiel : reste Meta-Ops (BotPerfAnalyzer + ErrorTriageBot
-  + KillSwitchOperator + BotConfigManager) done P22.C. Toujours en attente :
-  P20 (Argos Memory), P21 (Capabilities), CapabilityRouter, MemoryCurator.
+- **Sprint 2** ✅ : Meta-Ops (BotPerfAnalyzer + ErrorTriageBot + KillSwitchOperator
+  + BotConfigManager done P22.C ; les 4 watchers `agent_runs` fusionnés en
+  FleetWatchdog par D-031). P20 (Argos Memory) → D-028, P21 (Capabilities) +
+  CapabilityRouter + MemoryCurator → D-028/D-033, tous **file-based**.
 - **Sprint 3** : Sales (ProspectMiner, IntentSignalsBot, MeetingBooker,
   DemoFollowupBot) — ramener des clients.
-- **Sprint 4** 🟡 partiel : Tech / SRE (Uptime, DepAudit, Backup, SSL,
-  Secret) done P22.C. Reste LogAnomaly, DNS, CIFlake.
+- **Sprint 4** ✅ : Tech / SRE (Uptime, DepAudit, Backup, SSL, Secret) done
+  P22.C ; LogAnomaly fusionné dans FleetWatchdog (D-031), DNSGuard + CIFlakeTracker
+  livrés.
 - **Sprint 5** : Communication (PressMonitor, PressRelease, BrandGuard).
 - **Sprint 6** : Veille Intel (BreachWatcher, RegulatoryWatcher).
 - **Sprint 7** : CS (Onboarding, HealthScore, KBUpdater).
