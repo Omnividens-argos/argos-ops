@@ -1,0 +1,41 @@
+# Câblage inter-agents (P21, file-based — cf. D-033).
+#
+# Couche de filtres au-dessus du graphe d'accès de data/fleet_memory/MEMORY.md.
+# Le graphe donne déjà le droit de LIRE (défaut ALLOW) ; ces règles affinent :
+#   - read  + kind_filter/tag_filter  → restreint ce qu'un bot tire d'un autre
+#   - read  + enabled: false          → coupe une lecture précise (deny override)
+#   - write_back + enabled: true      → autorise un bot à déposer un conseil
+#                                        advice.* dans la mémoire d'un autre
+#
+# Consommé par argos_ops.capabilities.consume_capabilities() (au début d'un run)
+# et audité par CapabilityRouter (/run-capability-router). Fichier absent =
+# tout repose sur le graphe d'accès seul.
+
+capabilities:
+  # ── Sales : OutboundBot priorise les leads inbound chauds d'EmailBot ──
+  - subject: OutboundBot
+    object: EmailBot
+    permission: read
+    kind_filter: [lead-signal]
+    tag_filter: [inbound]
+    enabled: true
+    notes: "Cible d'abord les leads inbound récents plutôt que tout l'historique"
+
+  # ── Sales : DealRiskScorer ne lit que les signaux qualifiés de LeadEnricher ──
+  - subject: DealRiskScorer
+    object: LeadEnricher
+    permission: read
+    kind_filter: [lead-signal]
+    tag_filter: [qualified]
+    enabled: true
+    notes: "Recoupe le risque deal avec les leads qualifiés BANT"
+
+  # ── Exemple write_back (DÉSACTIVÉ par défaut — risque comportemental) ──
+  # Active-le seulement après avoir validé la boucle : BudgetWatcher conseille
+  # un cap budget à AdBot, qu'AdBot lit à son prochain run.
+  - subject: BurnRateMonitor
+    object: AdBot
+    permission: write_back
+    kind_filter: [advice.budget_adjust]
+    enabled: false
+    notes: "BurnRateMonitor peut conseiller un cap pub à AdBot si le runway baisse"

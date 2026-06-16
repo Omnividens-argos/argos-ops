@@ -138,6 +138,19 @@ prompt (anti-injection), et le cerveau ne **déclasse jamais** un signal
 heuristique plus sévère. Référence : `EscalationRouter`
 (`classify_with_brain` + `_resolve_priority`).
 
+## Convention capabilities (P21, file-based — D-033)
+
+Le « câblage » inter-agents (qui consomme la mémoire de qui) est **100 %
+fichiers** ([`argos_ops/capabilities/`](argos_ops/capabilities/) +
+[`data/agent_capabilities.yaml`](data/agent_capabilities.yaml)) — la migration
+DB P21.A est abandonnée (cohérence D-028). Un bot tire son contexte via
+`await consume_capabilities(self.name)` (read filtré au-dessus du graphe
+d'accès `MEMORY.md` : défaut ALLOW, `enabled:false` = deny override) et peut
+conseiller un autre via `await write_back(...)` (défaut DENY, exige une règle
+`enabled:true`, écrit un fait `advice.*`). `CapabilityRouter`
+(`/run-capability-router`, cron hebdo) audite le câblage (orphelins, à vide,
+write_back actifs).
+
 ---
 
 ## Slash commands installés
@@ -222,6 +235,11 @@ heuristique plus sévère. Référence : `EscalationRouter`
   vieux déjà archivé (hard delete), protège les faits `pinned`. Seul bot
   autorisé à supprimer un fait. Silence Discord si rien à nettoyer. Cf.
   [`.claude/commands/run-memory-curator.md`](.claude/commands/run-memory-curator.md)
+- **`/run-capability-router`** (P21, [D-033](docs/DECISIONS.md)) — lance
+  `CapabilityRouter`, qui audite le **câblage inter-agents**
+  (`data/agent_capabilities.yaml` + graphe d'accès) : règles orphelines,
+  câblages à vide, `write_back` actifs. Read-only, silence Discord si sain.
+  Cf. [`.claude/commands/run-capability-router.md`](.claude/commands/run-capability-router.md)
 
 ---
 
