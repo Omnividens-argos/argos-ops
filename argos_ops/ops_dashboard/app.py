@@ -56,6 +56,7 @@ from argos_ops.crm.repository import (
 )
 from argos_ops.logging import redact_secrets
 from argos_ops.ops_dashboard import atelier, atelier_audit, atelier_history, auth, console
+from argos_ops.ops_dashboard.api.poles import router as poles_router
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
 from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
@@ -696,6 +697,10 @@ app.add_middleware(
 # via Caddy (Stripe doit pouvoir nous poster), donc auth = signature HMAC
 # côté handler, pas basic auth Caddy.
 app.include_router(stripe_router)
+
+# Cockpit archi v2 (pôle/agent/script) — sert la mémoire + insights des pôles
+# au shell poles.html. Read-mostly ; le handoff écrit dans le pôle source.
+app.include_router(poles_router)
 
 
 # =============================================================================

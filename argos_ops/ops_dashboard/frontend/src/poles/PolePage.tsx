@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { Badge } from "../components/ui.tsx";
 import { AlertCardEmpty, MemoryTable, ValidationQueue } from "./components/index.ts";
 import type { FrontTool, PoleDef } from "./poles.ts";
+import { VeillePage } from "./veille/VeillePage.tsx";
 
 const TOOL_LABEL: Record<FrontTool, string> = {
   memory_table: "Mémoire du pôle",
@@ -39,6 +40,11 @@ function renderTool(tool: FrontTool): ReactNode {
 }
 
 export function PolePage({ pole }: { pole: PoleDef }) {
+  // Pôles livrés (archi v2) : page dédiée branchée sur le backend. Les pôles
+  // pas encore traités retombent sur la page générique (composants en état vide).
+  if (pole.id === "veille") {
+    return <VeillePage />;
+  }
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2 border-b border-argos-border-subtle pb-4">

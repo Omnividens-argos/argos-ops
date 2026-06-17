@@ -1,13 +1,44 @@
-# Pôle 1 — Veille. Squelette archi v2 (rempli en session S1).
+# Pôle 1 — Veille. Rempli en session S1 (archi v2).
+# Veille est EN AMONT : ses scripts captent des signaux, le VeilleAgent les
+# synthétise en insights routés vers Marketing / Pub / Vente. Aucune lecture
+# cross-pôle (reads_cross_pole vide) — la veille qualifie le terrain seule.
 id: veille
 name: Veille
 description: >-
-  Veille marché, tech, concurrents et menaces. Alimente le contenu (Marketing)
-  et la qualification (Vente) via sa mémoire.
+  Veille marché, tech, concurrents et menaces. Capte des signaux publics
+  (tendances, concurrents, breaches, CVE, réglementaire, presse, SERP, intent)
+  et les synthétise en insights actionnables pour Marketing, Pub et Vente.
 agent:
   name: VeilleAgent
   trigger: cron
   skills: []
-scripts: []
+scripts:
+  - id: trend_spotter
+    description: Sujets cyber chauds (fenêtre 14j) depuis data/trends/sources.yaml.
+    schedule: "0 6 * * *"
+  - id: competitor_watcher
+    description: Diff hebdo des pages pricing/features des concurrents.
+    schedule: "0 7 * * 1"
+  - id: breach_watcher
+    description: Breaches publics (CERT-FR + HIBP) croisés avec le carnet client.
+    schedule: "0 8 * * *"
+  - id: regulatory_watcher
+    description: Flux RSS RGPD / AI Act / NIS2 / DORA filtrés par keywords.
+    schedule: "0 9 * * *"
+  - id: cve_monitor
+    description: CVE HIGH/CRITICAL (OSV.dev) sur les stacks clients déclarées.
+    schedule: "0 10 * * *"
+  - id: darkweb_monitor
+    description: Domaines clients dans les breaches publiques HIBP (MVP).
+    schedule: "0 11 * * *"
+  - id: press_monitor
+    description: Mentions presse Argos / Omnividens (data/comm/press_mentions.yaml).
+    schedule: "0 12 * * *"
+  - id: keyword_radar
+    description: Mouvements de positions SERP des keywords prioritaires.
+    schedule: "0 13 * * 1"
+  - id: intent_signals
+    description: Signaux d'achat publics (breach / embauche CISO / levées).
+    schedule: "0 14 * * *"
 reads_cross_pole: []
 front_tools: [memory_table, alert_card]
