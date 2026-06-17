@@ -60,6 +60,7 @@ from argos_ops.ops_dashboard.api.marketing import router as marketing_router
 from argos_ops.ops_dashboard.api.poles import router as poles_router
 from argos_ops.ops_dashboard.api.pub import router as pub_router
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
+from argos_ops.ops_dashboard.api.vente import router as vente_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
 from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
 from argos_ops.ops_dashboard.inbox_scanner import (
@@ -712,6 +713,11 @@ app.include_router(marketing_router)
 # validation de créas A/B, recos chiffrées « appliquer » (shadow), simulateur.
 # Mutations scoped à la donnée du pôle Pub ; le breaker est un latch dans budget.yaml.
 app.include_router(pub_router)
+
+# Pôle Vente & RC (S4) — pipe Kanban + risque, inbox triée (gate AI Act), comptes
+# (santé/churn/upsell), tickets (SLA), leads enrichis + séquences, RDV (iCal),
+# devis/contrats. Garde-fou Bloctel (« Python tranche ») qui gèle l'outbound.
+app.include_router(vente_router)
 
 
 # =============================================================================

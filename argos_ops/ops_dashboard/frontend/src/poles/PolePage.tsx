@@ -10,6 +10,7 @@ import type { FrontTool, PoleDef } from "./poles.ts";
 import { MarketingPage } from "./marketing/MarketingPage.tsx";
 import { PubPage } from "./pub/PubPage.tsx";
 import { VeillePage } from "./veille/VeillePage.tsx";
+import { VentePage } from "./vente/VentePage.tsx";
 
 const TOOL_LABEL: Record<FrontTool, string> = {
   memory_table: "Mémoire du pôle",
@@ -52,6 +53,9 @@ export function PolePage({ pole }: { pole: PoleDef }) {
   }
   if (pole.id === "pub") {
     return <PubPage />;
+  }
+  if (pole.id === "vente") {
+    return <VentePage />;
   }
   return (
     <div className="flex flex-col gap-6">

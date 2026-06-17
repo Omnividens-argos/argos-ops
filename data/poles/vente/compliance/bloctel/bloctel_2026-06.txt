@@ -1,0 +1,6 @@
+# Liste mensuelle d'opposition Bloctel (démarchage téléphonique BtoC, loi 2014).
+# Un numéro par ligne, format FR. Lignes vides / # ignorées. Refresh mensuel
+# attendu (BloctelGuard alerte si > 35j). NUMÉROS FICTIFS de démo.
++33699000001
++33699000002
++33699000003

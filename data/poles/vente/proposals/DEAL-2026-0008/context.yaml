@@ -1,0 +1,15 @@
+# Contexte devis Argos — deal DEAL-2026-0008 (TechStart). Devis accepté (sent) →
+# ContractGenerator peut rendre contract.md. Données FICTIVES de démo.
+
+deal_id: "DEAL-2026-0008"
+company: "TechStart"
+contact_name: "Sarah Martin"
+contact_email: "sarah.martin@techstart.io"
+siret: "901 234 567 00027"
+plan: "Argos Pro"
+monthly_price_eur: 500
+setup_fee_eur: 500
+discount_percent: 10
+contract_duration_months: 12
+issue_date: "2026-06-05"
+validity_days: 30

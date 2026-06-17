@@ -1,13 +1,65 @@
-# Pôle 4 — Vente & Relation Client. Squelette archi v2 (rempli en session S4).
+# Pôle 4 — Vente & Relation Client. Rempli en session S4 (archi v2). Le plus gros
+# pôle : conversion (leads, outbound, RDV, devis/contrat) + relation client
+# (support, santé compte, churn, upsell). EN AVAL de la Veille (signaux d'achat :
+# intent_signal / breach / cve) et du Marketing (message / angle). Son agent
+# synthétise un plan d'actions priorisé ; le garde-fou « Python tranche » est la
+# conformité Bloctel (bloctel_guard arme un compliance_alert qui GÈLE l'outbound).
+# Ses 12 scripts déterministes écrivent leur mémoire ; l'agent agit dessus.
 id: vente
 name: Vente & Relation Client
 description: >-
-  Conversion et relation client : leads, outbound, support, CRM, RDV.
-  Lit Veille + Marketing pour prioriser et personnaliser.
+  Conversion et relation client : tri de l'inbox, prospection, enrichissement de
+  leads, séquences outbound (shadow), RDV (iCal), devis/contrats, triage support
+  (SLA), santé compte / churn / upsell. Lit Veille (signaux d'achat) + Marketing
+  (message). L'agent priorise les actions ; Bloctel tranche sur l'outbound.
 agent:
   name: VenteAgent
   trigger: cron
-  skills: []
-scripts: []
+  skills:
+    - outbound-perso
+    - demo-followup
+    - onboarding
+    - nps
+    - review
+    - testimonial
+    - support-rag
+    - deal-scoring
+scripts:
+  - id: email_bot
+    description: Trie l'inbox (data/poles/vente/inbox/messages.yaml) en lead/SAV/spam + gate AI Act réponse humaine.
+    schedule: "*/15 * * * *"
+  - id: prospect_miner
+    description: Append des prospects ICP depuis sources publiques manuelles → leads.csv (idempotent).
+    schedule: "0 6 * * 1"
+  - id: lead_enricher
+    description: Enrichit chaque lead du CSV (email/persona/BANT) → enriched/<slug>.md (idempotent).
+    schedule: "0 7 * * 1"
+  - id: bloctel_guard
+    description: Compare les téléphones leads à la liste Bloctel → compliance_alert (GÈLE l'outbound).
+    schedule: "0 5 * * *"
+  - id: meeting_booker
+    description: Drafte confirmation + invitation iCal pour chaque demande de RDV pending.
+    schedule: "*/30 * * * *"
+  - id: outbound_sender
+    description: Scanne les séquences, détermine le mode (shadow/stage), journalise (aucun envoi shadow).
+    schedule: "0 9 * * 1-5"
+  - id: escalation_router
+    description: Classifie les tickets P0/P1/P2 + SLA, flag les breach (data/poles/vente/support/tickets.yaml).
+    schedule: "0 */2 * * *"
+  - id: churn_predictor
+    description: Détecte les signaux pré-churn par compte (score 0-100, important si ≥ 60).
+    schedule: "0 8 * * *"
+  - id: health_score
+    description: Score santé 0-100 par compte (usage + tickets + NPS + inactivité), important si rouge.
+    schedule: "0 8 * * *"
+  - id: upsell_spotter
+    description: Repère les comptes saturés (usage ≥ 80% quota) mûrs pour upsell.
+    schedule: "0 8 * * 1"
+  - id: proposal_bot
+    description: Rend un devis Markdown depuis data/poles/vente/proposals/<deal>/context.yaml (idempotent).
+    schedule: "0 10 * * *"
+  - id: contract_generator
+    description: Rend un contrat MSA Markdown quand le devis est marqué sent (idempotent).
+    schedule: "0 11 * * *"
 reads_cross_pole: [veille, marketing]
 front_tools: [memory_table, validation_queue, alert_card]

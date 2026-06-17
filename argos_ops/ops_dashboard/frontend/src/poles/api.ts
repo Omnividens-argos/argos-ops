@@ -424,3 +424,190 @@ export function simulatePubBudget(payload: {
 }): Promise<Simulation> {
   return postJSON<Simulation>(`${P}/simulate`, payload);
 }
+
+// =============================================================================
+// Pôle Vente & RC (S4) — miroir des schemas Pydantic de api/vente.py.
+// =============================================================================
+export interface VenteDeal {
+  deal_id: string;
+  company: string;
+  stage: string;
+  amount_eur: number;
+  days_since_activity: number;
+  risk_score: number;
+  is_stalled: boolean;
+  reason: string;
+}
+
+export interface VenteMessage {
+  id: string;
+  from_name: string;
+  from_email: string;
+  subject: string;
+  category: string;
+  human_requested: boolean;
+  status: string;
+  received_at: string;
+}
+
+export interface VenteHealth {
+  customer_id: string;
+  score: number;
+  band: string;
+  drivers: string[];
+}
+
+export interface VenteChurn {
+  customer_id: string;
+  risk_score: number;
+  urgent: boolean;
+  signals: string[];
+}
+
+export interface VenteUpsell {
+  customer_id: string;
+  usage_ratio: number;
+  suggested_plan: string;
+  reason: string;
+}
+
+export interface VenteTicket {
+  ticket_id: string;
+  customer_id: string;
+  subject: string;
+  priority: string;
+  sla_response_hours: number;
+  sla_breached: boolean;
+  reason: string;
+}
+
+export interface VenteLead {
+  slug: string;
+  full_name: string;
+  domain: string;
+  title_hint: string | null;
+  persona: string;
+  bant_total: number;
+  qualified: boolean;
+  best_email: string | null;
+  eligible: boolean;
+  eligibility_reason: string;
+}
+
+export interface VenteTouch {
+  step: number;
+  scheduled_date: string;
+  status: string;
+}
+
+export interface VenteSequence {
+  slug: string;
+  full_name: string;
+  domain: string;
+  sequence_status: string;
+  touches: VenteTouch[];
+}
+
+export interface VenteMeeting {
+  request_id: string;
+  attendee_name: string;
+  attendee_email: string;
+  company: string;
+  starts_at: string;
+  duration_minutes: number;
+  location: string;
+  status: string;
+}
+
+export interface VenteProposal {
+  deal_id: string;
+  company: string;
+  plan: string;
+  monthly_price_eur: number;
+  proposal_status: string;
+  has_proposal: boolean;
+  has_contract: boolean;
+}
+
+export interface VenteBloctel {
+  list_path: string | null;
+  list_age_days: number | null;
+  checked: number;
+  matches: number;
+  stale: boolean;
+  should_alert: boolean;
+  summary: string;
+}
+
+export interface VenteCounts {
+  deals_active: number;
+  pipeline_value_eur: number;
+  stalled: number;
+  inbox_total: number;
+  inbox_new: number;
+  leads: number;
+  qualified_leads: number;
+  eligible_leads: number;
+  tickets_open: number;
+  p0: number;
+  sla_breached: number;
+  accounts: number;
+  health_red: number;
+  churn_urgent: number;
+  upsell: number;
+  meetings_pending: number;
+  proposals: number;
+  contracts: number;
+  outbound_frozen: boolean;
+}
+
+export interface VenteOverview {
+  pole: string;
+  generated_at: string;
+  stage_order: string[];
+  pipeline: VenteDeal[];
+  inbox: VenteMessage[];
+  health: VenteHealth[];
+  churn: VenteChurn[];
+  upsell: VenteUpsell[];
+  tickets: VenteTicket[];
+  leads: VenteLead[];
+  sequences: VenteSequence[];
+  meetings: VenteMeeting[];
+  proposals: VenteProposal[];
+  bloctel: VenteBloctel;
+  counts: VenteCounts;
+}
+
+const VT = "/api/poles/vente";
+
+export function fetchVenteOverview(signal?: AbortSignal): Promise<VenteOverview> {
+  return getJSON<VenteOverview>(`${VT}/overview`, signal);
+}
+
+export function uploadLeads(rows: {
+  full_name: string;
+  domain: string;
+  title_hint?: string;
+  linkedin_url?: string;
+}[]): Promise<{ added: number; skipped: number }> {
+  return postJSON<{ added: number; skipped: number }>(`${VT}/leads/upload`, { rows });
+}
+
+export function draftInboxReply(
+  id: string,
+): Promise<{ id: string; status: string; draft_path: string }> {
+  return postJSON(`${VT}/inbox/${encodeURIComponent(id)}/draft`, {});
+}
+
+export function bookMeeting(id: string): Promise<VenteMeeting> {
+  return postJSON<VenteMeeting>(`${VT}/meetings/${encodeURIComponent(id)}/book`, {});
+}
+
+export function scaffoldSequence(slug: string): Promise<{ slug: string; status: string }> {
+  return postJSON<{ slug: string; status: string }>(`${VT}/sequences`, { slug });
+}
+
+export function draftProposal(dealId: string): Promise<VenteProposal> {
+  return postJSON<VenteProposal>(`${VT}/proposals/${encodeURIComponent(dealId)}/draft`, {});
+}

@@ -1,0 +1,40 @@
+# Tickets support Argos — source du triage P0/P1/P2 + SLA (pôle Vente).
+# Saisi à la main / ingéré par EmailBot. Schéma : cf. argos_ops/cs/loader.py:load_tickets.
+# priority optionnel (override humain) ; sinon classifié par mots-clés.
+# Données FICTIVES de démo (cohérentes 2026-06, aujourd'hui = 2026-06-17).
+
+tickets:
+  - ticket_id: "TCK-2026-0042"
+    customer_id: "fintech-eu"
+    subject: "Production down — tous les scans en échec"
+    body: "Depuis ce matin plus aucun scan ne se lance, c'est urgent, on est bloqués."
+    opened_at: "2026-06-15"              # P0, SLA 1h → DÉPASSÉ (rouge)
+    plan: "starter"
+    status: "open"
+
+  - ticket_id: "TCK-2026-0043"
+    customer_id: "bricolage-sarl"
+    subject: "Scan bloqué sur l'API GraphQL"
+    body: "Le scan ne finit jamais quand on cible /graphql, ça tourne dans le vide."
+    opened_at: "2026-06-16"              # P1 (bug/scan bloqué)
+    plan: "pro"
+    status: "open"
+
+  - ticket_id: "TCK-2026-0044"
+    customer_id: "datanova"
+    subject: "Comment configurer le scan sur un sous-domaine ?"
+    body: "Une question : comment ajouter staging.datanova.fr au périmètre de scan ?"
+    opened_at: "2026-06-16"              # P2 (question) — déjà répondue, SLA tenu
+    plan: "pro"
+    status: "open"
+    last_response_at: "2026-06-16"
+
+  - ticket_id: "TCK-2026-0045"
+    customer_id: "techstart"
+    subject: "Demande de facture juin"
+    body: "Bonjour, pouvez-vous renvoyer la facture du mois de juin ? Merci."
+    opened_at: "2026-06-14"
+    plan: "pro"
+    priority: "P2"                       # override humain : pas un incident
+    status: "open"
+    last_response_at: "2026-06-15"

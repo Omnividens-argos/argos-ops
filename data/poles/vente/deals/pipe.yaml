@@ -1,0 +1,49 @@
+# Pipeline commercial Argos — source du Kanban + scoring de risque (pôle Vente).
+# Saisi à la main par le fondateur (lecture seule côté bots). pipeline.score_pipeline
+# score chaque deal et flag les stalled (inactivité > seuil par stade).
+# stage : discovery | demo_scheduled | demo_done | proposal_sent | contract_sent | won | lost
+# Données FICTIVES de démo (cohérentes 2026-06).
+
+deals:
+  - deal_id: "DEAL-2026-0007"
+    company: "Acme Sécurité"
+    stage: "proposal_sent"
+    amount_eur: 4200
+    last_activity_at: "2026-05-20"          # 28j → stalled (seuil 14j) : à relancer
+    owner: "fondateur"
+    notes: "RSSI convaincu après la démo, devis Argos Pro envoyé. Silence depuis 4 semaines — relancer."
+  - deal_id: "DEAL-2026-0008"
+    company: "TechStart"
+    stage: "contract_sent"
+    amount_eur: 6000
+    last_activity_at: "2026-06-14"
+    owner: "fondateur"
+    notes: "CEO a accepté le devis, contrat envoyé pour signature. RAS, dans les temps."
+  - deal_id: "DEAL-2026-0009"
+    company: "Fintech EU"
+    stage: "demo_done"
+    amount_eur: 8400
+    last_activity_at: "2026-06-12"
+    owner: "fondateur"
+    notes: "Démo faite, Lead Dev intéressé par l'intégration CI/CD. Attend une proposition."
+  - deal_id: "DEAL-2026-0010"
+    company: "Secure Corp"
+    stage: "demo_scheduled"
+    amount_eur: 3600
+    last_activity_at: "2026-06-08"          # 9j → stalled (seuil 7j) : démo annoncée sans suivi
+    owner: "fondateur"
+    notes: "Démo calée mais pas confirmée. Relancer pour verrouiller le créneau."
+  - deal_id: "DEAL-2026-0011"
+    company: "PME Logistique"
+    stage: "discovery"
+    amount_eur: 1800
+    last_activity_at: "2026-06-16"
+    owner: "fondateur"
+    notes: "Premier contact entrant, qualifie le besoin (conformité NIS2)."
+  - deal_id: "DEAL-2026-0006"
+    company: "DataNova"
+    stage: "won"
+    amount_eur: 4800
+    last_activity_at: "2026-06-01"
+    owner: "fondateur"
+    notes: "Signé en juin. Bascule en onboarding côté relation client."
