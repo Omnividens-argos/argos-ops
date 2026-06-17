@@ -1,0 +1,13 @@
+# Pôle 5 — Finance & Conformité. Squelette archi v2 (rempli en session S5).
+id: finance
+name: Finance & Conformité
+description: >-
+  Stripe/MRR, relances, prévisions cash, TVA et conformité RGPD/AI Act.
+  Lit la Vente pour rapprocher pipe et encaissements.
+agent:
+  name: FinanceAgent
+  trigger: cron
+  skills: []
+scripts: []
+reads_cross_pole: [vente]
+front_tools: [memory_table, alert_card]

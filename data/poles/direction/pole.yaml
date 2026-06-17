@@ -1,0 +1,13 @@
+# Pôle 6 — Direction. Squelette archi v2 (rempli en session S6).
+id: direction
+name: Direction
+description: >-
+  Pilotage de la flotte : OKR, stratégie, board pack. Vision transversale —
+  lit la mémoire de tous les pôles (reads_cross_pole = "*").
+agent:
+  name: DirectionAgent
+  trigger: cron
+  skills: []
+scripts: []
+reads_cross_pole: ["*"]
+front_tools: [memory_table, alert_card]

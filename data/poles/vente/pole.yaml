@@ -1,0 +1,13 @@
+# Pôle 4 — Vente & Relation Client. Squelette archi v2 (rempli en session S4).
+id: vente
+name: Vente & Relation Client
+description: >-
+  Conversion et relation client : leads, outbound, support, CRM, RDV.
+  Lit Veille + Marketing pour prioriser et personnaliser.
+agent:
+  name: VenteAgent
+  trigger: cron
+  skills: []
+scripts: []
+reads_cross_pole: [veille, marketing]
+front_tools: [memory_table, validation_queue, alert_card]

@@ -1,0 +1,16 @@
+# Politique de la Mémoire (pôle 7) — archi v2.
+#
+# L'agent Mémoire est déclenché par script (cf. agent.trigger: script dans
+# pole.yaml). Il applique sa curation (archive du périmé, purge du très vieux
+# déjà archivé) UNIQUEMENT sur les pôles listés dans `active_for`, et ne touche
+# JAMAIS un fait flaggé `important` quand `protect_important: true`.
+#
+# Détail de la logique de curation : session S7.
+protect_important: true
+active_for:
+  - veille
+  - marketing
+  - pub
+  - vente
+  - finance
+  - direction

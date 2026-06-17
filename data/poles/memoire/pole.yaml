@@ -1,0 +1,15 @@
+# Pôle 7 — Mémoire. Squelette archi v2 (rempli en session S7).
+# Agent particulier : déclenché PAR UN SCRIPT (trigger: script), pas par
+# l'orchestrateur. Périmètre d'action piloté par policy.yaml (voisin).
+id: memoire
+name: Mémoire
+description: >-
+  Concierge de la mémoire de flotte : protège l'important, archive le périmé,
+  purge le très vieux déjà archivé. Seul pôle autorisé à supprimer un fait.
+agent:
+  name: MemoireAgent
+  trigger: script
+  skills: []
+scripts: []
+reads_cross_pole: ["*"]
+front_tools: [memory_table]

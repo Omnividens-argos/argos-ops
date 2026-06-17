@@ -1,0 +1,13 @@
+# Pôle 3 — Pub. Squelette archi v2 (rempli en session S3).
+id: pub
+name: Pub
+description: >-
+  Acquisition payante : créas, optimisation et garde-fous budget (shadow par
+  défaut, D-026). Lit Veille + Marketing pour aligner le message.
+agent:
+  name: PubAgent
+  trigger: cron
+  skills: []
+scripts: []
+reads_cross_pole: [veille, marketing]
+front_tools: [memory_table, validation_queue, alert_card]

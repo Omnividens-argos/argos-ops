@@ -1,0 +1,13 @@
+# Pôle 1 — Veille. Squelette archi v2 (rempli en session S1).
+id: veille
+name: Veille
+description: >-
+  Veille marché, tech, concurrents et menaces. Alimente le contenu (Marketing)
+  et la qualification (Vente) via sa mémoire.
+agent:
+  name: VeilleAgent
+  trigger: cron
+  skills: []
+scripts: []
+reads_cross_pole: []
+front_tools: [memory_table, alert_card]

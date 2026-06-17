@@ -1,0 +1,12 @@
+# Pôle 8 — SRE / Meta-Ops. Squelette archi v2 (rempli en session S8).
+# AUCUN agent (agent: null) : uniquement des scripts en cron auto (watchers,
+# uptime, backups, secrets). Le `schedule` de chaque script porte la cadence.
+id: sre
+name: SRE & Meta-Ops
+description: >-
+  Santé de la flotte : watchers santé/perf/erreurs, uptime, backups, rotation
+  des secrets. Pas de cerveau LLM — déterministe de bout en bout.
+agent: null
+scripts: []
+reads_cross_pole: []
+front_tools: [alert_card]

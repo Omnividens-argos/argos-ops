@@ -1,0 +1,13 @@
+# Pôle 2 — Marketing / Comm. Squelette archi v2 (rempli en session S2).
+id: marketing
+name: Marketing & Comm
+description: >-
+  Acquisition organique : contenu social/blog, RP, calendrier éditorial.
+  Lit la Veille pour nourrir l'angle éditorial.
+agent:
+  name: MarketingAgent
+  trigger: cron
+  skills: []
+scripts: []
+reads_cross_pole: [veille]
+front_tools: [memory_table, validation_queue, alert_card]
