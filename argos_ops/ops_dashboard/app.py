@@ -56,6 +56,7 @@ from argos_ops.crm.repository import (
 )
 from argos_ops.logging import redact_secrets
 from argos_ops.ops_dashboard import atelier, atelier_audit, atelier_history, auth, console
+from argos_ops.ops_dashboard.api.finance import router as finance_router
 from argos_ops.ops_dashboard.api.marketing import router as marketing_router
 from argos_ops.ops_dashboard.api.poles import router as poles_router
 from argos_ops.ops_dashboard.api.pub import router as pub_router
@@ -718,6 +719,12 @@ app.include_router(pub_router)
 # (santé/churn/upsell), tickets (SLA), leads enrichis + séquences, RDV (iCal),
 # devis/contrats. Garde-fou Bloctel (« Python tranche ») qui gèle l'outbound.
 app.include_router(vente_router)
+
+# Pôle Finance & Conformité (S5) — facturation (MRR + dunning), forecast, burn/runway,
+# tableur des flux éditable, dépenses, rapprochement, contrats, échéancier fiscal,
+# registres RGPD + AI Act, génération de docs (CA3/devis/contrat + PDF), export
+# comptable. Garde-fou conformité (« Python tranche ») qui gèle l'onboarding.
+app.include_router(finance_router)
 
 
 # =============================================================================

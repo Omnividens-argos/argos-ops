@@ -1,0 +1,11 @@
+# Contrats clients — seed fictif S5. Le contract_deadline calcule la prochaine
+# date d'anniversaire (reconduction tacite) et alerte 60j avant.
+contracts:
+  - client: Acme Corp
+    start: 2025-07-01
+    term_months: 12
+    notes: MSA + annexe pentest annuel
+  - client: SecureBank
+    start: 2025-09-15
+    term_months: 12
+    notes: contrat-cadre Argos Enterprise

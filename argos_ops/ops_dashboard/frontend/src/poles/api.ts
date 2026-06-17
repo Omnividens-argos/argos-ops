@@ -88,6 +88,15 @@ async function deleteReq(path: string): Promise<void> {
   }
 }
 
+async function deleteJSON<T>(path: string): Promise<T> {
+  const res = await fetch(path, { method: "DELETE", headers: { Accept: "application/json" } });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`DELETE ${path} -> HTTP ${res.status} ${detail.slice(0, 160)}`);
+  }
+  return (await res.json()) as T;
+}
+
 export function fetchPoleFeed(pole: string, signal?: AbortSignal): Promise<PoleFeed> {
   return getJSON<PoleFeed>(`/api/poles/${encodeURIComponent(pole)}/feed`, signal);
 }
@@ -610,4 +619,245 @@ export function scaffoldSequence(slug: string): Promise<{ slug: string; status: 
 
 export function draftProposal(dealId: string): Promise<VenteProposal> {
   return postJSON<VenteProposal>(`${VT}/proposals/${encodeURIComponent(dealId)}/draft`, {});
+}
+
+// =============================================================================
+// Pôle Finance & Conformité (S5) — miroir des schemas Pydantic de api/finance.py.
+// =============================================================================
+export interface FinanceDunning {
+  invoice_id: string;
+  customer: string;
+  amount_due_eur: number;
+  due_date: string | null;
+  level: string; // J+3 | J+7 | J+15 | none
+  drafted: boolean;
+}
+
+export interface FinanceBilling {
+  mrr_eur: number;
+  arr_eur: number;
+  n_subs: number;
+  n_active_subs: number;
+  n_open_invoices: number;
+  open_amount_eur: number;
+  dunning: FinanceDunning[];
+}
+
+export interface FinanceForecast {
+  expected_30d_eur: number;
+  expected_60d_eur: number;
+  expected_90d_eur: number;
+  n_subs_considered: number;
+}
+
+export interface FinanceTreasury {
+  present: boolean;
+  cash_balance_eur: number | null;
+  monthly_burn_eur: number | null;
+  monthly_revenue_eur: number | null;
+  net_burn_eur: number;
+  runway_months: number | null;
+  severity: string; // ok | warn | alert
+  summary: string;
+}
+
+export interface FinanceFlow {
+  id: string;
+  flow_date: string;
+  label: string;
+  category: string;
+  direction: string; // in | out
+  amount_eur: number;
+  balance_eur: number;
+}
+
+export interface FinanceLedger {
+  flows: FinanceFlow[];
+  total_in_eur: number;
+  total_out_eur: number;
+  net_eur: number;
+  by_month: { month: string; net_eur: number }[];
+  by_category: { category: string; net_eur: number }[];
+}
+
+export interface FinanceAnomaly {
+  vendor: string;
+  kind: string;
+  amount_eur: number;
+  settled_on: string;
+  reason: string;
+}
+
+export interface FinanceExpenses {
+  source_csv: string | null;
+  severity: string;
+  summary: string;
+  anomalies: FinanceAnomaly[];
+}
+
+export interface FinanceReconcile {
+  matched: number;
+  orphan_payouts: number;
+  orphan_credits: number;
+  summary: string;
+}
+
+export interface FinanceVendorContract {
+  vendor: string;
+  renewal_date: string;
+  deadline_date: string;
+  days_until: number;
+  status: string;
+  monthly_cost_eur: number;
+}
+
+export interface FinanceClientContract {
+  client: string;
+  next_renewal: string;
+  days_left: number;
+  status: string;
+}
+
+export interface FinanceContracts {
+  vendors: FinanceVendorContract[];
+  clients: FinanceClientContract[];
+}
+
+export interface FinanceFiscalDeadline {
+  kind: string;
+  label: string;
+  due_date: string;
+  days_until: number;
+}
+
+export interface FinanceTreatment {
+  nom: string;
+  base_legale: string;
+  finalite: string;
+  donnees: string[];
+  review_date: string | null;
+  conforme: boolean;
+  issues: string[];
+}
+
+export interface FinanceRgpd {
+  present: boolean;
+  should_alert: boolean;
+  summary: string;
+  treatments: FinanceTreatment[];
+}
+
+export interface FinanceAiActSystem {
+  nom: string;
+  role: string;
+  risk: string;
+}
+
+export interface FinanceAiAct {
+  present: boolean;
+  should_alert: boolean;
+  summary: string;
+  counts: Record<string, number>;
+  systems: FinanceAiActSystem[];
+}
+
+export interface FinanceIncident {
+  slug: string;
+  title: string;
+  date: string;
+  category: string;
+  severity: string;
+  status: string;
+}
+
+export interface FinanceDoc {
+  name: string;
+  kind: string;
+  has_pdf: boolean;
+}
+
+export interface FinanceCounts {
+  mrr_eur: number;
+  open_invoices: number;
+  dunning_due: number;
+  runway_months: number | null;
+  rgpd_gaps: number;
+  ai_act_prohibited: number;
+  ai_act_unclassified: number;
+  contracts_urgent: number;
+  expense_anomalies: number;
+  reconcile_orphans: number;
+  incidents_open: number;
+  fiscal_next_days: number | null;
+  compliance_blocking: boolean;
+}
+
+export interface FinanceOverview {
+  pole: string;
+  generated_at: string;
+  billing: FinanceBilling;
+  forecast: FinanceForecast;
+  treasury: FinanceTreasury;
+  ledger: FinanceLedger;
+  expenses: FinanceExpenses;
+  reconcile: FinanceReconcile;
+  contracts: FinanceContracts;
+  fiscal: FinanceFiscalDeadline[];
+  rgpd: FinanceRgpd;
+  ai_act: FinanceAiAct;
+  incidents: FinanceIncident[];
+  docs: FinanceDoc[];
+  uploads: string[];
+  contexts: string[];
+  compliance_blocking: boolean;
+  compliance_reason: string;
+  counts: FinanceCounts;
+}
+
+const FN = "/api/poles/finance";
+
+export function fetchFinanceOverview(signal?: AbortSignal): Promise<FinanceOverview> {
+  return getJSON<FinanceOverview>(`${FN}/overview`, signal);
+}
+
+export function addFlow(payload: {
+  flow_date: string;
+  label: string;
+  category: string;
+  direction: string;
+  amount_eur: number;
+}): Promise<FinanceFlow> {
+  return postJSON<FinanceFlow>(`${FN}/ledger/flows`, payload);
+}
+
+export function deleteFlow(flowId: string): Promise<{ deleted: boolean }> {
+  return deleteJSON<{ deleted: boolean }>(`${FN}/ledger/flows/${encodeURIComponent(flowId)}`);
+}
+
+export function generateDoc(
+  kind: string,
+  dealId?: string,
+): Promise<{ name: string; kind: string; has_pdf: boolean }> {
+  return postJSON(`${FN}/docs/generate`, { kind, deal_id: dealId ?? null });
+}
+
+export function uploadDoc(
+  filename: string,
+  content: string,
+): Promise<{ name: string; kind: string; has_pdf: boolean }> {
+  return postJSON(`${FN}/docs/upload`, { filename, content });
+}
+
+export function fetchDoc(name: string): Promise<{ name: string; content: string }> {
+  return getJSON<{ name: string; content: string }>(`${FN}/docs/${encodeURIComponent(name)}`);
+}
+
+export function draftDunning(
+  invoiceId: string,
+): Promise<{ invoice_id: string; status: string; draft_path: string }> {
+  return postJSON(`${FN}/invoices/${encodeURIComponent(invoiceId)}/dunning`, {});
+}
+
+export function exportAccounting(): Promise<{ path: string; csv: string }> {
+  return postJSON<{ path: string; csv: string }>(`${FN}/export/accounting`, {});
 }

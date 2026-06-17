@@ -1,0 +1,25 @@
+# Registre RGPD des traitements — seed fictif S5. Le rgpd_auditor valide la
+# complétude (base légale parmi les 6 de l'art. 6, finalité, données, durée,
+# revue < 12 mois). Un manque = gap → gèle l'onboarding (« Python tranche »).
+traitements:
+  - nom: Prospection BtoB outbound
+    base_legale: intérêt légitime
+    finalite: prospection commerciale auprès de professionnels
+    donnees: [email professionnel, nom, fonction, entreprise]
+    duree_conservation: 3 ans après le dernier contact
+    sous_traitants: [OVHcloud]
+    review_date: 2026-06-01
+  - nom: Facturation et comptabilité clients
+    base_legale: contrat
+    finalite: exécution du contrat, facturation, obligations comptables
+    donnees: [email, nom, raison sociale, SIRET, montants]
+    duree_conservation: 10 ans (obligation légale comptable)
+    sous_traitants: [Stripe, Qonto]
+    review_date: 2026-06-01
+  - nom: Support et tickets
+    base_legale: contrat
+    finalite: support technique et suivi de la relation client
+    donnees: [email, nom, logs d'usage]
+    duree_conservation: 2 ans après clôture du compte
+    sous_traitants: []
+    review_date: 2026-06-01

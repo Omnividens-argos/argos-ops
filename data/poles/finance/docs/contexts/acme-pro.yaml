@@ -1,0 +1,14 @@
+# Contexte de génération devis/contrat — seed fictif S5. Lu par docs.generate_proposal
+# / generate_contract (réutilise argos_ops.sales.templates). Saisi par le fondateur.
+deal_id: acme-pro
+company: Acme Corp
+contact_name: Marc Dupont
+contact_email: marc@acme-corp.fr
+siret: "12345678900012"
+plan: Argos Pro
+monthly_price_eur: 350
+setup_fee_eur: 500
+discount_percent: 10
+contract_duration_months: 12
+issue_date: 2026-06-18
+validity_days: 30

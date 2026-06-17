@@ -1,0 +1,12 @@
+# Payouts Stripe déclarés — seed fictif S5. Le reconcile_bot les rapproche des
+# crédits 'STRIPE' du dernier export Qonto (expenses/<YYYY-MM>.csv).
+payouts:
+  - id: po_1
+    arrival_date: 2026-06-05
+    amount_eur: 420.00
+  - id: po_2
+    arrival_date: 2026-06-12
+    amount_eur: 350.00
+  - id: po_3
+    arrival_date: 2026-06-16
+    amount_eur: 999.00

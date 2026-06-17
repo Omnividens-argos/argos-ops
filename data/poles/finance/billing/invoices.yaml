@@ -1,0 +1,42 @@
+# Snapshot Stripe (factures impayées) — seed fictif S5. Le finance_bot classe
+# chaque facture 'open' en dunning J+3 / J+7 / J+15 selon le retard.
+invoices:
+  - id: in_late3
+    customer_id: cus_bank
+    customer_email: cfo@securebank.fr
+    customer_name: SecureBank
+    status: open
+    amount_due_eur: 700.00
+    due_date: 2026-06-14
+    created_at: 2026-06-01
+    attempt_count: 1
+    hosted_invoice_url: https://invoice.stripe.com/i/test_late3
+  - id: in_late7
+    customer_id: cus_acme
+    customer_email: marc@acme-corp.fr
+    customer_name: Acme Corp
+    status: open
+    amount_due_eur: 350.00
+    due_date: 2026-06-09
+    created_at: 2026-05-27
+    attempt_count: 2
+    hosted_invoice_url: https://invoice.stripe.com/i/test_late7
+  - id: in_late15
+    customer_id: cus_retard
+    customer_email: compta@retard-sarl.fr
+    customer_name: Retard SARL
+    status: open
+    amount_due_eur: 1200.00
+    due_date: 2026-05-30
+    created_at: 2026-05-15
+    attempt_count: 3
+    hosted_invoice_url: https://invoice.stripe.com/i/test_late15
+  - id: in_paid
+    customer_id: cus_acme
+    customer_email: marc@acme-corp.fr
+    customer_name: Acme Corp
+    status: paid
+    amount_due_eur: 0.00
+    due_date: 2026-06-01
+    created_at: 2026-05-20
+    attempt_count: 0
