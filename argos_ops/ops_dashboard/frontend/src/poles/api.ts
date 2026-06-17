@@ -245,3 +245,182 @@ export function deleteKB(slug: string): Promise<void> {
 export function saveCharter(charter: MarketingCharter): Promise<MarketingCharter> {
   return putJSON<MarketingCharter>(`${M}/charter`, charter);
 }
+
+// =============================================================================
+// Pôle Pub (S3) — miroir des schemas Pydantic de api/pub.py.
+// =============================================================================
+export type CreativeStatus = "draft" | "validated" | "live" | "rejected";
+
+export interface AdPlatform {
+  id: string;
+  label: string;
+  creative_skill: string;
+  headline_max: number;
+  headline_count: number;
+  primary_max: number;
+  keyword_targeted: boolean;
+}
+
+export interface PubBudget {
+  daily_budget_eur: number;
+  runaway_multiplier: number;
+  window_days: number;
+  spent_per_day_eur: number;
+  spent_window_eur: number;
+  utilization: number;
+  runaway_threshold_eur: number;
+  over_threshold: boolean;
+  by_platform: Record<string, number>;
+  breaker_tripped: boolean;
+  breaker_reason: string | null;
+  breaker_tripped_at: string | null;
+}
+
+export interface AdRecommendation {
+  id: string;
+  platform: string;
+  campaign: string;
+  action: string;
+  severity: Severity;
+  eur_delta_week: number;
+  rationale: string;
+  metrics: Record<string, number>;
+  spend_increasing: boolean;
+  applied: boolean;
+  blocked_by_breaker: boolean;
+}
+
+export interface AdCampaign {
+  platform: string;
+  campaign: string;
+  impressions: number;
+  clicks: number;
+  cost_eur: number;
+  conversions: number;
+  ctr: number;
+  cpc: number;
+  cpa: number;
+  conv_rate: number;
+}
+
+export interface CreativeVariant {
+  label: string;
+  angle: string;
+  headline: string;
+  primary_text: string;
+  description: string;
+  headline_len: number;
+  headline_ok: boolean;
+  primary_len: number;
+  primary_ok: boolean;
+}
+
+export interface AdCreative {
+  id: string;
+  platform: string;
+  title: string;
+  status: CreativeStatus;
+  objective: string | null;
+  persona: string | null;
+  source: string | null;
+  brief: string;
+  created_at: string;
+  updated_at: string;
+  variants: CreativeVariant[];
+}
+
+export interface PubCounts {
+  creatives: number;
+  draft: number;
+  validated: number;
+  live: number;
+  rejected: number;
+  recommendations: number;
+  critical: number;
+  applied: number;
+  potential_savings_week_eur: number;
+  potential_scale_week_eur: number;
+}
+
+export interface PubOverview {
+  pole: string;
+  generated_at: string;
+  platforms: AdPlatform[];
+  budget: PubBudget;
+  recommendations: AdRecommendation[];
+  campaigns: AdCampaign[];
+  creatives: AdCreative[];
+  counts: PubCounts;
+}
+
+export interface AppliedRecommendation {
+  id: string;
+  platform: string;
+  campaign: string;
+  action: string;
+  eur_delta_week: number;
+  rationale: string;
+  mode: string;
+  applied_at: string;
+}
+
+export interface SimAllocation {
+  platform: string;
+  daily_eur: number;
+  cpa_eur: number;
+  weekly_spend_eur: number;
+  weekly_leads: number;
+}
+
+export interface Simulation {
+  total_daily_eur: number;
+  weekly_spend_eur: number;
+  weekly_leads: number;
+  blended_cpa_eur: number;
+  exceeds_budget: boolean;
+  would_trip: boolean;
+  allocations: SimAllocation[];
+}
+
+const P = "/api/poles/pub";
+
+export function fetchPubOverview(signal?: AbortSignal): Promise<PubOverview> {
+  return getJSON<PubOverview>(`${P}/overview`, signal);
+}
+
+export function validateCreative(id: string): Promise<AdCreative> {
+  return postJSON<AdCreative>(`${P}/creatives/${encodeURIComponent(id)}/validate`, {});
+}
+
+export function rejectCreative(id: string): Promise<AdCreative> {
+  return postJSON<AdCreative>(`${P}/creatives/${encodeURIComponent(id)}/reject`, {});
+}
+
+export function goliveCreative(id: string): Promise<AdCreative> {
+  return postJSON<AdCreative>(`${P}/creatives/${encodeURIComponent(id)}/golive`, {});
+}
+
+export function setPubBudget(dailyBudgetEur: number): Promise<PubBudget> {
+  return putJSON<PubBudget>(`${P}/budget`, { daily_budget_eur: dailyBudgetEur });
+}
+
+export function resetPubBreaker(): Promise<PubBudget> {
+  return postJSON<PubBudget>(`${P}/breaker/reset`, {});
+}
+
+export function applyRecommendation(payload: {
+  platform: string;
+  campaign: string;
+  action: string;
+  eur_delta_week: number;
+  rationale: string;
+}): Promise<AppliedRecommendation> {
+  return postJSON<AppliedRecommendation>(`${P}/recommendations/apply`, payload);
+}
+
+export function simulatePubBudget(payload: {
+  per_platform_daily: Record<string, number>;
+  daily_budget_eur?: number;
+}): Promise<Simulation> {
+  return postJSON<Simulation>(`${P}/simulate`, payload);
+}

@@ -58,6 +58,7 @@ from argos_ops.logging import redact_secrets
 from argos_ops.ops_dashboard import atelier, atelier_audit, atelier_history, auth, console
 from argos_ops.ops_dashboard.api.marketing import router as marketing_router
 from argos_ops.ops_dashboard.api.poles import router as poles_router
+from argos_ops.ops_dashboard.api.pub import router as pub_router
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
 from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
@@ -706,6 +707,11 @@ app.include_router(poles_router)
 # Pôle Marketing (S2) — file de drafts, calendrier éditorial, KB éditable,
 # charte/ton, stats engagement. Mutations scoped à la donnée du pôle Marketing.
 app.include_router(marketing_router)
+
+# Pôle Pub (S3) — dashboard campagnes, jauge budget + breaker ad_spend_runaway,
+# validation de créas A/B, recos chiffrées « appliquer » (shadow), simulateur.
+# Mutations scoped à la donnée du pôle Pub ; le breaker est un latch dans budget.yaml.
+app.include_router(pub_router)
 
 
 # =============================================================================

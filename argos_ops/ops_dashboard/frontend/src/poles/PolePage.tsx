@@ -8,6 +8,7 @@ import { Badge } from "../components/ui.tsx";
 import { AlertCardEmpty, MemoryTable, ValidationQueue } from "./components/index.ts";
 import type { FrontTool, PoleDef } from "./poles.ts";
 import { MarketingPage } from "./marketing/MarketingPage.tsx";
+import { PubPage } from "./pub/PubPage.tsx";
 import { VeillePage } from "./veille/VeillePage.tsx";
 
 const TOOL_LABEL: Record<FrontTool, string> = {
@@ -48,6 +49,9 @@ export function PolePage({ pole }: { pole: PoleDef }) {
   }
   if (pole.id === "marketing") {
     return <MarketingPage />;
+  }
+  if (pole.id === "pub") {
+    return <PubPage />;
   }
   return (
     <div className="flex flex-col gap-6">
