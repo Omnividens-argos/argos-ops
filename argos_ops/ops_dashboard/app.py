@@ -56,6 +56,7 @@ from argos_ops.crm.repository import (
 )
 from argos_ops.logging import redact_secrets
 from argos_ops.ops_dashboard import atelier, atelier_audit, atelier_history, auth, console
+from argos_ops.ops_dashboard.api.marketing import router as marketing_router
 from argos_ops.ops_dashboard.api.poles import router as poles_router
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
@@ -701,6 +702,10 @@ app.include_router(stripe_router)
 # Cockpit archi v2 (pôle/agent/script) — sert la mémoire + insights des pôles
 # au shell poles.html. Read-mostly ; le handoff écrit dans le pôle source.
 app.include_router(poles_router)
+
+# Pôle Marketing (S2) — file de drafts, calendrier éditorial, KB éditable,
+# charte/ton, stats engagement. Mutations scoped à la donnée du pôle Marketing.
+app.include_router(marketing_router)
 
 
 # =============================================================================

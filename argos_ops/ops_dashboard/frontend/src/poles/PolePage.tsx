@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { Badge } from "../components/ui.tsx";
 import { AlertCardEmpty, MemoryTable, ValidationQueue } from "./components/index.ts";
 import type { FrontTool, PoleDef } from "./poles.ts";
+import { MarketingPage } from "./marketing/MarketingPage.tsx";
 import { VeillePage } from "./veille/VeillePage.tsx";
 
 const TOOL_LABEL: Record<FrontTool, string> = {
@@ -44,6 +45,9 @@ export function PolePage({ pole }: { pole: PoleDef }) {
   // pas encore traités retombent sur la page générique (composants en état vide).
   if (pole.id === "veille") {
     return <VeillePage />;
+  }
+  if (pole.id === "marketing") {
+    return <MarketingPage />;
   }
   return (
     <div className="flex flex-col gap-6">

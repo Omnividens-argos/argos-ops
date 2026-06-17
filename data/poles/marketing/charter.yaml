@@ -1,0 +1,22 @@
+tagline: Argos — on scanne, vous corrigez.
+domain: omnividens.fr
+voice: >-
+  Direct, technique mais accessible, factuel. On rassure et on outille — jamais
+  on ne fait peur. Pas de jargon gratuit, pas de superlatifs vides.
+principles:
+  - "Pédagogie d'abord : expliquer la menace ET le réflexe de protection."
+  - Preuves chiffrées plutôt que promesses.
+  - Toujours citer le domaine canonique omnividens.fr.
+  - Mentionner que le contenu est assisté par IA (transparence AI Act).
+avoid:
+  - Le FUD (Fear, Uncertainty, Doubt) — pas de catastrophisme.
+  - Dénigrer nommément un concurrent.
+  - Promettre une sécurité « à 100 % » ou « inviolable ».
+banned_terms:
+  - catastrophe
+  - apocalypse
+  - inviolable
+  - 100% sécurisé
+  - garantie totale
+  - panique
+ai_disclosure: Contenu rédigé avec l'assistance d'une IA.

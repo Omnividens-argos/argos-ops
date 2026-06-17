@@ -1,13 +1,40 @@
-# Pôle 2 — Marketing / Comm. Squelette archi v2 (rempli en session S2).
+# Pôle 2 — Marketing / Comm. Rempli en session S2 (archi v2).
+# Marketing est EN AVAL de la Veille : son agent lit la mémoire Veille
+# (reads_cross_pole: [veille]) pour nourrir l'angle éditorial, synthétise des
+# recommandations de contenu routées par canal, et dispose d'une banque de
+# skills (6 writers + SEO/newsletter/reply/editorial/brand-check/kb). Ses 3
+# scripts déterministes écrivent leur mémoire (publications, engagement, médias).
 id: marketing
 name: Marketing & Comm
 description: >-
   Acquisition organique : contenu social/blog, RP, calendrier éditorial.
-  Lit la Veille pour nourrir l'angle éditorial.
+  Lit la Veille (cross-pôle) pour nourrir l'angle éditorial, drafte via une
+  banque de skills writers, publie les drafts validés et mesure l'engagement.
 agent:
   name: MarketingAgent
   trigger: cron
-  skills: []
-scripts: []
+  skills:
+    - linkedin-writer
+    - mastodon-writer
+    - meta-writer
+    - x-writer
+    - bluesky-writer
+    - truth-social-writer
+    - seo-brief
+    - newsletter
+    - reply
+    - editorial
+    - brand-check
+    - kb-updater
+scripts:
+  - id: content_bot
+    description: Publie (shadow) les drafts validés dont scheduled_for est échu.
+    schedule: "0 */2 * * *"
+  - id: social_analytics
+    description: Agrège l'engagement social 7j par canal (data/social/engagement.yaml).
+    schedule: "0 7 * * 1"
+  - id: media_list_builder
+    description: Audite la DB journalistes / médias cyber (data/comm/media_list.yaml).
+    schedule: "0 8 * * 1"
 reads_cross_pole: [veille]
 front_tools: [memory_table, validation_queue, alert_card]
