@@ -56,7 +56,15 @@ from argos_ops.crm.repository import (
 )
 from argos_ops.logging import redact_secrets
 from argos_ops.ops_dashboard import atelier, atelier_audit, atelier_history, auth, console
+from argos_ops.ops_dashboard.api.direction import router as direction_router
+from argos_ops.ops_dashboard.api.finance import router as finance_router
+from argos_ops.ops_dashboard.api.marketing import router as marketing_router
+from argos_ops.ops_dashboard.api.memoire import router as memoire_router
+from argos_ops.ops_dashboard.api.poles import router as poles_router
+from argos_ops.ops_dashboard.api.pub import router as pub_router
+from argos_ops.ops_dashboard.api.sre import router as sre_router
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
+from argos_ops.ops_dashboard.api.vente import router as vente_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
 from argos_ops.ops_dashboard.inbox_actions import reject_draft, validate_draft
 from argos_ops.ops_dashboard.inbox_scanner import (
@@ -696,6 +704,50 @@ app.add_middleware(
 # via Caddy (Stripe doit pouvoir nous poster), donc auth = signature HMAC
 # côté handler, pas basic auth Caddy.
 app.include_router(stripe_router)
+
+# Cockpit archi v2 (pôle/agent/script) — sert la mémoire + insights des pôles
+# au shell poles.html. Read-mostly ; le handoff écrit dans le pôle source.
+app.include_router(poles_router)
+
+# Pôle Marketing (S2) — file de drafts, calendrier éditorial, KB éditable,
+# charte/ton, stats engagement. Mutations scoped à la donnée du pôle Marketing.
+app.include_router(marketing_router)
+
+# Pôle Pub (S3) — dashboard campagnes, jauge budget + breaker ad_spend_runaway,
+# validation de créas A/B, recos chiffrées « appliquer » (shadow), simulateur.
+# Mutations scoped à la donnée du pôle Pub ; le breaker est un latch dans budget.yaml.
+app.include_router(pub_router)
+
+# Pôle Vente & RC (S4) — pipe Kanban + risque, inbox triée (gate AI Act), comptes
+# (santé/churn/upsell), tickets (SLA), leads enrichis + séquences, RDV (iCal),
+# devis/contrats. Garde-fou Bloctel (« Python tranche ») qui gèle l'outbound.
+app.include_router(vente_router)
+
+# Pôle Finance & Conformité (S5) — facturation (MRR + dunning), forecast, burn/runway,
+# tableur des flux éditable, dépenses, rapprochement, contrats, échéancier fiscal,
+# registres RGPD + AI Act, génération de docs (CA3/devis/contrat + PDF), export
+# comptable. Garde-fou conformité (« Python tranche ») qui gèle l'onboarding.
+app.include_router(finance_router)
+
+# Pôle Direction (S6) — vue d'ensemble flotte (santé par pôle), synthèse de la
+# semaine, plan d'oversight, OKR vs prorata, board pack exportable, journal des
+# décisions, changelog, roadmap publique, feedback, triage des bugs. Garde-fou
+# « Python tranche » : gel de PUBLICATION (release notes/changelog/roadmap) tant
+# qu'un bug P0 est ouvert ou qu'un pôle est en santé critique.
+app.include_router(direction_router)
+
+# Pôle Mémoire (S7) — navigateur mémoire par pôle/script, plan de curation
+# (PREVIEW du périmé/stale), toggle du flag `important`, suppression VALIDÉE
+# (gardée : un fait important est toujours refusé), config d'activation par pôle,
+# audit du câblage reads_cross_pole et historique des passages du cleaner. Seul
+# pôle autorisé à supprimer un fait — « Python tranche » via le double garde-fou.
+app.include_router(memoire_router)
+
+# Pôle SRE / Meta-Ops (S8) — aucun agent : statut temps réel des 13 scripts cron
+# (vert/jaune/rouge), historique des runs (runlog), perf P50/P95, planning cron,
+# breakers (+ reset/trip), kill-switch (global + par script), et plan de
+# l'orchestrateur déterministe. 100 % fichiers / local-first.
+app.include_router(sre_router)
 
 
 # =============================================================================

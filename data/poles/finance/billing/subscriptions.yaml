@@ -1,0 +1,39 @@
+# Snapshot Stripe (subscriptions) — seed fictif S5. Rafraîchi par finance_bot
+# depuis Stripe quand une clé API est présente ; sinon exporté à la main (D-017).
+subscriptions:
+  - id: sub_acme
+    customer_id: cus_acme
+    customer_email: marc@acme-corp.fr
+    customer_name: Acme Corp
+    status: active
+    mrr_eur: 350.00
+    interval: month
+    created_at: 2026-01-15
+    current_period_end: 2026-07-10
+  - id: sub_bank
+    customer_id: cus_bank
+    customer_email: cfo@securebank.fr
+    customer_name: SecureBank
+    status: active
+    mrr_eur: 700.00
+    interval: month
+    created_at: 2025-11-01
+    current_period_end: 2026-08-05
+  - id: sub_startup
+    customer_id: cus_startup
+    customer_email: ceo@startup.io
+    customer_name: Startup IO
+    status: trialing
+    mrr_eur: 150.00
+    interval: month
+    created_at: 2026-06-01
+    current_period_end: 2026-06-30
+  - id: sub_old
+    customer_id: cus_old
+    customer_email: ex@ancien-client.fr
+    customer_name: Ancien Client
+    status: canceled
+    mrr_eur: 350.00
+    interval: month
+    created_at: 2025-06-01
+    current_period_end: 2026-05-01

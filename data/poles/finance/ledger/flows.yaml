@@ -1,0 +1,44 @@
+# Tableur des flux de trésorerie — seed fictif S5. Éditable depuis le cockpit
+# (ajout / suppression de lignes). Chaque ligne porte un id stable dérivé de son
+# contenu (omis ici → recalculé au chargement).
+flows:
+  - date: 2026-05-02
+    label: Abonnement Acme Corp
+    category: revenue
+    direction: in
+    amount_eur: 350.00
+  - date: 2026-05-05
+    label: Hébergement OVHcloud
+    category: hosting
+    direction: out
+    amount_eur: 12.00
+  - date: 2026-05-08
+    label: Cotisations URSSAF
+    category: charges
+    direction: out
+    amount_eur: 1800.00
+  - date: 2026-05-20
+    label: Abonnement SecureBank
+    category: revenue
+    direction: in
+    amount_eur: 700.00
+  - date: 2026-06-02
+    label: Abonnement Acme Corp
+    category: revenue
+    direction: in
+    amount_eur: 350.00
+  - date: 2026-06-05
+    label: Claude Max (Anthropic)
+    category: saas
+    direction: out
+    amount_eur: 90.00
+  - date: 2026-06-10
+    label: Campagne LinkedIn Ads
+    category: marketing
+    direction: out
+    amount_eur: 200.00
+  - date: 2026-06-12
+    label: Abonnement SecureBank
+    category: revenue
+    direction: in
+    amount_eur: 700.00

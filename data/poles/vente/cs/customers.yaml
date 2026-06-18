@@ -1,0 +1,65 @@
+# Comptes clients Argos — source des scorings santé / churn / upsell (pôle Vente).
+# Saisi à la main par le fondateur (lecture seule côté bots). Schéma :
+# cf. argos_ops/cs/loader.py:load_customers. Données FICTIVES de démo.
+# plan : starter | pro | enterprise
+
+customers:
+  - customer_id: "datanova"
+    name: "DataNova"
+    contact_email: "contact@datanova.fr"
+    contact_name: "Élise Caron"
+    plan: "pro"
+    signup_date: "2026-06-01"
+    onboarding_done_at: "2026-06-10"
+    last_nps_at: "2026-06-12"
+    last_nps: 9                          # promoteur → review / testimonial
+    tickets_30d: 0
+    usage:
+      scans_this_month: 142
+      scans_quota: 200                   # 71% → sain (vert)
+      last_login_days_ago: 2
+
+  - customer_id: "techstart"
+    name: "TechStart"
+    contact_email: "ops@techstart.io"
+    contact_name: "Sarah Martin"
+    plan: "pro"
+    signup_date: "2026-03-15"
+    onboarding_done_at: "2026-03-25"
+    last_renew_at: "2026-03-15"
+    last_nps_at: "2026-05-01"
+    last_nps: 8
+    tickets_30d: 1
+    usage:
+      scans_this_month: 184
+      scans_quota: 200                   # 92% → upsell ready (saturé)
+      last_login_days_ago: 1
+
+  - customer_id: "bricolage-sarl"
+    name: "Bricolage SARL"
+    contact_email: "gerant@bricolage-sarl.fr"
+    contact_name: "Patrick Lemoine"
+    plan: "pro"
+    signup_date: "2026-04-02"
+    onboarding_done_at: "2026-04-20"
+    tickets_30d: 3                        # friction modérée → jaune + churn watch
+    usage:
+      scans_this_month: 28
+      scans_quota: 200                   # 14% → faible
+      last_login_days_ago: 18            # 18j sans login
+
+  - customer_id: "fintech-eu"
+    name: "Fintech EU"
+    contact_email: "rssi@fintech-eu.com"
+    contact_name: "Thomas Bernard"
+    plan: "starter"
+    signup_date: "2026-02-10"
+    onboarding_done_at: "2026-03-01"
+    last_renew_at: "2026-05-10"
+    last_nps_at: "2026-05-20"
+    last_nps: 4                          # détracteur
+    tickets_30d: 6                        # friction forte
+    usage:
+      scans_this_month: 4
+      scans_quota: 50                    # 8% → sous-utilisation
+      last_login_days_ago: 35            # 35j sans login → rouge + churn urgent

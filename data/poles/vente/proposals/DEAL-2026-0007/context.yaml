@@ -1,0 +1,16 @@
+# Contexte devis Argos — deal DEAL-2026-0007 (Acme Sécurité). Saisi par le fondateur.
+# ProposalBot rend proposal.md ; le fondateur marque ensuite proposal_status: sent
+# dans status.yaml pour débloquer le contrat. Données FICTIVES de démo.
+
+deal_id: "DEAL-2026-0007"
+company: "Acme Sécurité"
+contact_name: "Marc Dupont"
+contact_email: "marc.dupont@acme-securite.fr"
+siret: "812 345 678 00019"
+plan: "Argos Pro"
+monthly_price_eur: 350
+setup_fee_eur: 0
+discount_percent: 0
+contract_duration_months: 12
+issue_date: "2026-05-20"
+validity_days: 30

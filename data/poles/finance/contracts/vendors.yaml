@@ -1,0 +1,13 @@
+# Contrats fournisseurs — seed fictif S5. Le vendor_contract_watcher calcule la
+# date butoir d'annulation (= renewal_date - notice_period_days) et alerte avant.
+contracts:
+  - vendor: OVHcloud
+    renewal_date: 2026-09-01
+    notice_period_days: 60
+    monthly_cost_eur: 12.00
+    notes: hébergement omnividens.fr (tacite reconduction annuelle)
+  - vendor: GitHub Team
+    renewal_date: 2027-01-01
+    notice_period_days: 30
+    monthly_cost_eur: 21.00
+    notes: plan équipe

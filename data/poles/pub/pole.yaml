@@ -1,0 +1,28 @@
+# Pôle 3 — Pub (acquisition payante). Rempli en session S3 (archi v2).
+# Pub est EN AVAL de la Veille (tendances/pricing), du Marketing (ton/keywords)
+# et de la Finance (budget). Finance n'a pas encore de mémoire : la lecture
+# cross-pôle est défensive (le pôle est déclaré lisible, absent du contexte tant
+# qu'il n'écrit rien). Son agent synthétise un plan d'actions borné par le
+# circuit breaker ad_spend_runaway ; ses 2 scripts écrivent leur mémoire.
+id: pub
+name: Pub
+description: >-
+  Acquisition payante : créas A/B, optimisation des campagnes et garde-fous
+  budget (shadow par défaut, D-026). Lit Veille + Marketing pour aligner le
+  message et Finance pour le budget. L'agent planifie, le breaker
+  ad_spend_runaway tranche, ad_bot ne pousse qu'en shadow.
+agent:
+  name: PubAgent
+  trigger: cron
+  skills:
+    - ads-creative
+    - ads-optimizer
+scripts:
+  - id: ads_optimizer
+    description: CSV de campagnes → recos chiffrées (€/sem) + jauge budget + breaker.
+    schedule: "0 6 * * 1"
+  - id: ad_bot
+    description: Pousseur shadow (créas validées + recos appliquées), bridé par le breaker.
+    schedule: "0 */6 * * *"
+reads_cross_pole: [veille, marketing, finance]
+front_tools: [memory_table, validation_queue, alert_card]

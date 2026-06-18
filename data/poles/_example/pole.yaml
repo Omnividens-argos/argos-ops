@@ -1,0 +1,17 @@
+# Pôle jouet `_example` — démonstration du socle archi v2.
+# Préfixe `_` => exclu des 8 onglets cockpit et de list_poles(). Sert de gabarit
+# copiable. Implémentations : argos_ops/poles/example/.
+id: _example
+name: Exemple (jouet)
+description: >-
+  Pôle de démonstration du flux script -> mémoire -> agent. Le script heartbeat
+  écrit un fait, l'agent ExampleAgent le relit et agit dessus.
+agent:
+  name: ExampleAgent
+  trigger: cron
+  skills: []
+scripts:
+  - id: heartbeat
+    description: Écrit un fait heartbeat déterministe en mémoire.
+reads_cross_pole: []
+front_tools: [memory_table]

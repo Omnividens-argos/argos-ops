@@ -1,0 +1,29 @@
+# DB journalistes / médias cyber — répertoire founder-maintained (mode shadow,
+# aucun scraping). Audité par le script Marketing `media_list_builder`.
+# DONNÉES D'EXEMPLE FICTIVES (seed S2 archi v2).
+contacts:
+  - slug: lemag-cyber-dupont
+    name: Claire Dupont
+    outlet: LeMagIT
+    beat: cyber
+    email: claire.dupont@example-press.fr
+  - slug: zdnet-fr-martin
+    name: Hugo Martin
+    outlet: ZDNet France
+    beat: tech
+    email: hugo.martin@example-press.fr
+  - slug: usine-digitale-bernard
+    name: Sophie Bernard
+    outlet: L'Usine Digitale
+    beat: business
+    email: sophie.bernard@example-press.fr
+  - slug: nextinpact-leroy
+    name: Antoine Leroy
+    outlet: Next
+    beat: cyber
+    email: ""
+  - slug: podcast-nolimitsecu-petit
+    name: Marie Petit
+    outlet: NoLimitSecu (podcast)
+    beat: ""
+    email: marie.petit@example-press.fr

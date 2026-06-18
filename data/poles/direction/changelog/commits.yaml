@@ -1,0 +1,26 @@
+# Snapshot de commits (export `git log --pretty=format:%h%x09%s`). Local-first :
+# le pôle ne lance pas `git log` (non déterministe) — il lit ce snapshot et groupe
+# les conventional commits. Cf. argos_ops.poles.direction.changelog.
+from_ref: v0.5.0
+to_ref: HEAD
+commits:
+  - sha: 836ef6e
+    subject: "feat(archi-v2): pôle Finance & Conformité complet (16 modules + cockpit)"
+  - sha: 87eada7
+    subject: "feat(archi-v2): pôle Vente & RC complet (12 scripts + VenteAgent + Bloctel gate)"
+  - sha: d48efb8
+    subject: "feat(archi-v2): pôle Pub complet (PubAgent + breaker + cockpit)"
+  - sha: d95a757
+    subject: "feat(archi-v2): pôle Marketing complet (3 scripts + MarketingAgent + 12 skills)"
+  - sha: 017e118
+    subject: "feat(archi-v2): pôle Veille complet (9 scripts + VeilleAgent + cockpit)"
+  - sha: aa11bb2
+    subject: "fix(finance): rapprochement bancaire — payout orphelin mal apparié"
+  - sha: cc33dd4
+    subject: "fix(vente): gel Bloctel non levé après reset manuel"
+  - sha: ee55ff6
+    subject: "perf(veille): cache des snapshots concurrents (-40% temps de run)"
+  - sha: 11aa22b
+    subject: "docs(archi-v2): plan de session S0→S9 + conventions pôle/agent/script"
+  - sha: 33bb44c
+    subject: "refactor(poles): factorisation du socle mémoire fichier"

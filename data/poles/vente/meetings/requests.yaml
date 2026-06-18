@@ -1,0 +1,22 @@
+# Demandes de RDV démo Argos (pôle Vente). Saisi à la main ou via réponse inbox.
+# MeetingBooker drafte une confirmation + une invitation iCal pour chaque pending.
+# status : pending | drafted | sent | cancelled. Données FICTIVES de démo.
+
+requests:
+  - request_id: "rdv-acme-2026-06-20"
+    attendee_email: "marc.dupont@acme-securite.fr"
+    attendee_name: "Marc Dupont"
+    company: "Acme Sécurité"
+    starts_at: "2026-06-20T14:00:00+00:00"
+    duration_minutes: 30
+    location: "Visio (Jitsi — lien envoyé H-2)"
+    status: "pending"
+
+  - request_id: "rdv-techstart-2026-06-19"
+    attendee_email: "sarah.martin@techstart.io"
+    attendee_name: "Sarah Martin"
+    company: "TechStart"
+    starts_at: "2026-06-19T10:00:00+00:00"
+    duration_minutes: 45
+    location: "Visio (Whereby — lien envoyé H-2)"
+    status: "pending"

@@ -1,0 +1,62 @@
+# Inbox entrante Argos — source du tri EmailBot (pôle Vente). Ingérée à la main
+# ou (plus tard) par connecteur IMAP D-018. Le bot classe + mémorise ; il ne
+# répond jamais seul. Données FICTIVES de démo.
+
+messages:
+  - id: "msg-2026-0601"
+    from_email: "achats@nouvelle-pme.fr"
+    from_name: "Camille Roux"
+    subject: "Demande de devis Argos Pro"
+    body: >-
+      Bonjour, on cherche une solution de scan continu pour nos applis.
+      Pouvez-vous m'envoyer un devis et vos tarifs ? On vise une démo rapidement.
+    received_at: "2026-06-17"
+    status: "new"
+
+  - id: "msg-2026-0602"
+    from_email: "dev@startup-cloud.io"
+    from_name: "Yanis Benali"
+    subject: "Intégration Argos dans notre CI ?"
+    body: >-
+      Comment intégrer Argos à notre pipeline GitLab CI ? Avez-vous une
+      documentation sur l'API et les webhooks ?
+    received_at: "2026-06-17"
+    status: "new"
+
+  - id: "msg-2026-0603"
+    from_email: "gerant@bricolage-sarl.fr"
+    from_name: "Patrick Lemoine"
+    subject: "Problème : le scan ne finit pas"
+    body: >-
+      Bonjour, depuis hier mon scan reste bloqué et ne se termine jamais.
+      C'est gênant, pouvez-vous regarder ?
+    received_at: "2026-06-16"
+    status: "new"
+
+  - id: "msg-2026-0604"
+    from_email: "rh@candidat-exemple.fr"
+    from_name: "Léa Petit"
+    subject: "Candidature spontanée — développeuse sécurité"
+    body: >-
+      Bonjour, je vous envoie ma candidature spontanée et mon CV pour
+      rejoindre votre équipe. Bien cordialement.
+    received_at: "2026-06-16"
+    status: "new"
+
+  - id: "msg-2026-0605"
+    from_email: "noreply@promo-crypto.example"
+    from_name: "Crypto Deals"
+    subject: "Gagnez du bitcoin maintenant !!!"
+    body: "Offre exclusive casino crypto, gagnez gros, cliquez vite loterie."
+    received_at: "2026-06-15"
+    status: "new"
+
+  - id: "msg-2026-0606"
+    from_email: "dpo@grand-compte.fr"
+    from_name: "Nadia Fournier"
+    subject: "Question Argos — réponse humaine svp"
+    body: >-
+      Bonjour, j'ai une question sensible sur le traitement de nos données.
+      Merci de me répondre par un humain, pas de bot ni d'IA s'il vous plaît.
+    received_at: "2026-06-17"
+    status: "new"

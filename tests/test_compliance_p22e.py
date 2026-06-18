@@ -128,18 +128,14 @@ def test_is_phone_on_bloctel_no_match(tmp_path: Path) -> None:
 
 
 def test_is_phone_on_bloctel_missing_file(tmp_path: Path) -> None:
-    assert not is_phone_on_bloctel(
-        "0612345678", bloctel_list_path=tmp_path / "nope.txt"
-    )
+    assert not is_phone_on_bloctel("0612345678", bloctel_list_path=tmp_path / "nope.txt")
 
 
 def test_is_phone_on_bloctel_normalizes_list_entries(tmp_path: Path) -> None:
     """Liste avec format non normalisé doit quand même matcher."""
     list_path = tmp_path / "bloctel.txt"
     list_path.write_text("06.12.34.56.78\n# comment ignored\n", encoding="utf-8")
-    assert is_phone_on_bloctel(
-        "+33 6 12 34 56 78", bloctel_list_path=list_path
-    )
+    assert is_phone_on_bloctel("+33 6 12 34 56 78", bloctel_list_path=list_path)
 
 
 # =============================================================================

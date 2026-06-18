@@ -1,0 +1,67 @@
+# Pôle 5 — Finance & Conformité. Rempli en session S5 (archi v2). Encaisse
+# (Stripe/MRR, dunning), anticipe (forecast cash, burn/runway), déclare (TVA CA3,
+# IS) et garantit la conformité (registre RGPD, classification AI Act, incidents,
+# échéances de contrats). EN AVAL de la Vente (un deal gagné → facture + nouveau
+# traitement RGPD à enregistrer). Son agent synthétise un plan d'actions priorisé ;
+# le garde-fou « Python tranche » est la conformité : tant qu'un traitement PII
+# n'est pas au registre RGPD ou qu'un agent IA est « prohibited »/non classifié,
+# l'onboarding de tout nouveau traitement (facturation d'un nouveau client) est
+# GELÉ (analogue du gel Bloctel de la Vente / du breaker ad_spend_runaway de Pub).
+# Les faits « docs fiscaux/légaux » (CA3, IS, registre RGPD/AI Act, incidents,
+# échéances contrat) sont écrits avec le flag `important` — protégés du nettoyage.
+# Ses 11 scripts déterministes écrivent leur mémoire ; l'agent agit dessus.
+id: finance
+name: Finance & Conformité
+description: >-
+  Stripe/MRR, relances dunning, prévisions cash (forecast 30/60/90j), burn &
+  runway, rapprochement bancaire, audit des dépenses, TVA CA3 + IS, registre RGPD,
+  classification AI Act, incidents et échéances de contrats. Lit la Vente (deals
+  gagnés → facturation). L'agent priorise les actions ; la conformité tranche.
+agent:
+  name: FinanceAgent
+  trigger: cron
+  skills:
+    - dunning-writer
+    - cashflow-forecast
+    - ca3-prep
+    - rgpd-registry
+    - ai-act-classifier
+    - contract-doc
+    - reconcile-helper
+    - expense-triage
+scripts:
+  - id: finance_bot
+    description: Snapshot Stripe (subs/factures) → MRR/ARR + classification dunning J+3/J+7/J+15 (shadow, aucun envoi).
+    schedule: "0 8 * * *"
+  - id: invoice_predictor
+    description: Forecast cash flow 30/60/90j depuis les subs actives → docs/forecast_<date>.md.
+    schedule: "0 8 * * *"
+  - id: expense_auditor
+    description: Parse le dernier CSV Qonto + anomalies (outlier/doublon/nouveau vendor), met à jour le journal vendors.
+    schedule: "0 7 * * 1"
+  - id: reconcile_bot
+    description: Rapproche les payouts Stripe avec les crédits Qonto (matchés / orphelins).
+    schedule: "0 7 * * 1"
+  - id: burn_rate_monitor
+    description: Lit l'état trésorerie déclaré → net burn + runway (important si runway < seuil d'alerte).
+    schedule: "0 8 * * 1"
+  - id: vendor_contract_watcher
+    description: Échéances d'annulation des contrats fournisseurs (tacite reconduction), important si urgent/raté.
+    schedule: "0 8 * * 1"
+  - id: tax_bot
+    description: Drafte la TVA CA3 mensuelle + IS prévisionnel (proxy MRR) → fait fiscal important.
+    schedule: "0 9 1 * *"
+  - id: rgpd_auditor
+    description: Valide le registre RGPD (complétude des traitements) → fait légal important, gèle si gap.
+    schedule: "0 6 * * 1"
+  - id: ai_act_compliance
+    description: Valide la classification AI Act des agents (registre) → fait légal important, gèle si prohibited.
+    schedule: "0 6 * * 1"
+  - id: contract_deadline
+    description: Échéances de renouvellement des contrats clients (60j), important si urgent/expiré.
+    schedule: "0 8 * * 1"
+  - id: incident_logger
+    description: Recense les post-mortems d'incidents sécurité (registre légal), fait important par incident ouvert.
+    schedule: null
+reads_cross_pole: [vente]
+front_tools: [memory_table, alert_card]

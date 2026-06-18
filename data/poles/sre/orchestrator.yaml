@@ -1,0 +1,9 @@
+# Réglages runtime de l'orchestrateur SRE (chef de fleet déterministe). S8.
+# max_concurrent : nb max de scripts lancés en parallèle en mode live (sémaphore).
+# daily_limits : plafond de runs/jour par script (compté sur le runlog), garde-fou
+# anti-emballement. Absent ⇒ illimité.
+max_concurrent: 2
+daily_limits:
+  uptime_monitor: 200
+  fleet_watchdog: 12
+  dns_guard: 12

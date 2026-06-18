@@ -1,0 +1,7 @@
+# État trésorerie déclaré par le fondateur — seed fictif S5. Le burn_rate_monitor
+# en déduit net_burn + runway (alerte si runway < 6 mois ou burn > cap).
+cash_balance_eur: 48000.00
+monthly_burn_eur: 9500.00
+monthly_revenue_eur: 1200.00
+snapshot_date: 2026-06-15
+burn_cap_eur: 12000.00

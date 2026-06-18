@@ -1,0 +1,14 @@
+daily_budget_eur: 300.0
+runaway_multiplier: 1.5
+window_days: 7
+spend:
+  per_day_eur: 284.29
+  window_eur: 1990.0
+  by_platform:
+    google_search: 1290.0
+    linkedin_sponsored: 700.0
+breaker:
+  tripped: false
+  reason: null
+  tripped_at: null
+updated_at: '2026-06-17T14:22:42.617518+00:00'

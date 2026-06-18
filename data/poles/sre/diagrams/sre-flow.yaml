@@ -1,0 +1,31 @@
+# Spec de diagramme (diagram_generator) → génère docs/diagrams/sre-flow.md (Mermaid).
+# Démontre le flux du pôle SRE. S8, D-017.
+title: Pôle SRE — flux script → journal → cockpit
+direction: LR
+nodes:
+  - id: cron
+    label: Cron / Orchestrateur
+  - id: script
+    label: BaseSreScript.check()
+  - id: runlog
+    label: runlog.jsonl
+  - id: memory
+    label: Mémoire du script
+  - id: cockpit
+    label: Cockpit (onglet SRE)
+edges:
+  - from: cron
+    to: script
+    label: lance
+  - from: script
+    to: runlog
+    label: journalise
+  - from: script
+    to: memory
+    label: écrit le constat
+  - from: runlog
+    to: cockpit
+    label: statut + perf
+  - from: memory
+    to: cockpit
+    label: faits

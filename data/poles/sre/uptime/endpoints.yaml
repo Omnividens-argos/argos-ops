@@ -1,0 +1,9 @@
+# Endpoints publics surveillés par uptime_monitor (ping HTTP) + ssl_expirer
+# (expiration TLS des URLs HTTPS). Archi v2, S8. 100 % local-first (D-017).
+endpoints:
+  - name: Site public
+    url: https://omnividens.fr/
+  - name: Analytics (Umami)
+    url: https://analytics.omnividens.fr/
+  - name: Admin Control Panel
+    url: https://ops.omnividens.fr/

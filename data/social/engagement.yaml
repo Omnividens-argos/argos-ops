@@ -1,0 +1,35 @@
+# Métriques d'engagement social — alimenté par export manuel (CSV → YAML) ou via
+# les APIs analytics quand les tokens sont disponibles. Lu par le script
+# Marketing `social_analytics` et le panneau stats du cockpit (fenêtre 7j).
+# DONNÉES D'EXEMPLE FICTIVES (seed S2 archi v2).
+posts:
+  - posted_at: "2026-06-16T08:30:00Z"
+    platform: linkedin
+    url: "https://www.linkedin.com/feed/update/example-1"
+    impressions: 1840
+    engagements: 96
+    clicks: 41
+  - posted_at: "2026-06-13T09:10:00Z"
+    platform: linkedin
+    url: "https://www.linkedin.com/feed/update/example-2"
+    impressions: 1320
+    engagements: 71
+    clicks: 28
+  - posted_at: "2026-06-15T18:05:00Z"
+    platform: mastodon
+    url: "https://infosec.exchange/@argos/example-1"
+    impressions: 640
+    engagements: 7
+    clicks: 3
+  - posted_at: "2026-06-14T12:00:00Z"
+    platform: x
+    url: "https://x.com/argos/status/example-1"
+    impressions: 2200
+    engagements: 58
+    clicks: 31
+  - posted_at: "2026-06-12T17:40:00Z"
+    platform: bluesky
+    url: "https://bsky.app/profile/argos/post/example-1"
+    impressions: 410
+    engagements: 4
+    clicks: 1

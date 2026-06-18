@@ -1,0 +1,16 @@
+# Registre AI Act des systèmes IA — seed fictif S5. L'ai_act_compliance valide la
+# classe de risque de chaque système (minimal/limited/high/prohibited). Un système
+# 'prohibited' ou un registre absent gèle l'onboarding (« Python tranche »).
+systemes:
+  - nom: FinanceAgent
+    role: synthèse d'un plan d'actions finance (le LLM propose, Python tranche)
+    risk_class: minimal
+  - nom: VenteAgent
+    role: priorisation commerciale + drafting de réponses
+    risk_class: limited
+  - nom: MarketingAgent
+    role: drafting de contenu social/blog (humain valide)
+    risk_class: limited
+  - nom: claude-judge
+    role: audit de drafts avant validation humaine
+    risk_class: minimal
