@@ -1072,3 +1072,197 @@ export function updateOkr(
 export function fetchDirectionDoc(name: string): Promise<{ name: string; content: string }> {
   return getJSON<{ name: string; content: string }>(`${D}/docs/${encodeURIComponent(name)}`);
 }
+
+// =============================================================================
+// Pôle Mémoire (S7) — miroir des schemas Pydantic de api/memoire.py.
+// =============================================================================
+export interface MemoirePoleStat {
+  pole: string;
+  name: string;
+  active: boolean;
+  n_facts: number;
+  n_important: number;
+  n_scripts: number;
+  scripts: string[];
+  last_activity: string | null;
+  n_candidates: number;
+}
+
+export interface MemoirePolicy {
+  protect_important: boolean;
+  active_for: string[];
+  protected_kinds: string[];
+  protected_tags: string[];
+  protected_sources: string[];
+  default_ttl_days: number;
+  keep_recent_per_kind: number;
+  min_stale_days: number;
+}
+
+export interface WiringEdge {
+  source: string;
+  target: string;
+  via_wildcard: boolean;
+  target_facts: number;
+}
+
+export interface WiringAnomaly {
+  kind: string; // orphan | self_reference | empty_target | unread_producer
+  pole: string;
+  detail: string;
+  severity: string; // info | warning
+}
+
+export interface WiringAudit {
+  generated_at: string;
+  poles: string[];
+  edges: WiringEdge[];
+  anomalies: WiringAnomaly[];
+  should_alert: boolean;
+  summary: string;
+  n_edges: number;
+  n_warning: number;
+}
+
+export interface MemoireHistoryItem {
+  script: string;
+  record_id: string;
+  kind: string;
+  reason: string;
+}
+
+export interface MemoireHistoryEntry {
+  at: string;
+  pole: string;
+  actor: string;
+  deleted: MemoireHistoryItem[];
+  refused: MemoireHistoryItem[];
+  n_deleted: number;
+  n_refused: number;
+}
+
+export interface MemoireCounts {
+  poles_total: number;
+  poles_active: number;
+  facts_total: number;
+  important_total: number;
+  candidates_total: number;
+  wiring_warnings: number;
+}
+
+export interface MemoireOverview {
+  pole: string;
+  generated_at: string;
+  policy: MemoirePolicy;
+  poles: MemoirePoleStat[];
+  wiring: WiringAudit;
+  history: MemoireHistoryEntry[];
+  counts: MemoireCounts;
+}
+
+export interface MemoireBrowse {
+  pole: string | null;
+  records: MemoryFact[];
+  poles: string[];
+  scripts: string[];
+  kinds: string[];
+  total: number;
+  important: number;
+}
+
+export interface DeletionCandidate {
+  pole: string;
+  script: string;
+  record_id: string;
+  kind: string;
+  created_at: string;
+  age_days: number;
+  reason: string; // expired | stale
+  detail: string;
+  body_preview: string;
+}
+
+export interface ProtectedFact {
+  pole: string;
+  script: string;
+  record_id: string;
+  kind: string;
+  created_at: string;
+  age_days: number;
+  reason: string; // important | pattern
+  would_delete: boolean;
+  would_delete_reason: string | null;
+  detail: string;
+  body_preview: string;
+}
+
+export interface CurationPlan {
+  pole: string;
+  active: boolean;
+  generated_at: string;
+  scanned: number;
+  kept: number;
+  n_delete: number;
+  n_protected: number;
+  n_important: number;
+  n_saved_from_delete: number;
+  to_delete: DeletionCandidate[];
+  protected: ProtectedFact[];
+}
+
+export interface CleanupResult {
+  pole: string;
+  requested: number;
+  n_deleted: number;
+  n_refused: number;
+  skipped: number;
+  deleted: MemoireHistoryItem[];
+  refused: MemoireHistoryItem[];
+}
+
+const MEM = "/api/poles/memoire";
+
+export function fetchMemoireOverview(signal?: AbortSignal): Promise<MemoireOverview> {
+  return getJSON<MemoireOverview>(`${MEM}/overview`, signal);
+}
+
+export function browseMemoire(
+  params: { pole?: string; script?: string; q?: string; important?: boolean },
+  signal?: AbortSignal,
+): Promise<MemoireBrowse> {
+  const qs = new URLSearchParams();
+  if (params.pole) qs.set("pole", params.pole);
+  if (params.script) qs.set("script", params.script);
+  if (params.q) qs.set("q", params.q);
+  if (params.important !== undefined) qs.set("important", String(params.important));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return getJSON<MemoireBrowse>(`${MEM}/browse${suffix}`, signal);
+}
+
+export function fetchMemoirePlan(pole: string, signal?: AbortSignal): Promise<CurationPlan> {
+  return getJSON<CurationPlan>(`${MEM}/plan?pole=${encodeURIComponent(pole)}`, signal);
+}
+
+export function flagMemoireFact(payload: {
+  pole: string;
+  script: string;
+  record_id: string;
+  important: boolean;
+}): Promise<MemoryFact> {
+  return postJSON<MemoryFact>(`${MEM}/flag`, payload);
+}
+
+export function cleanMemoire(payload: {
+  pole: string;
+  targets: { script: string; record_id: string }[];
+}): Promise<CleanupResult> {
+  return postJSON<CleanupResult>(`${MEM}/clean`, payload);
+}
+
+export function updateMemoirePolicy(pole: string, active: boolean): Promise<MemoirePolicy> {
+  return putJSON<MemoirePolicy>(`${MEM}/policy`, { pole, active });
+}
+
+export function fetchMemoireWiring(signal?: AbortSignal): Promise<WiringAudit> {
+  return getJSON<WiringAudit>(`${MEM}/wiring`, signal);
+}

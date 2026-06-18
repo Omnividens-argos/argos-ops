@@ -1,16 +1,27 @@
-# Politique de la Mémoire (pôle 7) — archi v2.
+# Politique de la Mémoire (pôle 7) — archi v2 (S7).
 #
-# L'agent Mémoire est déclenché par script (cf. agent.trigger: script dans
-# pole.yaml). Il applique sa curation (archive du périmé, purge du très vieux
-# déjà archivé) UNIQUEMENT sur les pôles listés dans `active_for`, et ne touche
-# JAMAIS un fait flaggé `important` quand `protect_important: true`.
-#
-# Détail de la logique de curation : session S7.
-protect_important: true
-active_for:
+# L'agent Mémoire (déclenché par script) PROPOSE une liste « safe to delete » ;
+# le script `memory_cleaner` est le seul à supprimer, et uniquement la liste
+# VALIDÉE par l'humain. La curation ne s'applique qu'aux pôles de `active_for`
+# (un pôle absent n'est JAMAIS nettoyé). Un fait `important` (si
+# protect_important) ou matchant un pattern protégé n'est JAMAIS supprimable,
+# quel que soit son âge. Géré aussi depuis le cockpit (onglet Mémoire).
+
+# --- Protection -------------------------------------------------------------
+protect_important: true        # un fait `important` n'est jamais supprimable.
+active_for:                    # pôles soumis à la curation (curation OFF ailleurs).
   - veille
   - marketing
   - pub
   - vente
   - finance
   - direction
+protected_kinds: []            # kinds jamais nettoyés même sans flag (ex. decision).
+protected_tags: []             # tags jamais nettoyés (ET avec les autres protections).
+protected_sources: []          # sources (script) dont la mémoire est jamais nettoyée.
+
+# --- Rétention (définit le périmé / stale) ----------------------------------
+default_ttl_days: 180          # âge > TTL ⇒ périmé (expired). Override par kind ci-dessous.
+ttl_by_kind: {}                # ex. {signal: 30, snapshot: 14}.
+keep_recent_per_kind: 5        # nb de versions récentes gardées par (script, kind).
+min_stale_days: 30             # filet : un fait < ce seuil n'est jamais « stale ».

@@ -38,9 +38,11 @@ from argos_ops.poles.config import (
 from argos_ops.poles.memory import (
     MemoryRecord,
     compute_record_id,
+    delete_memory,
     flag_important,
     read_memory,
     read_pole_memory,
+    read_record,
     script_memory_dir,
     write_memory,
 )
@@ -64,6 +66,7 @@ __all__ = [
     "ScriptSpec",
     "ScriptStatus",
     "compute_record_id",
+    "delete_memory",
     "flag_important",
     "list_poles",
     "load_all_poles",
@@ -72,6 +75,7 @@ __all__ = [
     "pole_dir",
     "read_memory",
     "read_pole_memory",
+    "read_record",
     "run_script",
     "script_memory_dir",
     "write_memory",

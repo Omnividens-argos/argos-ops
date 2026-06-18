@@ -1,15 +1,32 @@
-# Pôle 7 — Mémoire. Squelette archi v2 (rempli en session S7).
+# Pôle 7 — Mémoire (archi v2, rempli en session S7).
 # Agent particulier : déclenché PAR UN SCRIPT (trigger: script), pas par
-# l'orchestrateur. Périmètre d'action piloté par policy.yaml (voisin).
+# l'orchestrateur. Lit un pôle ciblé EN ENTIER, protège l'`important` + les
+# patterns (policy.yaml), et PROPOSE une liste « safe to delete » ; il ne
+# supprime jamais lui-même. Le script `memory_cleaner` est le SEUL bras de la
+# flotte autorisé à supprimer un fait, et n'exécute que la liste VALIDÉE par
+# l'humain (double garde-fou : re-lecture live + appartenance au plan).
+# Périmètre d'action piloté par policy.yaml (voisin). reads_cross_pole "*" pour
+# pouvoir scanner/auditer n'importe quel pôle de la flotte.
 id: memoire
 name: Mémoire
 description: >-
-  Concierge de la mémoire de flotte : protège l'important, archive le périmé,
-  purge le très vieux déjà archivé. Seul pôle autorisé à supprimer un fait.
+  Concierge de la mémoire de flotte : protège l'important, identifie le périmé /
+  stale, et propose une liste « safe to delete » que seul le cleaner exécute,
+  après validation humaine. Audite aussi le câblage inter-pôles (reads_cross_pole).
+  Seul pôle autorisé à supprimer un fait.
 agent:
   name: MemoireAgent
   trigger: script
   skills: []
-scripts: []
+scripts:
+  - id: memory_scan
+    description: Réveille MemoireAgent par pôle actif → propose un plan de curation (fait curation-plan).
+    schedule: "0 4 * * *"
+  - id: memory_cleaner
+    description: Exécute les files validées (suppression gardée). Seul bras autorisé à supprimer un fait.
+    schedule: "30 4 * * *"
+  - id: capability_router
+    description: Audite le câblage reads_cross_pole de la flotte → fait wiring-audit (important si warning).
+    schedule: "0 5 * * 1"
 reads_cross_pole: ["*"]
 front_tools: [memory_table]

@@ -212,7 +212,10 @@ async def read_memory(
             )
         except Exception as exc:  # best-effort, comme fleet_memory
             logger.warning(f"memory read — fichier illisible {path} : {type(exc).__name__}: {exc}")
-    records.sort(key=lambda r: r.created_at, reverse=True)
+    # Tiebreaker ``id`` : ordre TOTAL et déterministe quand plusieurs faits
+    # partagent le même ``created_at`` (sinon l'ordre du glob filesystem fuiterait
+    # dans le tri — non reproductible d'une machine à l'autre).
+    records.sort(key=lambda r: (r.created_at, r.id), reverse=True)
     return records
 
 
@@ -244,6 +247,46 @@ async def flag_important(
     path.write_text(_record_to_markdown(updated), encoding="utf-8")
     logger.debug(f"flag_important — {pole}/{script}/{record_id} → {important}")
     return updated
+
+
+async def read_record(
+    pole: str, script: str, record_id: str, *, poles_root: Path = POLES_DIR
+) -> MemoryRecord | None:
+    """Relit un fait précis (par id). ``None`` s'il n'existe pas ou est illisible.
+
+    Brique de **re-vérification** du pôle Mémoire : avant toute suppression, le
+    cleaner relit le fait sur disque pour décider à partir de l'état réel (et non
+    d'un plan possiblement périmé), garde-fou de l'invariant « un fait
+    ``important`` n'est jamais supprimable ».
+    """
+    path = _record_path(pole, script, record_id, poles_root=poles_root)
+    if not path.exists():
+        return None
+    try:
+        return _record_from_markdown(path.read_text(encoding="utf-8"), pole=pole, script=script)
+    except Exception as exc:  # best-effort, comme read_memory
+        logger.warning(f"read_record — fichier illisible {path} : {type(exc).__name__}: {exc}")
+        return None
+
+
+async def delete_memory(
+    pole: str, script: str, record_id: str, *, poles_root: Path = POLES_DIR
+) -> bool:
+    """Supprime **définitivement** un fait (hard delete). Irréversible.
+
+    Renvoie ``True`` si le fichier existait et a été supprimé, ``False`` sinon.
+    Primitive **bas niveau, sans garde-fou** : la protection de l'``important``
+    vit dans le pôle Mémoire (seul autorisé à supprimer — cf.
+    :mod:`argos_ops.poles.memoire.cleaner`), qui re-vérifie chaque fait via
+    :func:`read_record` avant d'appeler cette fonction. Ne JAMAIS appeler
+    ailleurs sans cette re-vérification.
+    """
+    path = _record_path(pole, script, record_id, poles_root=poles_root)
+    if not path.exists():
+        return False
+    path.unlink()
+    logger.info(f"memory delete — {pole}/{script}/{record_id} (hard delete)")
+    return True
 
 
 def list_script_memories(pole: str, *, poles_root: Path = POLES_DIR) -> list[str]:

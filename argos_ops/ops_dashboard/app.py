@@ -59,6 +59,7 @@ from argos_ops.ops_dashboard import atelier, atelier_audit, atelier_history, aut
 from argos_ops.ops_dashboard.api.direction import router as direction_router
 from argos_ops.ops_dashboard.api.finance import router as finance_router
 from argos_ops.ops_dashboard.api.marketing import router as marketing_router
+from argos_ops.ops_dashboard.api.memoire import router as memoire_router
 from argos_ops.ops_dashboard.api.poles import router as poles_router
 from argos_ops.ops_dashboard.api.pub import router as pub_router
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
@@ -733,6 +734,13 @@ app.include_router(finance_router)
 # « Python tranche » : gel de PUBLICATION (release notes/changelog/roadmap) tant
 # qu'un bug P0 est ouvert ou qu'un pôle est en santé critique.
 app.include_router(direction_router)
+
+# Pôle Mémoire (S7) — navigateur mémoire par pôle/script, plan de curation
+# (PREVIEW du périmé/stale), toggle du flag `important`, suppression VALIDÉE
+# (gardée : un fait important est toujours refusé), config d'activation par pôle,
+# audit du câblage reads_cross_pole et historique des passages du cleaner. Seul
+# pôle autorisé à supprimer un fait — « Python tranche » via le double garde-fou.
+app.include_router(memoire_router)
 
 
 # =============================================================================

@@ -10,6 +10,7 @@ import type { FrontTool, PoleDef } from "./poles.ts";
 import { DirectionPage } from "./direction/DirectionPage.tsx";
 import { FinancePage } from "./finance/FinancePage.tsx";
 import { MarketingPage } from "./marketing/MarketingPage.tsx";
+import { MemoirePage } from "./memoire/MemoirePage.tsx";
 import { PubPage } from "./pub/PubPage.tsx";
 import { VeillePage } from "./veille/VeillePage.tsx";
 import { VentePage } from "./vente/VentePage.tsx";
@@ -64,6 +65,9 @@ export function PolePage({ pole }: { pole: PoleDef }) {
   }
   if (pole.id === "direction") {
     return <DirectionPage />;
+  }
+  if (pole.id === "memoire") {
+    return <MemoirePage />;
   }
   return (
     <div className="flex flex-col gap-6">
