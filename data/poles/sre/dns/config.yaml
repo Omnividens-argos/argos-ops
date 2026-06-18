@@ -1,0 +1,11 @@
+# Surveillance DNS (dns_guard) — résout ces enregistrements et diffe vs snapshot.
+# Un changement sur une clé `critical_keys` (A racine / MX) est rouge. S8, D-017.
+domains:
+  - omnividens.fr
+record_types:
+  - A
+  - MX
+  - TXT
+critical_keys:
+  - omnividens.fr:A
+  - omnividens.fr:MX

@@ -62,6 +62,7 @@ from argos_ops.ops_dashboard.api.marketing import router as marketing_router
 from argos_ops.ops_dashboard.api.memoire import router as memoire_router
 from argos_ops.ops_dashboard.api.poles import router as poles_router
 from argos_ops.ops_dashboard.api.pub import router as pub_router
+from argos_ops.ops_dashboard.api.sre import router as sre_router
 from argos_ops.ops_dashboard.api.stripe_webhook import router as stripe_router
 from argos_ops.ops_dashboard.api.vente import router as vente_router
 from argos_ops.ops_dashboard.cohorts import compute_cohorts
@@ -741,6 +742,12 @@ app.include_router(direction_router)
 # audit du câblage reads_cross_pole et historique des passages du cleaner. Seul
 # pôle autorisé à supprimer un fait — « Python tranche » via le double garde-fou.
 app.include_router(memoire_router)
+
+# Pôle SRE / Meta-Ops (S8) — aucun agent : statut temps réel des 13 scripts cron
+# (vert/jaune/rouge), historique des runs (runlog), perf P50/P95, planning cron,
+# breakers (+ reset/trip), kill-switch (global + par script), et plan de
+# l'orchestrateur déterministe. 100 % fichiers / local-first.
+app.include_router(sre_router)
 
 
 # =============================================================================

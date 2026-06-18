@@ -1266,3 +1266,153 @@ export function updateMemoirePolicy(pole: string, active: boolean): Promise<Memo
 export function fetchMemoireWiring(signal?: AbortSignal): Promise<WiringAudit> {
   return getJSON<WiringAudit>(`${MEM}/wiring`, signal);
 }
+
+// =============================================================================
+// Pôle SRE & Meta-Ops (S8) — miroir des schemas Pydantic de api/sre.py.
+// =============================================================================
+export type SreSeverity = "green" | "yellow" | "red";
+
+export interface SreScriptStatus {
+  script: string;
+  description: string;
+  schedule: string | null;
+  health: SreSeverity;
+  last_status: string | null; // success | failed | skipped
+  last_severity: SreSeverity | null;
+  last_summary: string | null;
+  last_run_at: string | null;
+  age_hours: number | null;
+  next_run_at: string | null;
+  due: boolean;
+  stale: boolean;
+  frozen: boolean;
+  breaker_tripped: boolean;
+  p50_ms: number | null;
+  p95_ms: number | null;
+  n_runs: number;
+  runnable: boolean;
+}
+
+export interface SreRun {
+  at: string;
+  script: string;
+  status: string; // success | failed | skipped
+  severity: SreSeverity;
+  duration_ms: number;
+  summary: string;
+  error: string | null;
+}
+
+export interface SreBreaker {
+  name: string;
+  tripped: boolean;
+  reason: string | null;
+  tripped_at: string | null;
+  age_hours: number | null;
+}
+
+export interface SreKillSwitch {
+  frozen: boolean;
+  reason: string | null;
+  frozen_scripts: string[];
+  updated_at: string | null;
+}
+
+export interface SreScheduleEntry {
+  pole: string;
+  script: string;
+  schedule: string | null;
+  last_run_at: string | null;
+  next_run_at: string | null;
+  due: boolean;
+  missed: number;
+}
+
+export interface SreDecision {
+  script: string;
+  verdict: string; // launch | skipped_*
+  reason: string;
+  schedule: string | null;
+  last_run_at: string | null;
+  next_run_at: string | null;
+  runs_today: number;
+  daily_limit: number | null;
+  runnable: boolean;
+}
+
+export interface SrePlan {
+  generated_at: string;
+  dry_run: boolean;
+  max_concurrent: number;
+  summary: string;
+  to_launch: number;
+  decisions: SreDecision[];
+}
+
+export interface SreCounts {
+  scripts_total: number;
+  green: number;
+  yellow: number;
+  red: number;
+  frozen: number;
+  breakers_tripped: number;
+  due_now: number;
+  runs_24h: number;
+}
+
+export interface SreOverview {
+  pole: string;
+  generated_at: string;
+  health: SreSeverity;
+  counts: SreCounts;
+  scripts: SreScriptStatus[];
+  breakers: SreBreaker[];
+  killswitch: SreKillSwitch;
+  schedule: SreScheduleEntry[];
+  plan: SrePlan;
+  recent_runs: SreRun[];
+}
+
+export interface SreRunResult {
+  script: string;
+  status: string;
+  summary: string | null;
+  error: string | null;
+}
+
+const SRE = "/api/poles/sre";
+
+export function fetchSreOverview(signal?: AbortSignal): Promise<SreOverview> {
+  return getJSON<SreOverview>(`${SRE}/overview`, signal);
+}
+
+export function fetchSreRuns(
+  params: { script?: string; limit?: number },
+  signal?: AbortSignal,
+): Promise<SreRun[]> {
+  const qs = new URLSearchParams();
+  if (params.script) qs.set("script", params.script);
+  if (params.limit) qs.set("limit", String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return getJSON<SreRun[]>(`${SRE}/runs${suffix}`, signal);
+}
+
+export function runSreScript(script: string): Promise<SreRunResult> {
+  return postJSON<SreRunResult>(`${SRE}/run/${encodeURIComponent(script)}`, {});
+}
+
+export function resetSreBreaker(name: string): Promise<SreBreaker> {
+  return postJSON<SreBreaker>(`${SRE}/breakers/${encodeURIComponent(name)}/reset`, {});
+}
+
+export function tripSreBreaker(name: string, reason: string): Promise<SreBreaker> {
+  return postJSON<SreBreaker>(`${SRE}/breakers/${encodeURIComponent(name)}/trip`, { reason });
+}
+
+export function setSreKillswitch(frozen: boolean, reason?: string): Promise<SreKillSwitch> {
+  return postJSON<SreKillSwitch>(`${SRE}/killswitch`, { frozen, reason: reason ?? null });
+}
+
+export function setSreKillswitchScript(script: string, frozen: boolean): Promise<SreKillSwitch> {
+  return postJSON<SreKillSwitch>(`${SRE}/killswitch/script`, { script, frozen });
+}

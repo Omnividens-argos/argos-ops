@@ -1,0 +1,90 @@
+# Baseline figée de la config de la flotte (bot_config_manager diffe la config
+# live des pole.yaml vs cette baseline). Régénérer après tout changement validé
+# de pôle/script/cadence. S8, D-017.
+poles:
+  direction:
+    agent: DirectionAgent
+    scripts:
+      board_reporter: 0 9 1 * *
+      bug_triage: 0 7 * * *
+      changelog_bot: 0 9 * * 1
+      decision_logger: null
+      digest_builder: 0 8 * * *
+      feedback_aggregator: 0 9 * * 1
+      okr_tracker: 0 8 * * 1
+      roadmap_publisher: 0 9 * * 1
+      strategy_bot: 0 8 * * 1
+  finance:
+    agent: FinanceAgent
+    scripts:
+      ai_act_compliance: 0 6 * * 1
+      burn_rate_monitor: 0 8 * * 1
+      contract_deadline: 0 8 * * 1
+      expense_auditor: 0 7 * * 1
+      finance_bot: 0 8 * * *
+      incident_logger: null
+      invoice_predictor: 0 8 * * *
+      reconcile_bot: 0 7 * * 1
+      rgpd_auditor: 0 6 * * 1
+      tax_bot: 0 9 1 * *
+      vendor_contract_watcher: 0 8 * * 1
+  marketing:
+    agent: MarketingAgent
+    scripts:
+      content_bot: 0 */2 * * *
+      media_list_builder: 0 8 * * 1
+      social_analytics: 0 7 * * 1
+  memoire:
+    agent: MemoireAgent
+    scripts:
+      capability_router: 0 5 * * 1
+      memory_cleaner: 30 4 * * *
+      memory_scan: 0 4 * * *
+  pub:
+    agent: PubAgent
+    scripts:
+      ad_bot: 0 */6 * * *
+      ads_optimizer: 0 6 * * 1
+  sre:
+    agent: null
+    scripts:
+      adr_writer: 30 7 * * *
+      backup_verifier: 0 4 * * *
+      bot_config_manager: 15 */6 * * *
+      ci_flake_tracker: 30 5 * * *
+      dependency_auditor: 0 5 * * *
+      diagram_generator: 0 8 * * 1
+      dns_guard: 30 */6 * * *
+      doc_linter: 0 7 * * 1
+      fleet_watchdog: 0 */6 * * *
+      kill_switch_operator: 0 */4 * * *
+      secret_rotator: 0 5 * * 1
+      ssl_expirer: 0 6 * * *
+      uptime_monitor: '*/15 * * * *'
+  veille:
+    agent: VeilleAgent
+    scripts:
+      breach_watcher: 0 8 * * *
+      competitor_watcher: 0 7 * * 1
+      cve_monitor: 0 10 * * *
+      darkweb_monitor: 0 11 * * *
+      intent_signals: 0 14 * * *
+      keyword_radar: 0 13 * * 1
+      press_monitor: 0 12 * * *
+      regulatory_watcher: 0 9 * * *
+      trend_spotter: 0 6 * * *
+  vente:
+    agent: VenteAgent
+    scripts:
+      bloctel_guard: 0 5 * * *
+      churn_predictor: 0 8 * * *
+      contract_generator: 0 11 * * *
+      email_bot: '*/15 * * * *'
+      escalation_router: 0 */2 * * *
+      health_score: 0 8 * * *
+      lead_enricher: 0 7 * * 1
+      meeting_booker: '*/30 * * * *'
+      outbound_sender: 0 9 * * 1-5
+      proposal_bot: 0 10 * * *
+      prospect_miner: 0 6 * * 1
+      upsell_spotter: 0 8 * * 1

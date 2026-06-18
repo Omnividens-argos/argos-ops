@@ -12,6 +12,7 @@ import { FinancePage } from "./finance/FinancePage.tsx";
 import { MarketingPage } from "./marketing/MarketingPage.tsx";
 import { MemoirePage } from "./memoire/MemoirePage.tsx";
 import { PubPage } from "./pub/PubPage.tsx";
+import { SrePage } from "./sre/SrePage.tsx";
 import { VeillePage } from "./veille/VeillePage.tsx";
 import { VentePage } from "./vente/VentePage.tsx";
 
@@ -68,6 +69,9 @@ export function PolePage({ pole }: { pole: PoleDef }) {
   }
   if (pole.id === "memoire") {
     return <MemoirePage />;
+  }
+  if (pole.id === "sre") {
+    return <SrePage />;
   }
   return (
     <div className="flex flex-col gap-6">

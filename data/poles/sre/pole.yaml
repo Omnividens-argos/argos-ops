@@ -1,12 +1,58 @@
-# Pôle 8 — SRE / Meta-Ops. Squelette archi v2 (rempli en session S8).
-# AUCUN agent (agent: null) : uniquement des scripts en cron auto (watchers,
-# uptime, backups, secrets). Le `schedule` de chaque script porte la cadence.
+# Pôle 8 — SRE / Meta-Ops (archi v2, rempli en session S8).
+# AUCUN agent (agent: null) : 13 bras déterministes en cron auto (watchers /
+# auditeurs / générateurs). Chaque script implémente un check() pur ; le socle
+# SRE en dérive un fait mémoire + une ligne de journal (runlog.jsonl) qui
+# alimente le cockpit (statut temps réel, perf P50/P95, historique, breakers,
+# kill-switch). L'orchestrateur (argos_ops/poles/sre/orchestrator.py) décide
+# quels scripts tourner (cadence cron + breakers + kill-switch + daily_limit).
+# Le champ `schedule` (cron 5 champs) est la cadence canonique de la flotte.
+# 100 % fichiers / local-first (D-017), aucune DB, aucune API LLM.
 id: sre
 name: SRE & Meta-Ops
 description: >-
-  Santé de la flotte : watchers santé/perf/erreurs, uptime, backups, rotation
-  des secrets. Pas de cerveau LLM — déterministe de bout en bout.
+  Santé de la flotte : watchers (santé/perf/erreurs/anomalies, uptime, SSL, DNS),
+  auditeurs (deps/CVE, secrets, backups, flaky CI, dérive de config) et
+  générateurs (diagrammes, ADR). Aucun cerveau LLM — déterministe de bout en bout.
 agent: null
-scripts: []
+scripts:
+  - id: fleet_watchdog
+    description: SRE unifié — santé/freshness · perf P50/P95 · triage erreurs · anomalie de volume, en 1 passe sur le runlog + freshness mémoire de flotte.
+    schedule: "0 */6 * * *"
+  - id: uptime_monitor
+    description: Ping les endpoints publics (data/poles/sre/uptime/endpoints.yaml) — rouge si down, jaune si 4xx.
+    schedule: "*/15 * * * *"
+  - id: ssl_expirer
+    description: Vérifie l'expiration des certificats TLS des endpoints HTTPS (rouge < 7j, jaune < 30j).
+    schedule: "0 6 * * *"
+  - id: dns_guard
+    description: Diffe les enregistrements DNS (A/MX/TXT) vs snapshot — rouge si A racine / MX changent.
+    schedule: "30 */6 * * *"
+  - id: dependency_auditor
+    description: Scanne les dépendances (uv export) et interroge OSV.dev — alerte HIGH/CRITICAL.
+    schedule: "0 5 * * *"
+  - id: secret_rotator
+    description: Alerte sur les secrets > 90j (jaune) / > 180j (rouge) depuis rotation_log.yaml (noms + dates, jamais de valeurs).
+    schedule: "0 5 * * 1"
+  - id: backup_verifier
+    description: Vérifie qu'un backup récent existe (rouge > 72h ou absent, jaune > 24h).
+    schedule: "0 4 * * *"
+  - id: ci_flake_tracker
+    description: Repère les jobs CI flaky (≥ 20% d'échecs ET ≥ 3 sur les 50 derniers runs) depuis l'historique GitHub Actions.
+    schedule: "30 5 * * *"
+  - id: bot_config_manager
+    description: Diffe la config live des pole.yaml vs data/poles/sre/config/baseline.yaml — dérive de scripts/cadence/agent.
+    schedule: "15 */6 * * *"
+  - id: doc_linter
+    description: Détecte les liens internes morts (fichier / ancre) dans docs/, README.md, CLAUDE.md.
+    schedule: "0 7 * * 1"
+  - id: diagram_generator
+    description: Génère les diagrammes Mermaid (docs/diagrams/<slug>.md) depuis les specs data/poles/sre/diagrams/<slug>.yaml.
+    schedule: "0 8 * * 1"
+  - id: adr_writer
+    description: Drafte les ADR en attente (data/poles/sre/adr/queue/<slug>.yaml) au format MADR dans docs/adr/ADR-NNNN-<slug>.md.
+    schedule: "30 7 * * *"
+  - id: kill_switch_operator
+    description: Surveille les breakers armés trop longtemps (jaune ≥ 4h, rouge ≥ 24h) et rappelle le reset cockpit.
+    schedule: "0 */4 * * *"
 reads_cross_pole: []
 front_tools: [alert_card]
