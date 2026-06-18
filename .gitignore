@@ -51,6 +51,11 @@ data/strategy/board-*.md
 data/editorial/queue-*.yaml
 # Journal d'audit atelier (Axe 4) — prompts + IP locaux, jamais committé
 data/atelier_audit/
+# État runtime des pôles (archi v2) — journaux / registres générés à l'exécution
+data/poles/fleet_runlog.jsonl
+data/poles/sre/runlog.jsonl
+data/poles/sre/breakers.yaml
+data/poles/sre/killswitch.yaml
 logs/
 *.db
 *.sqlite

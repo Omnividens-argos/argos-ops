@@ -56,9 +56,7 @@ def test_list_age_malformed(tmp_path: Path) -> None:
 def test_load_lead_phones_csv(tmp_path: Path) -> None:
     csv = tmp_path / "leads.csv"
     csv.write_text(
-        "email,phone,name\n"
-        "a@b.com,0612345678,Alice\n"
-        "c@d.com,,Bob\n",
+        "email,phone,name\na@b.com,0612345678,Alice\nc@d.com,,Bob\n",
         encoding="utf-8",
     )
     out = load_lead_phones(csv)
