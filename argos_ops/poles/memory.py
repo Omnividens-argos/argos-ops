@@ -118,9 +118,12 @@ def _record_to_markdown(record: MemoryRecord) -> str:
 def _parse_dt(value: object) -> datetime | None:
     if value is None:
         return None
-    if isinstance(value, datetime):
-        return value
-    return datetime.fromisoformat(str(value))
+    dt = value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
+    # Normalise en aware/UTC : un ``created_at`` saisi sans fuseau (ou une date nue
+    # ``YYYY-MM-DD``) donnerait un datetime naïf, et le tri mémoire (récent →
+    # vieux) mélangeant naïf et aware lève un TypeError — fatal pour la lecture
+    # transversale de la Direction (un seul fait mal saisi tuerait tout le snapshot).
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
 
 
 def _record_from_markdown(content: str, *, pole: str, script: str) -> MemoryRecord:

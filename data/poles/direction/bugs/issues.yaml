@@ -1,0 +1,20 @@
+# Issues ouvertes (export `gh issue list --json` ou saisie manuelle). Triées
+# localement par mots-clés (P0/P1/P2) — cf. argos_ops.poles.direction.bugs. Pas de
+# `github_repo` ici : le bras du pôle reste pur (aucun fetch GitHub). Un bug P0
+# ouvert GÈLE la publication d'artefacts publics (garde-fou release).
+issues:
+  - number: 42
+    title: "Vulnérabilité XSS sur le rapport de scan partagé"
+    body: "Un rapport partagé via lien public rend du HTML non échappé issu du nom de domaine scanné. Risque XSS stocké."
+    labels: ["bug", "security"]
+    opened_at: 2026-06-16
+  - number: 43
+    title: "Crash du scanner sur les très gros domaines"
+    body: "Le scanner crash (timeout + OOM) au-delà de ~5000 sous-domaines. Régression depuis la v0.5."
+    labels: ["bug"]
+    opened_at: 2026-06-14
+  - number: 44
+    title: "Améliorer le wording de la page pricing"
+    body: "La grille tarifaire prête à confusion entre les plans Pro et Business."
+    labels: ["enhancement"]
+    opened_at: 2026-06-10

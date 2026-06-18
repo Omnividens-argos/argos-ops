@@ -1,0 +1,27 @@
+# OKR trimestriels — Q2 2026 (pôle Direction). Source de vérité = saisie founder.
+# Le pôle compare chaque key result au prorata temporis du trimestre
+# (argos_ops.poles.direction.okr.load_current). Éditable depuis le cockpit (PUT).
+quarter: 2026-Q2
+year: 2026
+quarter_num: 2
+objectives:
+  - title: Atteindre 10 000 € de MRR en fin de Q2
+    key_results:
+      - name: MRR fin de trimestre
+        target: 10000
+        actual: 4500
+        unit: EUR
+      - name: Nouveaux clients signés
+        target: 8
+        actual: 3
+        unit: clients
+  - title: Industrialiser la flotte d'agents (archi v2)
+    key_results:
+      - name: Pôles archi v2 livrés
+        target: 8
+        actual: 6
+        unit: pôles
+      - name: Couverture de tests
+        target: 90
+        actual: 88
+        unit: "%"

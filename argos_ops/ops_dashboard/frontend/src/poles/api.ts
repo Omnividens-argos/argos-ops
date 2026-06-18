@@ -861,3 +861,214 @@ export function draftDunning(
 export function exportAccounting(): Promise<{ path: string; csv: string }> {
   return postJSON<{ path: string; csv: string }>(`${FN}/export/accounting`, {});
 }
+
+// =============================================================================
+// Pôle Direction (S6) — miroir des schemas Pydantic de api/direction.py.
+// =============================================================================
+export interface PoleHealthOut {
+  pole: string;
+  name: string;
+  n_facts: number;
+  n_important: number;
+  n_critical: number;
+  n_warning: number;
+  last_activity: string | null;
+  health: string; // critical | warning | healthy | idle
+  headline: string | null;
+  scripts: string[];
+}
+
+export interface FleetOut {
+  generated_at: string;
+  poles: PoleHealthOut[];
+  total_facts: number;
+  total_important: number;
+  total_critical: number;
+  poles_red: number;
+  poles_yellow: number;
+  poles_active: number;
+  worst_health: string;
+}
+
+export interface SynthesisOut {
+  headline: string;
+  narrative: string;
+  highlights: string[];
+  risks: string[];
+}
+
+export interface KeyResultOut {
+  objective: string;
+  name: string;
+  target: number;
+  actual: number;
+  unit: string;
+  status: string; // off_track | at_risk | on_track | completed
+  progress_pct: number;
+  expected_pct: number;
+}
+
+export interface OkrOut {
+  quarter: string;
+  summary: string;
+  should_alert: boolean;
+  key_results: KeyResultOut[];
+}
+
+export interface BoardOut {
+  period: string;
+  mrr_eur: number;
+  arr_eur: number;
+  burn_eur: number | null;
+  runway_months: number | null;
+  nrr_pct: number | null;
+  runs_month: number;
+  breakers_tripped: number;
+  incidents_month: number;
+}
+
+export interface PlanOut {
+  severity: string; // info | warning | critical
+  kind: string;
+  action: string;
+  detail: string;
+  pole: string;
+  suppressed_by_release: boolean;
+}
+
+export interface DecisionOut {
+  decision_id: string;
+  title: string;
+  decision_date: string;
+  partie: string;
+  decision: string;
+}
+
+export interface SectionCount {
+  type: string;
+  count: number;
+}
+
+export interface ChangelogOut {
+  period_label: string;
+  n_commits: number;
+  n_sections: number;
+  section_counts: SectionCount[];
+  markdown: string;
+}
+
+export interface RoadmapOut {
+  entries_total: number;
+  done: number;
+  partial: number;
+  roadmap: number;
+  services: number;
+  markdown: string;
+}
+
+export interface FeedbackThemeOut {
+  topic: string;
+  count: number;
+  sources: string[];
+  customers: string[];
+}
+
+export interface FeedbackOut {
+  items_total: number;
+  themes: FeedbackThemeOut[];
+}
+
+export interface TriagedIssueOut {
+  number: number;
+  title: string;
+  severity: string; // P0 | P1 | P2
+  suggested_label: string;
+  reason: string;
+}
+
+export interface BugsOut {
+  issues_total: number;
+  p0: number;
+  p1: number;
+  p2: number;
+  triaged: TriagedIssueOut[];
+}
+
+export interface DocOut {
+  name: string;
+  kind: string;
+  has_pdf: boolean;
+}
+
+export interface DirectionCounts {
+  poles_active: number;
+  poles_red: number;
+  fleet_critical: number;
+  okr_off_track: number;
+  okr_at_risk: number;
+  bugs_p0: number;
+  feedback_recurring: number;
+  decisions: number;
+  actions_planned: number;
+  actions_critical: number;
+  release_blocking: boolean;
+}
+
+export interface DirectionOverview {
+  pole: string;
+  generated_at: string;
+  fleet: FleetOut;
+  synthesis: SynthesisOut;
+  okr: OkrOut;
+  board: BoardOut;
+  plan: PlanOut[];
+  decisions: DecisionOut[];
+  changelog: ChangelogOut;
+  roadmap: RoadmapOut;
+  feedback: FeedbackOut;
+  bugs: BugsOut;
+  docs: DocOut[];
+  release_blocking: boolean;
+  release_reason: string;
+  counts: DirectionCounts;
+}
+
+const D = "/api/poles/direction";
+
+export function fetchDirectionOverview(signal?: AbortSignal): Promise<DirectionOverview> {
+  return getJSON<DirectionOverview>(`${D}/overview`, signal);
+}
+
+export function generateDirectionDoc(
+  kind: string, // board | roadmap | changelog | release_notes
+): Promise<{ name: string; kind: string; has_pdf: boolean }> {
+  return postJSON(`${D}/docs/generate`, { kind });
+}
+
+export function exportBoard(): Promise<{ path: string; markdown: string }> {
+  return postJSON<{ path: string; markdown: string }>(`${D}/board/export`, {});
+}
+
+export function addDecision(payload: {
+  title: string;
+  partie?: string;
+  decision: string;
+  pourquoi: string;
+  implication_technique?: string | null;
+  annule?: string | null;
+  action_de_suivi?: string | null;
+}): Promise<DecisionOut> {
+  return postJSON<DecisionOut>(`${D}/decisions`, payload);
+}
+
+export function updateOkr(
+  objective: string,
+  name: string,
+  actual: number,
+): Promise<OkrOut> {
+  return putJSON<OkrOut>(`${D}/okr`, { objective, name, actual });
+}
+
+export function fetchDirectionDoc(name: string): Promise<{ name: string; content: string }> {
+  return getJSON<{ name: string; content: string }>(`${D}/docs/${encodeURIComponent(name)}`);
+}

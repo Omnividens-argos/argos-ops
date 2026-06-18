@@ -1,0 +1,8 @@
+# KPIs board pack maintenus par le fondateur (analogue de data/strategy/burn.yaml).
+# Le pôle Direction assemble ces chiffres finance + les compteurs d'opérations
+# dérivés de la vue d'ensemble flotte. Cf. argos_ops.poles.direction.board.
+mrr_eur: 4500
+burn_eur: 1800
+runway_months: 5.8
+nrr_pct: 104.0
+incidents_month: 1

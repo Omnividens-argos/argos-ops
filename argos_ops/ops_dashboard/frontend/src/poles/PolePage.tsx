@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { Badge } from "../components/ui.tsx";
 import { AlertCardEmpty, MemoryTable, ValidationQueue } from "./components/index.ts";
 import type { FrontTool, PoleDef } from "./poles.ts";
+import { DirectionPage } from "./direction/DirectionPage.tsx";
 import { FinancePage } from "./finance/FinancePage.tsx";
 import { MarketingPage } from "./marketing/MarketingPage.tsx";
 import { PubPage } from "./pub/PubPage.tsx";
@@ -60,6 +61,9 @@ export function PolePage({ pole }: { pole: PoleDef }) {
   }
   if (pole.id === "finance") {
     return <FinancePage />;
+  }
+  if (pole.id === "direction") {
+    return <DirectionPage />;
   }
   return (
     <div className="flex flex-col gap-6">

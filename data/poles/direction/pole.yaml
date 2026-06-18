@@ -1,13 +1,62 @@
-# Pôle 6 — Direction. Squelette archi v2 (rempli en session S6).
+# Pôle 6 — Direction. Rempli en session S6 (archi v2). Pilote, arbitre et rend des
+# comptes : c'est le pôle TRANSVERSAL. Son agent lit la mémoire de TOUS les autres
+# pôles (reads_cross_pole: ["*"]) pour en faire une vue d'ensemble — santé de la
+# flotte, OKR vs prorata temporis, board pack, journal des décisions, changelog,
+# roadmap publique, feedback produit, triage des bugs. Le garde-fou « Python
+# tranche » est le GEL DE PUBLICATION : tant qu'un bug P0 est ouvert OU qu'un pôle
+# est en santé critique, la publication d'un artefact public (release notes /
+# changelog / roadmap) est GELÉE (analogue du gel Bloctel de la Vente / de la
+# conformité de la Finance / du breaker ad_spend_runaway de Pub). Les faits de
+# gouvernance (décisions, board pack, OKR off-track, bug P0, feedback récurrent)
+# sont écrits avec le flag `important` — protégés du nettoyage. Ses 9 scripts
+# déterministes écrivent leur mémoire ; l'agent agit dessus + synthétise la semaine.
 id: direction
 name: Direction
 description: >-
-  Pilotage de la flotte : OKR, stratégie, board pack. Vision transversale —
-  lit la mémoire de tous les pôles (reads_cross_pole = "*").
+  Pilotage transversal de la flotte : digest hebdo/quotidien consolidé tous pôles,
+  OKR vs prorata, board pack exportable, journal des décisions, changelog, roadmap
+  publique, feedback produit, triage des bugs. Lit TOUS les pôles (vue d'ensemble).
+  L'agent synthétise un récit + un plan d'oversight ; le gel de publication tranche.
 agent:
   name: DirectionAgent
   trigger: cron
-  skills: []
-scripts: []
+  skills:
+    - release-notes
+    - weekly-synthesis
+    - okr-review
+    - board-pack
+    - decision-log
+    - changelog
+    - roadmap-publish
+    - feedback-arbitrage
+    - bug-triage
+scripts:
+  - id: strategy_bot
+    description: Digest hebdomadaire consolidé de la flotte (santé par pôle) → fait strategy.
+    schedule: "0 8 * * 1"
+  - id: digest_builder
+    description: Digest quotidien (morning digest) de la flotte → fait digest.
+    schedule: "0 8 * * *"
+  - id: okr_tracker
+    description: OKR du trimestre vs prorata temporis → fait okr par key result en retard (important si off_track).
+    schedule: "0 8 * * 1"
+  - id: board_reporter
+    description: Board pack mensuel (MRR/burn/runway/NRR + ops flotte) → markdown pandoc-ready + fait board important.
+    schedule: "0 9 1 * *"
+  - id: decision_logger
+    description: Recense le journal des décisions structurantes → fait decision important par décision.
+    schedule: null
+  - id: changelog_bot
+    description: Changelog depuis le snapshot de commits (conventional commits groupés) → fait changelog (publication gardée).
+    schedule: "0 9 * * 1"
+  - id: feedback_aggregator
+    description: Agrège le feedback produit par thème → fait feedback (important si récurrent ≥ 2 mentions).
+    schedule: "0 9 * * 1"
+  - id: roadmap_publisher
+    description: État de la roadmap publique depuis l'Annexe D locale → fait roadmap (publication gardée).
+    schedule: "0 9 * * 1"
+  - id: bug_triage
+    description: Trie les issues par sévérité (P0/P1/P2) → fait bug P0 (important) / P1. P0 ouvert ⇒ gel publication.
+    schedule: "0 7 * * *"
 reads_cross_pole: ["*"]
 front_tools: [memory_table, alert_card]

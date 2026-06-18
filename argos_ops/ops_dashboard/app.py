@@ -56,6 +56,7 @@ from argos_ops.crm.repository import (
 )
 from argos_ops.logging import redact_secrets
 from argos_ops.ops_dashboard import atelier, atelier_audit, atelier_history, auth, console
+from argos_ops.ops_dashboard.api.direction import router as direction_router
 from argos_ops.ops_dashboard.api.finance import router as finance_router
 from argos_ops.ops_dashboard.api.marketing import router as marketing_router
 from argos_ops.ops_dashboard.api.poles import router as poles_router
@@ -725,6 +726,13 @@ app.include_router(vente_router)
 # registres RGPD + AI Act, génération de docs (CA3/devis/contrat + PDF), export
 # comptable. Garde-fou conformité (« Python tranche ») qui gèle l'onboarding.
 app.include_router(finance_router)
+
+# Pôle Direction (S6) — vue d'ensemble flotte (santé par pôle), synthèse de la
+# semaine, plan d'oversight, OKR vs prorata, board pack exportable, journal des
+# décisions, changelog, roadmap publique, feedback, triage des bugs. Garde-fou
+# « Python tranche » : gel de PUBLICATION (release notes/changelog/roadmap) tant
+# qu'un bug P0 est ouvert ou qu'un pôle est en santé critique.
+app.include_router(direction_router)
 
 
 # =============================================================================
