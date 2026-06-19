@@ -1,38 +1,24 @@
-import {
-  Activity,
-  Archive,
-  ArrowRight,
-  Banknote,
-  BookOpen,
-  Brain,
-  HeartPulse,
-  Inbox,
-  Kanban,
-  Layers,
-  LayoutDashboard,
-  Play,
-  Search,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Layers, LayoutDashboard, Play, Search, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { View } from "../App";
+import type { Route } from "../routes.ts";
+import { TOOLS } from "../routes.ts";
+import { POLES } from "../poles/poles.ts";
 import { AGENT_CATEGORIES } from "../lib/agentCatalog";
 
 // Command Palette façon Linear / Slack / VSCode (Ctrl+K).
 // Trois familles d'action :
-//   - Navigate     → bascule la View principale (Today, Inbox, Agents…)
-//   - Open bot     → ouvre BotDetail pour un des 79 bots du catalogue
+//   - Navigate     → bascule la route (Accueil, pôles, outils globaux)
+//   - Open bot     → ouvre BotDetail pour un des bots du catalogue
 //   - Run bot now  → déclenche un run via /api/agents/.../runs (RUNNABLE only)
 //
 // Fuzzy-ish matching simple (substring case-insensitive) + ranking par
-// type (navigate > open > run pour égal score). Évite de ramener une
-// lib lourde (cmdk/Fuse). Suffit pour 100 items.
+// type (navigate > open > run pour égal score).
 
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
-  onNavigate: (view: View) => void;
+  onNavigate: (route: Route) => void;
   onOpenBot: (name: string) => void;
   onRunBot: (name: string) => Promise<void>;
   /** Set des noms d'agents déclenchables manuellement (Run now). */
@@ -68,100 +54,32 @@ export function CommandPalette({
   const allActions = useMemo<Action[]>(() => {
     const out: Action[] = [
       {
-        id: "nav:today",
+        id: "nav:home",
         type: "navigate",
-        label: "Aujourd'hui",
-        hint: "Vue d'accueil — alertes + drafts à valider",
+        label: "Accueil",
+        hint: "Dashboard global cross-pôle",
         icon: LayoutDashboard,
-        keywords: "today accueil dashboard home overview",
-        run: () => onNavigate("today"),
+        keywords: "home accueil dashboard overview vue ensemble",
+        run: () => onNavigate({ kind: "home" }),
       },
-      {
-        id: "nav:inbox",
+      ...POLES.map<Action>((p) => ({
+        id: `nav:pole:${p.id}`,
         type: "navigate",
-        label: "Inbox — drafts à valider",
-        hint: "File des contenus en attente humaine",
-        icon: Inbox,
-        keywords: "inbox drafts validate review queue",
-        run: () => onNavigate("inbox"),
-      },
-      {
-        id: "nav:agents",
-        type: "navigate",
-        label: "Catalogue d'agents",
-        hint: "79 bots × 12 services",
-        icon: Activity,
-        keywords: "agents bots flotte catalog catalogue services",
-        run: () => onNavigate("agents"),
-      },
-      {
-        id: "nav:cash",
-        type: "navigate",
-        label: "Cash & Clients",
-        hint: "MRR / ARR / abonnements / leads / tickets",
-        icon: Banknote,
-        keywords:
-          "cash mrr arr revenue stripe abonnements subscriptions leads tickets finance clients customers",
-        run: () => onNavigate("cash"),
-      },
-      {
-        id: "nav:pipeline",
-        type: "navigate",
-        label: "Pipeline commercial",
-        hint: "Kanban des deals + scoring stalled / at risk",
-        icon: Kanban,
-        keywords:
-          "pipeline deals kanban sales commercial pipe stalled risk discovery demo proposal contract won lost",
-        run: () => onNavigate("pipeline"),
-      },
-      {
-        id: "nav:health",
-        type: "navigate",
-        label: "Health & Compliance",
-        hint: "DB, runs, agents, breakers, AI Act, RGPD, Bloctel",
-        icon: HeartPulse,
-        keywords:
-          "health compliance breakers disjoncteurs ai act rgpd gdpr bloctel pii kill switch reset trip",
-        run: () => onNavigate("health"),
-      },
-      {
-        id: "nav:runs",
-        type: "navigate",
-        label: "Historique des runs",
-        hint: "Chronologie des exécutions",
+        label: p.name,
+        hint: p.description,
         icon: Layers,
-        keywords: "runs logs history historique executions",
-        run: () => onNavigate("runs"),
-      },
-      {
-        id: "nav:outputs",
+        keywords: `pole pôle ${p.id} ${p.name} ${p.agent ?? ""}`,
+        run: () => onNavigate({ kind: "pole", id: p.id }),
+      })),
+      ...TOOLS.map<Action>((t) => ({
+        id: `nav:tool:${t.id}`,
         type: "navigate",
-        label: "Outputs library",
-        hint: "Tous les drafts produits — pending + validés + rejetés + posted",
-        icon: Archive,
-        keywords:
-          "outputs library archive drafts contents files markdown produit produced",
-        run: () => onNavigate("outputs"),
-      },
-      {
-        id: "nav:memory",
-        type: "navigate",
-        label: "Mémoire de flotte",
-        hint: "Tous les faits retenus par les bots — filtre, épingle, archive, supprime",
-        icon: Brain,
-        keywords:
-          "memory memoire flotte fleet facts faits souvenirs pin epingle archive supprime ttl curator",
-        run: () => onNavigate("memory"),
-      },
-      {
-        id: "nav:help",
-        type: "navigate",
-        label: "Aide & glossaire",
-        hint: "Termes techniques, raccourcis, relance onboarding",
-        icon: BookOpen,
-        keywords: "help aide glossary glossaire onboarding shortcut raccourci",
-        run: () => onNavigate("help"),
-      },
+        label: t.name,
+        hint: t.description,
+        icon: t.icon,
+        keywords: `${t.id} ${t.name} outil global tool`,
+        run: () => onNavigate({ kind: "tool", id: t.id }),
+      })),
     ];
 
     // Tous les bots actifs du catalogue.
@@ -272,7 +190,7 @@ export function CommandPalette({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Tape une action — ex : « run uptime », « inbox », « finance »…"
+            placeholder="Tape une action — ex : « veille », « inbox », « run uptime »…"
             className="flex-1 bg-transparent border-none outline-none text-sm text-argos-fg placeholder:text-argos-fg-disabled"
             onKeyDown={(e) => {
               if (e.key === "ArrowDown") {
@@ -307,7 +225,7 @@ export function CommandPalette({
                 Rien ne match « {query} »
               </div>
               <div className="font-mono text-[11px] text-argos-fg-tertiary mt-1">
-                Essaie un nom d'agent ou « run », « inbox », « breaker »…
+                Essaie un nom d'agent ou « run », « inbox », « veille »…
               </div>
             </div>
           ) : (
