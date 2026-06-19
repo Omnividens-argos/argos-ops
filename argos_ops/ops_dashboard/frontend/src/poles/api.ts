@@ -1426,6 +1426,93 @@ export function updateMemoirePolicy(pole: string, active: boolean): Promise<Memo
   return putJSON<MemoirePolicy>(`${MEM}/policy`, { pole, active });
 }
 
+export function updatePolicyRetention(payload: {
+  pole: string;
+  active: boolean;
+  protect_important?: boolean;
+  default_ttl_days?: number;
+  keep_recent_per_kind?: number;
+  min_stale_days?: number;
+}): Promise<MemoirePolicy> {
+  return putJSON<MemoirePolicy>(`${MEM}/policy`, payload);
+}
+
+export interface PendingDeletion {
+  pole: string;
+  script: string;
+  record_id: string;
+}
+
+export function approveDeletions(
+  pole: string,
+  targets: { script: string; record_id: string }[],
+): Promise<{ pole: string; pending: number }> {
+  return postJSON<{ pole: string; pending: number }>(`${MEM}/plan/approve`, { pole, targets });
+}
+
+export function fetchPendingDeletions(pole?: string, signal?: AbortSignal): Promise<PendingDeletion[]> {
+  const q = pole ? `?pole=${encodeURIComponent(pole)}` : "";
+  return getJSON<PendingDeletion[]>(`${MEM}/plan/pending${q}`, signal);
+}
+
+// Finance — registres conformité éditables (Phase 6 batch 3)
+export interface RgpdTreatment {
+  nom: string;
+  base_legale: string;
+  finalite: string;
+  donnees: string[];
+  duree_conservation: string;
+  review_date: string | null;
+  conforme: boolean;
+  issues: string[];
+}
+
+export function addRgpdTreatment(payload: {
+  nom: string;
+  base_legale: string;
+  finalite: string;
+  donnees: string[];
+  duree_conservation: string;
+  review_date?: string | null;
+}): Promise<RgpdTreatment> {
+  return postJSON<RgpdTreatment>(`${FN}/rgpd/treatments`, payload);
+}
+
+export function updateRgpdTreatment(
+  nom: string,
+  payload: {
+    nom: string;
+    base_legale: string;
+    finalite: string;
+    donnees: string[];
+    duree_conservation: string;
+    review_date?: string | null;
+  },
+): Promise<RgpdTreatment> {
+  return putJSON<RgpdTreatment>(`${FN}/rgpd/treatments/${encodeURIComponent(nom)}`, payload);
+}
+
+export interface AiActSystem {
+  nom: string;
+  role: string;
+  risk: string;
+}
+
+export function addAiActSystem(payload: {
+  nom: string;
+  role: string;
+  risk_class: string;
+}): Promise<AiActSystem> {
+  return postJSON<AiActSystem>(`${FN}/ai-act/systems`, payload);
+}
+
+export function updateAiActSystem(
+  nom: string,
+  payload: { nom: string; role: string; risk_class: string },
+): Promise<AiActSystem> {
+  return putJSON<AiActSystem>(`${FN}/ai-act/systems/${encodeURIComponent(nom)}`, payload);
+}
+
 export function fetchMemoireWiring(signal?: AbortSignal): Promise<WiringAudit> {
   return getJSON<WiringAudit>(`${MEM}/wiring`, signal);
 }

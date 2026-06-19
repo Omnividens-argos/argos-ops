@@ -9,9 +9,12 @@ import {
   type CleanupResult,
   type CurationPlan,
   type FactDetail,
+  type PendingDeletion,
+  approveDeletions,
   cleanMemoire,
   fetchMemoireFact,
   fetchMemoirePlan,
+  fetchPendingDeletions,
 } from "../api.ts";
 import { Badge, Button, Flash } from "../../components/ui.tsx";
 import { Modal } from "../../components/Modal.tsx";
@@ -33,6 +36,8 @@ export function CurationPreview({
   const [result, setResult] = useState<CleanupResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [approveBusy, setApproveBusy] = useState(false);
+  const [pending, setPending] = useState<PendingDeletion[]>([]);
 
   // Preview du contenu COMPLET d'un fait (candidat à suppression ou protégé),
   // pour décider en connaissance de cause avant de cocher / supprimer.
@@ -93,6 +98,22 @@ export function CurationPreview({
     return () => controller.abort();
   }, [pole, reloadKey, key]);
 
+  // Liste persistée des suppressions APPROUVÉES, en attente d'exécution par le bot.
+  useEffect(() => {
+    if (!pole) {
+      setPending([]);
+      return;
+    }
+    const controller = new AbortController();
+    fetchPendingDeletions(pole, controller.signal)
+      .then(setPending)
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setPending([]);
+      });
+    return () => controller.abort();
+  }, [pole, reloadKey]);
+
   const toggle = useCallback((k: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -125,6 +146,23 @@ export function CurationPreview({
       setBusy(false);
     }
   }, [pole, selectedTargets, onChanged]);
+
+  // PERSISTE la sélection validée comme suppressions « en attente d'exécution »
+  // (le bot tranchera côté Python), sans rien supprimer ici. Recharge le compteur.
+  const runApprove = useCallback(async () => {
+    if (!pole || selectedTargets.length === 0) return;
+    setApproveBusy(true);
+    setError(null);
+    try {
+      await approveDeletions(pole, selectedTargets);
+      const refreshed = await fetchPendingDeletions(pole);
+      setPending(refreshed);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Échec de l'approbation");
+    } finally {
+      setApproveBusy(false);
+    }
+  }, [pole, selectedTargets]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -182,15 +220,30 @@ export function CurationPreview({
                 <Trash2 className="h-3.5 w-3.5" aria-hidden /> Safe to delete (
                 {selected.size}/{plan.n_delete} sélectionné(s))
               </h3>
-              <Button
-                variant="danger"
-                size="sm"
-                disabled={busy || selected.size === 0}
-                onClick={runClean}
-              >
-                Supprimer la sélection validée
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={approveBusy || busy || selected.size === 0}
+                  onClick={runApprove}
+                >
+                  Approuver la sélection
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  disabled={busy || selected.size === 0}
+                  onClick={runClean}
+                >
+                  Supprimer la sélection validée
+                </Button>
+              </div>
             </div>
+            {pending.length > 0 && (
+              <p className="font-mono text-[10px] text-argos-fg-tertiary">
+                {pending.length} suppression(s) en attente d'exécution
+              </p>
+            )}
             {plan.to_delete.length === 0 ? (
               <div className="rounded-md border border-dashed border-argos-border-subtle bg-argos-surface px-4 py-5 text-center font-mono text-[11px] text-argos-fg-tertiary">
                 Rien à supprimer — la mémoire de ce pôle est saine.
