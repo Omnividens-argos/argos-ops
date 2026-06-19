@@ -157,6 +157,48 @@ def test_book_meeting(client: TestClient) -> None:
     assert r.json()["status"] == "drafted"
 
 
+def test_move_deal_stage(client: TestClient) -> None:
+    r = client.patch("/api/poles/vente/deals/D1/stage", json={"stage": "contract_sent"})
+    assert r.status_code == 200
+    assert r.json()["deal_id"] == "D1"
+    assert r.json()["stage"] == "contract_sent"
+    # Persisté : l'overview relit pipe.yaml et voit le nouveau stade.
+    o = client.get("/api/poles/vente/overview").json()
+    d1 = next(d for d in o["pipeline"] if d["deal_id"] == "D1")
+    assert d1["stage"] == "contract_sent"
+
+
+def test_move_deal_stage_invalid(client: TestClient) -> None:
+    r = client.patch("/api/poles/vente/deals/D1/stage", json={"stage": "negotiation"})
+    assert r.status_code == 422
+
+
+def test_move_deal_stage_unknown_deal(client: TestClient) -> None:
+    r = client.patch("/api/poles/vente/deals/ghost/stage", json={"stage": "won"})
+    assert r.status_code == 404
+
+
+def test_meeting_ics(client: TestClient) -> None:
+    assert client.post("/api/poles/vente/meetings/rdv-1/book").status_code == 200
+    r = client.get("/api/poles/vente/meetings/rdv-1/ics")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["request_id"] == "rdv-1"
+    assert body["filename"] == "rdv-1.ics"
+    assert "BEGIN:VCALENDAR" in body["ics"]
+
+
+def test_meeting_ics_regenerated_without_book(client: TestClient) -> None:
+    # Pas de book préalable → régénération à la volée.
+    r = client.get("/api/poles/vente/meetings/rdv-1/ics")
+    assert r.status_code == 200
+    assert "BEGIN:VCALENDAR" in r.json()["ics"]
+
+
+def test_meeting_ics_unknown_404(client: TestClient) -> None:
+    assert client.get("/api/poles/vente/meetings/ghost/ics").status_code == 404
+
+
 def test_draft_proposal(client: TestClient) -> None:
     r = client.post("/api/poles/vente/proposals/D1/draft")
     assert r.status_code == 200

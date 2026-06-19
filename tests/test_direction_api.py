@@ -302,6 +302,24 @@ def test_doc_not_found(client: TestClient) -> None:
     assert client.get("/api/poles/direction/docs/nope.md").status_code == 404
 
 
+def test_doc_pdf_not_found(client: TestClient) -> None:
+    # Aucun PDF rendu (pandoc absent en CI) ⇒ 404.
+    assert client.get("/api/poles/direction/docs/board_2026-06.md/pdf").status_code == 404
+    assert client.get("/api/poles/direction/docs/nope.pdf/pdf").status_code == 404
+
+
+def test_doc_pdf_served(client: TestClient, tmp_path: Path) -> None:
+    # Dépose un PDF factice dans le dossier docs ⇒ 200 + content-type PDF.
+    docs_dir = tmp_path / "direction" / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    (docs_dir / "board_2026-06.pdf").write_bytes(b"%PDF-1.4 fake")
+
+    r = client.get("/api/poles/direction/docs/board_2026-06.pdf/pdf")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/pdf"
+    assert r.content == b"%PDF-1.4 fake"
+
+
 # =============================================================================
 # Génération de docs (garde-fou release)
 # =============================================================================

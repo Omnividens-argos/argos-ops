@@ -122,6 +122,80 @@ def test_add_and_delete_flow(client: TestClient) -> None:
     assert client.request("DELETE", "/api/poles/finance/ledger/flows/ghost").status_code == 404
 
 
+def test_edit_flow(client: TestClient) -> None:
+    # Ajoute une ligne puis l'édite en place (tableur éditable).
+    add = client.post(
+        "/api/poles/finance/ledger/flows",
+        json={
+            "flow_date": "2026-06-10",
+            "label": "Pub",
+            "category": "marketing",
+            "direction": "out",
+            "amount_eur": 200,
+        },
+    )
+    assert add.status_code == 201
+    fid = add.json()["id"]
+    edit = client.put(
+        f"/api/poles/finance/ledger/flows/{fid}",
+        json={
+            "flow_date": "2026-06-10",
+            "label": "Pub LinkedIn",
+            "category": "marketing",
+            "direction": "out",
+            "amount_eur": 250,
+        },
+    )
+    assert edit.status_code == 200
+    assert edit.json()["id"] == fid  # id stable après édition
+    assert edit.json()["label"] == "Pub LinkedIn"
+    assert edit.json()["amount_eur"] == 250.0
+    # La modif est visible dans overview (recalcul à chaud).
+    flows = client.get("/api/poles/finance/overview").json()["ledger"]["flows"]
+    edited = next(f for f in flows if f["id"] == fid)
+    assert edited["label"] == "Pub LinkedIn" and edited["amount_eur"] == 250.0
+
+
+def test_edit_flow_unknown_404(client: TestClient) -> None:
+    r = client.put(
+        "/api/poles/finance/ledger/flows/ghost",
+        json={
+            "flow_date": "2026-06-10",
+            "label": "x",
+            "direction": "in",
+            "amount_eur": 10,
+        },
+    )
+    assert r.status_code == 404
+
+
+def test_edit_flow_rejects_bad_amount(client: TestClient) -> None:
+    # Crée une ligne valide puis tente de l'éditer avec un montant non positif.
+    add = client.post(
+        "/api/poles/finance/ledger/flows",
+        json={"flow_date": "2026-06-10", "label": "Pub", "direction": "out", "amount_eur": 200},
+    )
+    fid = add.json()["id"]
+    r = client.put(
+        f"/api/poles/finance/ledger/flows/{fid}",
+        json={"flow_date": "2026-06-10", "label": "Pub", "direction": "out", "amount_eur": -5},
+    )
+    assert r.status_code == 422
+
+
+def test_doc_pdf_404_when_absent(client: TestClient) -> None:
+    # Génère une CA3 (markdown) ; sans pandoc le PDF n'existe pas → 404.
+    client.post("/api/poles/finance/docs/generate", json={"kind": "ca3"})
+    docs = client.get("/api/poles/finance/overview").json()["docs"]
+    name = next(d["name"] for d in docs if d["kind"] == "ca3")
+    if any(d["has_pdf"] for d in docs if d["name"] == name):
+        pytest.skip("pandoc présent : PDF rendu, le cas 404 ne s'applique pas")
+    r = client.get(f"/api/poles/finance/docs/{name.replace('.md', '.pdf')}")
+    assert r.status_code == 404
+    # Doc totalement inconnu → 404 aussi.
+    assert client.get("/api/poles/finance/docs/ghost.pdf").status_code == 404
+
+
 def test_add_flow_rejects_negative(client: TestClient) -> None:
     r = client.post(
         "/api/poles/finance/ledger/flows",

@@ -24,6 +24,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from argos_ops.poles.config import POLES_DIR
@@ -450,6 +451,15 @@ async def get_doc(name: str) -> DocContent:
     if content is None:
         raise HTTPException(status_code=404, detail=f"Document introuvable : {name}")
     return DocContent(name=name, content=content)
+
+
+@router.get("/docs/{name}/pdf")
+async def get_doc_pdf(name: str) -> FileResponse:
+    """Sert le PDF rendu d'un document généré (binaire, téléchargement)."""
+    path = docs.resolve_pdf(name, poles_root=POLES_DIR)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"PDF introuvable : {name}")
+    return FileResponse(path, media_type="application/pdf", filename=path.name)
 
 
 # =============================================================================

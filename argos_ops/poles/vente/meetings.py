@@ -104,6 +104,22 @@ def _confirmation_body(request: MeetingRequest) -> str:
     )
 
 
+def _build_invite(request: MeetingRequest) -> str:
+    """Construit le payload ICS d'une demande de RDV (UID stable par request)."""
+    return build_ical_invite(
+        uid=f"{request.request_id}@omnividens.fr",
+        starts_at=request.starts_at,
+        duration_minutes=request.duration_minutes,
+        summary=f"Argos — RDV {request.company or request.attendee_name}",
+        description="Démo / échange Argos (Omnividens).",
+        location=request.location,
+        organizer_email=ORGANIZER_EMAIL,
+        organizer_name=ORGANIZER_NAME,
+        attendee_email=request.attendee_email,
+        attendee_name=request.attendee_name,
+    )
+
+
 def book_meeting(request_id: str, *, poles_root: Path = POLES_DIR) -> Path | None:
     """Drafte la confirmation + l'invitation iCal d'une demande de RDV.
 
@@ -116,18 +132,7 @@ def book_meeting(request_id: str, *, poles_root: Path = POLES_DIR) -> Path | Non
     if target is None:
         return None
 
-    ics = build_ical_invite(
-        uid=f"{target.request_id}@omnividens.fr",
-        starts_at=target.starts_at,
-        duration_minutes=target.duration_minutes,
-        summary=f"Argos — RDV {target.company or target.attendee_name}",
-        description="Démo / échange Argos (Omnividens).",
-        location=target.location,
-        organizer_email=ORGANIZER_EMAIL,
-        organizer_name=ORGANIZER_NAME,
-        attendee_email=target.attendee_email,
-        attendee_name=target.attendee_name,
-    )
+    ics = _build_invite(target)
     d = drafts_dir(poles_root=poles_root)
     ics_path = d / f"{request_id}.ics"
     ics_path.parent.mkdir(parents=True, exist_ok=True)
@@ -164,6 +169,30 @@ def book_meeting(request_id: str, *, poles_root: Path = POLES_DIR) -> Path | Non
     return draft_path
 
 
+def ics_filename(request_id: str) -> str:
+    """Nom de fichier canonique de l'invitation iCal d'un RDV."""
+    return f"{request_id}.ics"
+
+
+def read_ics(request_id: str, *, poles_root: Path = POLES_DIR) -> str | None:
+    """Renvoie le texte iCalendar d'un RDV, ou ``None`` si la demande est inconnue.
+
+    Best-effort : si le ``.ics`` a déjà été drafté par :func:`book_meeting`, on le
+    relit tel quel ; sinon on le régénère à la volée via :func:`build_ical_invite`
+    (sans écrire) à partir de la :class:`MeetingRequest`. Renvoie ``None`` seulement
+    si aucune demande ne porte ce ``request_id`` (le routeur le mappe en 404).
+    """
+    ics_path = drafts_dir(poles_root=poles_root) / ics_filename(request_id)
+    if ics_path.exists():
+        return ics_path.read_text(encoding="utf-8")
+    target = next(
+        (r for r in load_requests(poles_root=poles_root) if r.request_id == request_id), None
+    )
+    if target is None:
+        return None
+    return _build_invite(target)
+
+
 def pending(requests: list[MeetingRequest]) -> list[MeetingRequest]:
     """Les demandes encore à traiter (statut ``pending``)."""
     return [r for r in requests if r.status == _PENDING]
@@ -174,7 +203,9 @@ __all__ = [
     "ORGANIZER_NAME",
     "book_meeting",
     "drafts_dir",
+    "ics_filename",
     "load_requests",
     "pending",
+    "read_ics",
     "requests_path",
 ]

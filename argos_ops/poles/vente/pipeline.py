@@ -73,6 +73,39 @@ def load_deals(*, poles_root: Path = POLES_DIR) -> list[Deal]:
     return out
 
 
+class DealNotFoundError(LookupError):
+    """Aucun deal ne porte le ``deal_id`` demandé dans le pipe."""
+
+
+def set_deal_stage(deal_id: str, stage: DealStage, *, poles_root: Path = POLES_DIR) -> Deal:
+    """Déplace un deal vers ``stage`` (drag-drop Kanban) et ré-écrit ``pipe.yaml``.
+
+    Ré-écriture chirurgicale : on relit le YAML brut et on ne touche **que** le
+    champ ``stage`` de l'entrée ciblée — tous les autres champs et l'ordre des
+    deals sont préservés. Lève :class:`DealNotFoundError` si ``deal_id`` est
+    inconnu (le routeur le mappe en 404). Renvoie le :class:`Deal` à jour.
+    """
+    path = pipe_path(poles_root=poles_root)
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else None
+    raw = raw if isinstance(raw, dict) else {}
+    entries = raw.get("deals")
+    entries = entries if isinstance(entries, list) else []
+    target: dict[str, object] | None = None
+    for entry in entries:
+        if isinstance(entry, dict) and str(entry.get("deal_id")) == deal_id:
+            target = entry
+            break
+    if target is None:
+        raise DealNotFoundError(deal_id)
+    target["stage"] = stage.value
+    raw["deals"] = entries
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    logger.info(f"pipeline — deal {deal_id} déplacé vers {stage.value}")
+    updated = next(d for d in load_deals(poles_root=poles_root) if d.deal_id == deal_id)
+    return updated
+
+
 def score_pipeline(deals: list[Deal], *, today: date | None = None) -> list[DealStalledFlag]:
     """Score chaque deal, trié du plus risqué au moins risqué (stable)."""
     flags = [score_deal_risk(d, today=today) for d in deals]
@@ -92,9 +125,11 @@ def pipeline_value_eur(deals: list[Deal]) -> int:
 
 __all__ = [
     "STAGE_ORDER",
+    "DealNotFoundError",
     "load_deals",
     "pipe_path",
     "pipeline_value_eur",
     "score_pipeline",
+    "set_deal_stage",
     "stalled_active",
 ]

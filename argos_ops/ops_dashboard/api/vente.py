@@ -33,7 +33,7 @@ from argos_ops.poles.vente import outreach as outreach_mod
 from argos_ops.poles.vente import pipeline as pipeline_mod
 from argos_ops.poles.vente import proposals as proposals_mod
 from argos_ops.poles.vente import support as support_mod
-from argos_ops.sales.models import DealStalledFlag, MeetingRequest
+from argos_ops.sales.models import DealStage, DealStalledFlag, MeetingRequest
 
 router = APIRouter(prefix="/api/poles/vente", tags=["poles", "vente"])
 
@@ -210,6 +210,10 @@ class ScaffoldPayload(BaseModel):
     slug: str
 
 
+class StagePayload(BaseModel):
+    stage: str
+
+
 class UploadResult(BaseModel):
     added: int
     skipped: int
@@ -224,6 +228,12 @@ class DraftResult(BaseModel):
 class ScaffoldResult(BaseModel):
     slug: str
     status: str
+
+
+class MeetingIcsOut(BaseModel):
+    request_id: str
+    filename: str
+    ics: str
 
 
 # =============================================================================
@@ -441,6 +451,28 @@ async def draft_inbox_reply(message_id: str) -> DraftResult:
     return DraftResult(id=message_id, status="drafted", draft_path=str(path.name))
 
 
+@router.patch("/deals/{deal_id}/stage", response_model=DealOut)
+async def move_deal_stage(deal_id: str, payload: StagePayload) -> DealOut:
+    """Déplace un deal vers un nouveau stade (drag-drop Kanban).
+
+    422 si le stade n'appartient pas à ``STAGE_ORDER``, 404 si le deal est
+    inconnu. Renvoie le ``DealOut`` re-scoré après l'écriture.
+    """
+    try:
+        stage = DealStage(payload.stage)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"Stade inconnu : {payload.stage}") from exc
+    if stage not in pipeline_mod.STAGE_ORDER:  # pragma: no cover — défensif (enum ⊆ STAGE_ORDER)
+        raise HTTPException(status_code=422, detail=f"Stade hors pipe : {payload.stage}")
+    try:
+        pipeline_mod.set_deal_stage(deal_id, stage, poles_root=POLES_DIR)
+    except pipeline_mod.DealNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=f"Deal introuvable : {deal_id}") from exc
+    flags = pipeline_mod.score_pipeline(pipeline_mod.load_deals(poles_root=POLES_DIR))
+    flag = next(f for f in flags if f.deal.deal_id == deal_id)
+    return _deal_out(flag)
+
+
 @router.post("/meetings/{request_id}/book", response_model=MeetingOut)
 async def book_meeting(request_id: str) -> MeetingOut:
     """Drafte la confirmation + l'invitation iCal d'un RDV."""
@@ -454,6 +486,22 @@ async def book_meeting(request_id: str) -> MeetingOut:
     if req is None:  # pragma: no cover — défensif
         raise HTTPException(status_code=404, detail=f"Demande de RDV introuvable : {request_id}")
     return _meeting_out(req)
+
+
+@router.get("/meetings/{request_id}/ics", response_model=MeetingIcsOut)
+async def get_meeting_ics(request_id: str) -> MeetingIcsOut:
+    """Renvoie le texte iCalendar d'un RDV (relu du draft ou régénéré à la volée).
+
+    404 si la demande de RDV est inconnue.
+    """
+    ics = meetings_mod.read_ics(request_id, poles_root=POLES_DIR)
+    if ics is None:
+        raise HTTPException(status_code=404, detail=f"Demande de RDV introuvable : {request_id}")
+    return MeetingIcsOut(
+        request_id=request_id,
+        filename=meetings_mod.ics_filename(request_id),
+        ics=ics,
+    )
 
 
 @router.post("/sequences", response_model=ScaffoldResult, status_code=status.HTTP_201_CREATED)

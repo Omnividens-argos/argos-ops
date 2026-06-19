@@ -107,6 +107,21 @@ def read_doc(name: str, *, poles_root: Path = POLES_DIR) -> str | None:
     return path.read_text(encoding="utf-8")
 
 
+def pdf_path(name: str, *, poles_root: Path = POLES_DIR) -> Path | None:
+    """Chemin du PDF généré (``docs/<name>.pdf``) pour téléchargement. ``None`` si absent.
+
+    Mêmes garde-fous que :func:`read_doc` : restreint aux **enfants directs** de
+    ``docs/`` (anti-traversal — un ``name`` contenant un séparateur est rejeté) et
+    suffixe ``.pdf`` exigé. ``None`` si le fichier n'existe pas (PDF non rendu —
+    pandoc absent, D-009).
+    """
+    base = docs_dir(poles_root=poles_root).resolve()
+    path = (base / name).resolve()
+    if path.parent != base or path.suffix != ".pdf" or not path.exists():
+        return None
+    return path
+
+
 def list_context_ids(*, poles_root: Path = POLES_DIR) -> list[str]:
     """Slugs de deal ayant un contexte devis/contrat (``docs/contexts/<id>.yaml``)."""
     d = contexts_dir(poles_root=poles_root)
@@ -228,6 +243,7 @@ __all__ = [
     "list_context_ids",
     "list_docs",
     "list_uploads",
+    "pdf_path",
     "read_doc",
     "save_upload",
     "uploads_dir",

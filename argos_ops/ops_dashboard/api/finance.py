@@ -8,7 +8,9 @@ Sert au shell ``poles.html`` tout l'onglet Finance, 100 % fichiers / local-first
   rapprochement, contrats (fournisseurs/clients), échéancier fiscal, registres
   RGPD + AI Act, incidents, docs générés, compteurs.
 - ``GET  /api/poles/finance/docs/{name}``        — contenu markdown d'un doc (preview).
+- ``GET  /api/poles/finance/docs/{name}/pdf``     — binaire PDF d'un doc (404 si non rendu).
 - ``POST /api/poles/finance/ledger/flows``       — ajoute une ligne au tableur.
+- ``PUT  /api/poles/finance/ledger/flows/{id}``   — édite une ligne du tableur en place.
 - ``DELETE /api/poles/finance/ledger/flows/{id}``— supprime une ligne du tableur.
 - ``POST /api/poles/finance/docs/generate``      — génère CA3 / devis / contrat
   (409 si la conformité gèle l'onboarding — « Python tranche »).
@@ -27,6 +29,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from argos_ops.poles.config import POLES_DIR
@@ -505,23 +508,54 @@ async def get_doc(name: str) -> DocContent:
     return DocContent(name=name, content=content)
 
 
+@router.get("/docs/{name}/pdf")
+async def get_doc_pdf(name: str) -> FileResponse:
+    """Sert le binaire PDF d'un document généré (téléchargement / preview cockpit).
+
+    Anti-traversal (mêmes garde-fous que ``read_doc`` : enfants directs de
+    ``docs/`` uniquement). 404 si le PDF n'a pas été rendu (pandoc absent, D-009).
+    """
+    path = docs.pdf_path(name, poles_root=POLES_DIR)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"PDF introuvable : {name}")
+    return FileResponse(path, media_type="application/pdf", filename=path.name)
+
+
 # =============================================================================
 # Routes — mutations
 # =============================================================================
-@router.post("/ledger/flows", response_model=FlowOut, status_code=status.HTTP_201_CREATED)
-async def add_flow(payload: FlowPayload) -> FlowOut:
-    """Ajoute une ligne au tableur des flux (idempotent par contenu)."""
-    # Garde déterministe : inf/NaN passent la validation float (json accepte ces
-    # tokens), donc on les rejette ici en 422 avec un détail string — sinon la
-    # valeur non-finie remonterait en 500 (quantize / comparaison / sérialisation).
-    if not math.isfinite(payload.amount_eur):
+def _validate_amount(value: float) -> Decimal:
+    """Valide le montant d'un flux (positif, fini). Lève 422 sinon.
+
+    Garde déterministe : inf/NaN passent la validation float (json accepte ces
+    tokens), donc on les rejette ici en 422 avec un détail string — sinon la
+    valeur non-finie remonterait en 500 (quantize / comparaison / sérialisation).
+    """
+    if not math.isfinite(value):
         raise HTTPException(status_code=422, detail="Montant invalide (inf/NaN).")
     try:
-        amount = Decimal(str(payload.amount_eur))
+        amount = Decimal(str(value))
     except (InvalidOperation, ValueError) as exc:
         raise HTTPException(status_code=422, detail="Montant invalide") from exc
     if amount <= 0:
         raise HTTPException(status_code=422, detail="Le montant doit être positif (> 0).")
+    return amount
+
+
+def _balance_at(flow_id: str, *, poles_root: Path) -> Decimal:
+    """Solde cumulé jusqu'à (et incluant) la ligne ``flow_id``, en contexte complet."""
+    balance = Decimal("0.00")
+    for fl in ledger.load_flows(poles_root=poles_root):
+        balance += fl.signed_eur
+        if fl.id == flow_id:
+            break
+    return balance
+
+
+@router.post("/ledger/flows", response_model=FlowOut, status_code=status.HTTP_201_CREATED)
+async def add_flow(payload: FlowPayload) -> FlowOut:
+    """Ajoute une ligne au tableur des flux (idempotent par contenu)."""
+    amount = _validate_amount(payload.amount_eur)
     direction: ledger.FlowDirection = "out" if payload.direction == "out" else "in"
     flow = ledger.add_flow(
         flow_date=payload.flow_date,
@@ -532,12 +566,35 @@ async def add_flow(payload: FlowPayload) -> FlowOut:
         poles_root=POLES_DIR,
     )
     # Solde recalculé en contexte complet (la ligne n'est pas forcément la dernière).
-    flows = ledger.load_flows(poles_root=POLES_DIR)
-    balance = Decimal("0.00")
-    for fl in flows:
-        balance += fl.signed_eur
-        if fl.id == flow.id:
-            break
+    balance = _balance_at(flow.id, poles_root=POLES_DIR)
+    return FlowOut(
+        id=flow.id,
+        flow_date=flow.flow_date,
+        label=flow.label,
+        category=flow.category,
+        direction=flow.direction,
+        amount_eur=float(flow.amount_eur),
+        balance_eur=float(balance),
+    )
+
+
+@router.put("/ledger/flows/{flow_id}", response_model=FlowOut)
+async def edit_flow(flow_id: str, payload: FlowPayload) -> FlowOut:
+    """Édite une ligne existante du tableur en place (tableur éditable). 404 si absente."""
+    amount = _validate_amount(payload.amount_eur)
+    direction: ledger.FlowDirection = "out" if payload.direction == "out" else "in"
+    flow = ledger.update_flow(
+        flow_id,
+        flow_date=payload.flow_date,
+        label=payload.label.strip() or "(sans libellé)",
+        category=payload.category.strip() or "autre",
+        direction=direction,
+        amount_eur=amount,
+        poles_root=POLES_DIR,
+    )
+    if flow is None:
+        raise HTTPException(status_code=404, detail=f"Ligne introuvable : {flow_id}")
+    balance = _balance_at(flow.id, poles_root=POLES_DIR)
     return FlowOut(
         id=flow.id,
         flow_date=flow.flow_date,
