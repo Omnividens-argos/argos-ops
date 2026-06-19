@@ -225,6 +225,27 @@ def save_upload(filename: str, content: str, *, poles_root: Path = POLES_DIR) ->
     return path
 
 
+def save_upload_bytes(filename: str, content: bytes, *, poles_root: Path = POLES_DIR) -> Path:
+    """Enregistre un fichier binaire à remplir (PDF/DOCX/…), versionné.
+
+    Sanitize le nom (anti-traversal). Si un fichier du même nom existe déjà, on
+    suffixe ``-v2``, ``-v3``… pour conserver l'historique des versions plutôt que
+    d'écraser. Aucune valeur secrète stockée (D-017, fichiers locaux).
+    """
+    safe = Path(filename).name or "document.bin"
+    d = uploads_dir(poles_root=poles_root)
+    d.mkdir(parents=True, exist_ok=True)
+    target = d / safe
+    if target.exists():
+        stem, suffix = target.stem, target.suffix
+        version = 2
+        while (d / f"{stem}-v{version}{suffix}").exists():
+            version += 1
+        target = d / f"{stem}-v{version}{suffix}"
+    target.write_bytes(content)
+    return target
+
+
 def list_uploads(*, poles_root: Path = POLES_DIR) -> list[str]:
     d = uploads_dir(poles_root=poles_root)
     if not d.exists():
@@ -246,5 +267,6 @@ __all__ = [
     "pdf_path",
     "read_doc",
     "save_upload",
+    "save_upload_bytes",
     "uploads_dir",
 ]

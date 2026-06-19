@@ -196,6 +196,28 @@ def test_doc_pdf_404_when_absent(client: TestClient) -> None:
     assert client.get("/api/poles/finance/docs/ghost.pdf").status_code == 404
 
 
+def test_upload_doc_file_multipart_and_versioning(client: TestClient) -> None:
+    pdf = b"%PDF-1.4 fake binary content"
+    r = client.post(
+        "/api/poles/finance/docs/upload/file",
+        files={"file": ("brief.pdf", pdf, "application/pdf")},
+    )
+    assert r.status_code == 201
+    body = r.json()
+    assert body["name"] == "brief.pdf"
+    assert body["kind"] == "upload"
+    assert body["has_pdf"] is True
+    uploads = client.get("/api/poles/finance/overview").json()["uploads"]
+    assert "brief.pdf" in uploads
+    # Re-upload du même nom → versionné -v2 (pas d'écrasement).
+    r2 = client.post(
+        "/api/poles/finance/docs/upload/file",
+        files={"file": ("brief.pdf", pdf, "application/pdf")},
+    )
+    assert r2.status_code == 201
+    assert r2.json()["name"] == "brief-v2.pdf"
+
+
 def test_add_flow_rejects_negative(client: TestClient) -> None:
     r = client.post(
         "/api/poles/finance/ledger/flows",

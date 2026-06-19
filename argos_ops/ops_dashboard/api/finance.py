@@ -28,7 +28,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -655,6 +655,21 @@ async def upload_doc(payload: UploadPayload) -> DocGenResult:
         raise HTTPException(status_code=422, detail="Nom de fichier requis.")
     path = docs.save_upload(payload.filename, payload.content, poles_root=POLES_DIR)
     return DocGenResult(name=path.name, kind="upload", has_pdf=False)
+
+
+@router.post("/docs/upload/file", response_model=DocGenResult, status_code=status.HTTP_201_CREATED)
+async def upload_doc_file(file: UploadFile) -> DocGenResult:
+    """Upload binaire (multipart) d'un doc à remplir — versionné dans ``docs/uploads/``.
+
+    Remplace le stub texte par un vrai upload de fichier (PDF/DOCX/…). Garde-fou
+    taille 10 Mo. ``has_pdf`` vrai si l'extension est ``.pdf``.
+    """
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 10 Mo).")
+    name = file.filename or "document.bin"
+    path = docs.save_upload_bytes(name, content, poles_root=POLES_DIR)
+    return DocGenResult(name=path.name, kind="upload", has_pdf=path.suffix.lower() == ".pdf")
 
 
 @router.post("/invoices/{invoice_id}/dunning", response_model=DunningResult)
