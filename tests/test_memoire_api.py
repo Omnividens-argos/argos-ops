@@ -275,6 +275,95 @@ def test_policy_update_activation(client: TestClient) -> None:
     assert pub["active"] is True
 
 
+def test_policy_update_retention_fields_persist(client: TestClient) -> None:
+    """PUT policy avec champs de rétention ⇒ persistés + reflétés dans la réponse."""
+    r = client.put(
+        "/api/poles/memoire/policy",
+        json={
+            "pole": "pub",
+            "active": True,
+            "protect_important": False,
+            "default_ttl_days": 90,
+            "keep_recent_per_kind": 3,
+            "min_stale_days": 7,
+        },
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert "pub" in body["active_for"]
+    assert body["protect_important"] is False
+    assert body["default_ttl_days"] == 90
+    assert body["keep_recent_per_kind"] == 3
+    assert body["min_stale_days"] == 7
+    # Persisté : un GET frais relit les mêmes bornes depuis policy.yaml.
+    again = client.get("/api/poles/memoire/policy").json()
+    assert again["default_ttl_days"] == 90
+    assert again["keep_recent_per_kind"] == 3
+    assert again["min_stale_days"] == 7
+    assert again["protect_important"] is False
+
+
+def test_policy_update_activation_only_unchanged(client: TestClient) -> None:
+    """PUT {pole, active} seul ⇒ toggle activation, rétention inchangée (historique)."""
+    before = client.get("/api/poles/memoire/policy").json()
+    r = client.put("/api/poles/memoire/policy", json={"pole": "pub", "active": True})
+    assert r.status_code == 200
+    after = r.json()
+    assert "pub" in after["active_for"]
+    # Bornes de rétention intactes.
+    assert after["default_ttl_days"] == before["default_ttl_days"]
+    assert after["keep_recent_per_kind"] == before["keep_recent_per_kind"]
+    assert after["min_stale_days"] == before["min_stale_days"]
+    assert after["protect_important"] == before["protect_important"]
+
+
+def test_approve_then_pending_returns_list(client: TestClient) -> None:
+    exp = _expired_id(client)
+    a = client.post(
+        "/api/poles/memoire/plan/approve",
+        json={"pole": "veille", "targets": [{"script": "cve", "record_id": exp}]},
+    )
+    assert a.status_code == 200
+    assert a.json() == {"pole": "veille", "pending": 1}
+    # GET filtré par pôle.
+    p = client.get("/api/poles/memoire/plan/pending", params={"pole": "veille"})
+    assert p.status_code == 200
+    rows = p.json()
+    assert rows == [{"pole": "veille", "script": "cve", "record_id": exp}]
+    # GET sans filtre renvoie aussi la cible (toutes pôles confondus).
+    all_rows = client.get("/api/poles/memoire/plan/pending").json()
+    assert {"pole": "veille", "script": "cve", "record_id": exp} in all_rows
+
+
+def test_approve_replaces_pole_list(client: TestClient) -> None:
+    """Re-approuver un pôle REMPLACE sa liste (pas d'accumulation)."""
+    exp = _expired_id(client)
+    client.post(
+        "/api/poles/memoire/plan/approve",
+        json={"pole": "veille", "targets": [{"script": "cve", "record_id": exp}]},
+    )
+    r = client.post(
+        "/api/poles/memoire/plan/approve",
+        json={"pole": "veille", "targets": [{"script": "trend", "record_id": "abc123"}]},
+    )
+    assert r.json()["pending"] == 1
+    rows = client.get("/api/poles/memoire/plan/pending", params={"pole": "veille"}).json()
+    assert rows == [{"pole": "veille", "script": "trend", "record_id": "abc123"}]
+
+
+def test_approve_unknown_pole_404(client: TestClient) -> None:
+    r = client.post(
+        "/api/poles/memoire/plan/approve",
+        json={"pole": "nope", "targets": [{"script": "cve", "record_id": "x"}]},
+    )
+    assert r.status_code == 404
+
+
+def test_pending_unknown_pole_404(client: TestClient) -> None:
+    r = client.get("/api/poles/memoire/plan/pending", params={"pole": "nope"})
+    assert r.status_code == 404
+
+
 def test_history_after_clean(client: TestClient) -> None:
     exp = _expired_id(client)
     client.post(

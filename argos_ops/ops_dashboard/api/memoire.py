@@ -25,13 +25,23 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from argos_ops.poles.config import POLES_DIR, list_poles, load_all_poles
 from argos_ops.poles.memoire import cleaner, history, wiring
 from argos_ops.poles.memoire.cleaner import DeletionTarget
 from argos_ops.poles.memoire.curation import CurationPlan, plan_curation
-from argos_ops.poles.memoire.policy import MemoryPolicy, load_policy, set_pole_active
+from argos_ops.poles.memoire.pending import (
+    PendingDeletion,
+    load_pending,
+    set_pending_for_pole,
+)
+from argos_ops.poles.memoire.policy import (
+    MemoryPolicy,
+    load_policy,
+    save_policy,
+    set_pole_active,
+)
 from argos_ops.poles.memory import (
     MemoryRecord,
     flag_important,
@@ -244,6 +254,33 @@ class CleanPayload(BaseModel):
 class PolicyUpdatePayload(BaseModel):
     pole: str
     active: bool
+    # Champs de rétention GLOBAUX optionnels — quand fournis, persistés sur
+    # policy.yaml ; omis ⇒ comportement inchangé (toggle activation seul).
+    protect_important: bool | None = None
+    default_ttl_days: int | None = Field(default=None, ge=1)
+    keep_recent_per_kind: int | None = Field(default=None, ge=0)
+    min_stale_days: int | None = Field(default=None, ge=0)
+
+
+class ApproveTarget(BaseModel):
+    script: str
+    record_id: str
+
+
+class ApprovePayload(BaseModel):
+    pole: str
+    targets: list[ApproveTarget]
+
+
+class ApproveOut(BaseModel):
+    pole: str
+    pending: int
+
+
+class PendingItemOut(BaseModel):
+    pole: str
+    script: str
+    record_id: str
 
 
 # =============================================================================
@@ -584,10 +621,88 @@ async def clean(payload: CleanPayload) -> CleanupResultOut:
 
 @router.put("/policy", response_model=PolicyOut)
 async def update_policy(payload: PolicyUpdatePayload) -> PolicyOut:
-    """(Dé)active la curation d'un pôle. 404 si le pôle est inconnu."""
+    """(Dé)active la curation d'un pôle, et — optionnellement — met à jour les
+    bornes de rétention GLOBALES. 404 si le pôle est inconnu.
+
+    ``{pole, active}`` seul ⇒ simple toggle activation (comportement historique
+    inchangé). Tout champ de rétention fourni (``protect_important``,
+    ``default_ttl_days``, ``keep_recent_per_kind``, ``min_stale_days``) est
+    persisté sur ``policy.yaml`` ; les champs omis gardent leur valeur courante.
+    """
     _require_pole(payload.pole)
     updated = set_pole_active(payload.pole, payload.active, poles_root=POLES_DIR)
+
+    retention = (
+        payload.protect_important,
+        payload.default_ttl_days,
+        payload.keep_recent_per_kind,
+        payload.min_stale_days,
+    )
+    if any(v is not None for v in retention):
+        merged = MemoryPolicy(
+            protect_important=(
+                updated.protect_important
+                if payload.protect_important is None
+                else payload.protect_important
+            ),
+            active_for=updated.active_for,
+            protected_kinds=updated.protected_kinds,
+            protected_tags=updated.protected_tags,
+            protected_sources=updated.protected_sources,
+            default_ttl_days=(
+                updated.default_ttl_days
+                if payload.default_ttl_days is None
+                else payload.default_ttl_days
+            ),
+            ttl_by_kind=updated.ttl_by_kind,
+            keep_recent_per_kind=(
+                updated.keep_recent_per_kind
+                if payload.keep_recent_per_kind is None
+                else payload.keep_recent_per_kind
+            ),
+            min_stale_days=(
+                updated.min_stale_days
+                if payload.min_stale_days is None
+                else payload.min_stale_days
+            ),
+        )
+        save_policy(merged, poles_root=POLES_DIR)
+        updated = merged
+
     return _policy_out(updated)
+
+
+@router.post("/plan/approve", response_model=ApproveOut)
+async def approve_plan(payload: ApprovePayload) -> ApproveOut:
+    """Enregistre la liste de suppressions **approuvée** par l'opérateur.
+
+    Persiste l'intention dans ``data/poles/memoire/pending_deletions.yaml`` —
+    elle **remplace** la liste en attente du pôle. N'exécute RIEN : ``/clean``
+    reste le seul exécuteur. 404 si le pôle est inconnu.
+    """
+    _require_pole(payload.pole)
+    targets = [PendingDeletion(script=t.script, record_id=t.record_id) for t in payload.targets]
+    n_pending = set_pending_for_pole(payload.pole, targets, poles_root=POLES_DIR)
+    return ApproveOut(pole=payload.pole, pending=n_pending)
+
+
+@router.get("/plan/pending", response_model=list[PendingItemOut])
+async def get_pending(pole: str | None = Query(default=None)) -> list[PendingItemOut]:
+    """Liste les suppressions approuvées en attente (filtrées par pôle, ou toutes).
+
+    404 si un ``pole`` explicite est inconnu.
+    """
+    if pole is not None:
+        _require_pole(pole)
+    by_pole = load_pending(poles_root=POLES_DIR)
+    items: list[PendingItemOut] = []
+    for p, targets in sorted(by_pole.items()):
+        if pole is not None and p != pole:
+            continue
+        items.extend(
+            PendingItemOut(pole=p, script=t.script, record_id=t.record_id) for t in targets
+        )
+    return items
 
 
 __all__ = ["router"]

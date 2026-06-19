@@ -300,6 +300,46 @@ class DocContent(BaseModel):
     content: str
 
 
+class TreatmentPayload(BaseModel):
+    """Champs éditables d'une fiche de traitement RGPD."""
+
+    nom: str
+    base_legale: str = ""
+    finalite: str = ""
+    donnees: list[str] = []
+    duree_conservation: str = ""
+    review_date: date | None = None
+
+
+class TreatmentSaved(BaseModel):
+    """Fiche RGPD persistée + son statut de conformité recalculé."""
+
+    nom: str
+    base_legale: str
+    finalite: str
+    donnees: list[str]
+    duree_conservation: str
+    review_date: date | None
+    conforme: bool
+    issues: list[str]
+
+
+class AiActSystemPayload(BaseModel):
+    """Champs éditables d'un système du registre AI Act."""
+
+    nom: str
+    role: str = ""
+    risk_class: str = ""
+
+
+class AiActSystemSaved(BaseModel):
+    """Système AI Act persisté + sa classe de risque normalisée."""
+
+    nom: str
+    role: str
+    risk: str
+
+
 # =============================================================================
 # Route — lecture
 # =============================================================================
@@ -691,6 +731,104 @@ async def export_accounting() -> ExportResult:
     """Produit l'export comptable CSV depuis le tableur des flux."""
     path = accounting.export_accounting(poles_root=POLES_DIR)
     return ExportResult(path=path.name, csv=path.read_text(encoding="utf-8"))
+
+
+# =============================================================================
+# Routes — registres conformité éditables (RGPD + AI Act)
+# =============================================================================
+def _treatment_saved(nom: str) -> TreatmentSaved:
+    """Relit le registre RGPD et projette la fiche ``nom`` (statut de conformité à jour)."""
+    rgpd = compliance.load_rgpd_registry(poles_root=POLES_DIR, today=date.today())
+    treatment = next((t for t in rgpd.treatments if t.nom == nom), None)
+    if treatment is None:  # pragma: no cover - écrit juste avant, devrait exister
+        raise HTTPException(status_code=404, detail=f"Traitement introuvable : {nom}")
+    return TreatmentSaved(
+        nom=treatment.nom,
+        base_legale=treatment.base_legale,
+        finalite=treatment.finalite,
+        donnees=list(treatment.donnees),
+        duree_conservation=treatment.duree_conservation,
+        review_date=treatment.review_date,
+        conforme=treatment.conforme,
+        issues=list(treatment.issues),
+    )
+
+
+def _ai_system_saved(nom: str) -> AiActSystemSaved:
+    """Relit le registre AI Act et projette le système ``nom`` (risque normalisé)."""
+    ai_act = compliance.load_ai_act_registry(poles_root=POLES_DIR)
+    system = next((s for s in ai_act.systems if s.nom == nom), None)
+    if system is None:  # pragma: no cover - écrit juste avant, devrait exister
+        raise HTTPException(status_code=404, detail=f"Système IA introuvable : {nom}")
+    return AiActSystemSaved(nom=system.nom, role=system.role, risk=system.risk)
+
+
+@router.post(
+    "/rgpd/treatments", response_model=TreatmentSaved, status_code=status.HTTP_201_CREATED
+)
+async def add_treatment(payload: TreatmentPayload) -> TreatmentSaved:
+    """Ajoute un traitement au registre RGPD (visible dans overview au prochain fetch)."""
+    nom = payload.nom.strip()
+    if not nom:
+        raise HTTPException(status_code=422, detail="Le nom du traitement est obligatoire.")
+    compliance.append_treatment(
+        nom=nom,
+        base_legale=payload.base_legale.strip(),
+        finalite=payload.finalite.strip(),
+        donnees=payload.donnees,
+        duree_conservation=payload.duree_conservation.strip(),
+        review_date=payload.review_date.isoformat() if payload.review_date else None,
+        poles_root=POLES_DIR,
+    )
+    return _treatment_saved(nom)
+
+
+@router.put("/rgpd/treatments/{nom}", response_model=TreatmentSaved)
+async def edit_treatment(nom: str, payload: TreatmentPayload) -> TreatmentSaved:
+    """Édite en place le traitement RGPD dont le ``nom`` correspond. 404 si absent."""
+    updated = compliance.update_treatment(
+        nom,
+        base_legale=payload.base_legale.strip(),
+        finalite=payload.finalite.strip(),
+        donnees=payload.donnees,
+        duree_conservation=payload.duree_conservation.strip(),
+        review_date=payload.review_date.isoformat() if payload.review_date else None,
+        poles_root=POLES_DIR,
+    )
+    if updated is None:
+        raise HTTPException(status_code=404, detail=f"Traitement introuvable : {nom}")
+    return _treatment_saved(nom)
+
+
+@router.post(
+    "/ai-act/systems", response_model=AiActSystemSaved, status_code=status.HTTP_201_CREATED
+)
+async def add_ai_system(payload: AiActSystemPayload) -> AiActSystemSaved:
+    """Ajoute un système au registre AI Act (visible dans overview au prochain fetch)."""
+    nom = payload.nom.strip()
+    if not nom:
+        raise HTTPException(status_code=422, detail="Le nom du système IA est obligatoire.")
+    compliance.append_ai_system(
+        nom=nom,
+        role=payload.role.strip(),
+        risk_class=payload.risk_class.strip(),
+        poles_root=POLES_DIR,
+    )
+    return _ai_system_saved(nom)
+
+
+@router.put("/ai-act/systems/{nom}", response_model=AiActSystemSaved)
+async def edit_ai_system(nom: str, payload: AiActSystemPayload) -> AiActSystemSaved:
+    """Édite en place le système AI Act dont le ``nom`` correspond. 404 si absent."""
+    updated = compliance.update_ai_system(
+        nom,
+        role=payload.role.strip(),
+        risk_class=payload.risk_class.strip(),
+        poles_root=POLES_DIR,
+    )
+    if updated is None:
+        raise HTTPException(status_code=404, detail=f"Système IA introuvable : {nom}")
+    return _ai_system_saved(nom)
 
 
 __all__ = ["router"]
