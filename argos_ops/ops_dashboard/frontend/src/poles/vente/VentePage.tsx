@@ -15,6 +15,7 @@ import {
   uploadLeads,
 } from "../api.ts";
 import { Badge, Button, Flash } from "../../components/ui.tsx";
+import { FileUpload } from "../../components/FileUpload.tsx";
 import {
   BAND_TONE,
   CATEGORY_LABEL,
@@ -81,7 +82,6 @@ export function VentePage() {
   const [flash, setFlash] = useState<{ variant: "success" | "error"; message: string } | null>(
     null,
   );
-  const [csv, setCsv] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -121,39 +121,43 @@ export function VentePage() {
     [reload],
   );
 
-  const onUploadCsv = useCallback(() => {
-    const rows = csv
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l && !l.startsWith("#") && !l.toLowerCase().startsWith("full_name"))
-      .map((l) => {
-        const [full_name, domain, title_hint, linkedin_url] = l.split(",").map((c) => c.trim());
-        return { full_name, domain, title_hint, linkedin_url };
-      })
-      .filter((r) => r.full_name && r.domain);
-    if (rows.length === 0) {
-      setFlash({ variant: "error", message: "Aucune ligne valide (format : nom,domaine,titre)." });
-      return;
-    }
-    setBusy("__csv__");
-    setFlash(null);
-    uploadLeads(rows)
-      .then((res) => {
-        setFlash({
-          variant: "success",
-          message: `${res.added} lead(s) ajouté(s), ${res.skipped} ignoré(s) (doublon/invalide).`,
-        });
-        setCsv("");
-        reload();
-      })
-      .catch((err: unknown) => {
+  const onCsvParsed = useCallback(
+    (parsed: Record<string, string>[]) => {
+      const rows = parsed
+        .map((r) => ({
+          full_name: (r.full_name ?? r.name ?? "").trim(),
+          domain: (r.domain ?? "").trim(),
+          title_hint: (r.title_hint ?? r.title ?? "").trim() || undefined,
+          linkedin_url: (r.linkedin_url ?? r.linkedin ?? "").trim() || undefined,
+        }))
+        .filter((r) => r.full_name && r.domain);
+      if (rows.length === 0) {
         setFlash({
           variant: "error",
-          message: err instanceof Error ? err.message : "Échec de l'import.",
+          message: "Aucune ligne valide (colonnes attendues : full_name, domain).",
         });
-      })
-      .finally(() => setBusy(null));
-  }, [csv, reload]);
+        return;
+      }
+      setBusy("__csv__");
+      setFlash(null);
+      uploadLeads(rows)
+        .then((res) => {
+          setFlash({
+            variant: "success",
+            message: `${res.added} lead(s) ajouté(s), ${res.skipped} ignoré(s) (doublon/invalide).`,
+          });
+          reload();
+        })
+        .catch((err: unknown) => {
+          setFlash({
+            variant: "error",
+            message: err instanceof Error ? err.message : "Échec de l'import.",
+          });
+        })
+        .finally(() => setBusy(null));
+    },
+    [reload],
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -247,9 +251,7 @@ export function VentePage() {
               overview={overview}
               busy={busy}
               runMutation={runMutation}
-              csv={csv}
-              setCsv={setCsv}
-              onUploadCsv={onUploadCsv}
+              onCsvParsed={onCsvParsed}
             />
           )}
           {tab === "rdv" && <RdvTab overview={overview} busy={busy} runMutation={runMutation} />}
@@ -505,35 +507,29 @@ function OutboundTab({
   overview,
   busy,
   runMutation,
-  csv,
-  setCsv,
-  onUploadCsv,
+  onCsvParsed,
 }: {
   overview: VenteOverview;
   busy: string | null;
   runMutation: MutFn;
-  csv: string;
-  setCsv: (v: string) => void;
-  onUploadCsv: () => void;
+  onCsvParsed: (rows: Record<string, string>[]) => void;
 }) {
   const frozen = overview.counts.outbound_frozen;
   return (
     <div className="flex flex-col gap-6">
       <Section title="Importer des leads (CSV)">
-        <div className="flex flex-col gap-2">
-          <textarea
-            value={csv}
-            onChange={(e) => setCsv(e.target.value)}
-            rows={3}
-            placeholder="full_name,domain,title_hint&#10;Claire Moreau,secure-corp.fr,RSSI"
-            className="rounded-md border border-argos-border-subtle bg-argos-bg px-2.5 py-1.5 font-mono text-[11px] text-argos-fg placeholder:text-argos-fg-disabled focus:border-argos-info/60 focus:outline-none"
-          />
-          <div>
-            <Button size="sm" variant="primary" disabled={busy === "__csv__" || !csv.trim()} onClick={onUploadCsv}>
-              importer
-            </Button>
-          </div>
-        </div>
+        <FileUpload
+          accept=".csv"
+          parseCsv
+          onFile={() => undefined}
+          onCsvParsed={onCsvParsed}
+          label={
+            busy === "__csv__"
+              ? "Import en cours…"
+              : "Déposez un CSV de leads ou cliquez pour parcourir"
+          }
+          hint="Colonnes attendues : full_name, domain (optionnel : title_hint, linkedin_url)"
+        />
       </Section>
 
       <Section title={`Leads enrichis (${overview.leads.length})`}>

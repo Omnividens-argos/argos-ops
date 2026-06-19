@@ -6,6 +6,7 @@
 import { useState } from "react";
 import type { AdPlatform, PubBudget, Simulation } from "../api.ts";
 import { Badge, Button } from "../../components/ui.tsx";
+import { TimeSeriesChart } from "../../components/Chart.tsx";
 import { eur } from "./lib.ts";
 
 export interface BudgetSimulatorProps {
@@ -37,6 +38,20 @@ export function BudgetSimulator({ platforms, budget, onSimulate }: BudgetSimulat
     Math.round(budget.daily_budget_eur * 1.5),
     ...Object.values(alloc).map((v) => v || 0),
   );
+
+  // Projection cumulée 7 jours synthétisée côté client à partir des scalaires
+  // renvoyés : dépense cumulée = total_daily_eur × jour ; leads cumulés =
+  // (weekly_leads / 7) × jour.
+  const projection = result
+    ? Array.from({ length: 7 }, (_, i) => {
+        const day = i + 1;
+        return {
+          day: `J${day}`,
+          "Dépense (€)": Math.round(result.total_daily_eur * day * 100) / 100,
+          Leads: Math.round((result.weekly_leads / 7) * day * 10) / 10,
+        };
+      })
+    : [];
 
   const run = async () => {
     setBusy(true);
@@ -130,6 +145,20 @@ export function BudgetSimulator({ platforms, budget, onSimulate }: BudgetSimulat
               ))}
             </tbody>
           </table>
+          <div className="border-t border-argos-border-subtle pt-3">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-disabled">
+              projection cumulée 7 jours
+            </span>
+            <TimeSeriesChart
+              data={projection}
+              series={[
+                { key: "Dépense (€)", name: "Dépense cumulée (€)" },
+                { key: "Leads", name: "Leads cumulés" },
+              ]}
+              xKey="day"
+              height={220}
+            />
+          </div>
         </div>
       )}
     </div>

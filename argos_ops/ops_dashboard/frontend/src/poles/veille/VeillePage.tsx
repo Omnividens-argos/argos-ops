@@ -5,8 +5,8 @@
 // les composants partagés du cockpit (font-mono, tokens argos-*, MemoryTable…).
 
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
-import { type PoleFeed, fetchPoleFeed, pushHandoff } from "../api.ts";
+import { RefreshCw, Save, X } from "lucide-react";
+import { type PoleFeed, type Severity, fetchPoleFeed, pushHandoff } from "../api.ts";
 import { Badge, Button, Flash } from "../../components/ui.tsx";
 import { MemoryTable, type MemoryRow } from "../components/index.ts";
 import { CompetitorTimeline } from "./CompetitorTimeline.tsx";
@@ -16,6 +16,7 @@ import { poleLabel } from "./PushControl.tsx";
 import { ThreatBoard } from "./ThreatBoard.tsx";
 import {
   THREAT_KINDS,
+  type DateRange,
   kindTheme,
   matchesQuery,
   recordSeverity,
@@ -23,6 +24,101 @@ import {
 } from "./lib.ts";
 
 const POLE = "veille";
+
+// Persistance des filtres de veille (local-first, D-017) : le FilterState courant
+// survit au reload, et on garde des vues nommées rejouables. `themes` étant un Set,
+// on sérialise via une forme plate (themes -> string[]) avant JSON.
+const FILTER_STORAGE_KEY = "argos.veille.filter";
+const SAVED_VIEWS_STORAGE_KEY = "argos.veille.savedViews";
+
+interface StoredFilter {
+  query: string;
+  themes: string[];
+  severity: Severity | "all";
+  range: DateRange;
+}
+
+interface SavedView {
+  name: string;
+  filter: StoredFilter;
+}
+
+const SEVERITY_VALUES: ReadonlySet<Severity | "all"> = new Set<Severity | "all">([
+  "all",
+  "critical",
+  "warning",
+  "info",
+]);
+const RANGE_VALUES: ReadonlySet<DateRange> = new Set<DateRange>(["all", "24h", "7d", "30d"]);
+
+function isSeverity(value: unknown): value is Severity | "all" {
+  return typeof value === "string" && SEVERITY_VALUES.has(value as Severity | "all");
+}
+
+function isRange(value: unknown): value is DateRange {
+  return typeof value === "string" && RANGE_VALUES.has(value as DateRange);
+}
+
+function serializeFilter(filter: FilterState): StoredFilter {
+  return {
+    query: filter.query,
+    themes: [...filter.themes],
+    severity: filter.severity,
+    range: filter.range,
+  };
+}
+
+function deserializeFilter(stored: StoredFilter): FilterState {
+  return {
+    query: stored.query,
+    themes: new Set(stored.themes),
+    severity: stored.severity,
+    range: stored.range,
+  };
+}
+
+// Parse défensif d'un StoredFilter venant de localStorage (peut être corrompu).
+function parseStoredFilter(raw: unknown): StoredFilter | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const candidate = raw as Record<string, unknown>;
+  const { query, themes, severity, range } = candidate;
+  if (typeof query !== "string") return null;
+  if (!Array.isArray(themes) || themes.some((t) => typeof t !== "string")) return null;
+  if (!isSeverity(severity) || !isRange(range)) return null;
+  return { query, themes: themes as string[], severity, range };
+}
+
+function loadStoredFilter(): FilterState | null {
+  try {
+    const raw = window.localStorage.getItem(FILTER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = parseStoredFilter(JSON.parse(raw));
+    return parsed ? deserializeFilter(parsed) : null;
+  } catch {
+    return null;
+  }
+}
+
+function loadSavedViews(): SavedView[] {
+  try {
+    const raw = window.localStorage.getItem(SAVED_VIEWS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    const views: SavedView[] = [];
+    for (const entry of parsed) {
+      if (typeof entry !== "object" || entry === null) continue;
+      const { name, filter } = entry as Record<string, unknown>;
+      const storedFilter = parseStoredFilter(filter);
+      if (typeof name === "string" && name !== "" && storedFilter) {
+        views.push({ name, filter: storedFilter });
+      }
+    }
+    return views;
+  } catch {
+    return [];
+  }
+}
 
 function Section({
   title,
@@ -70,7 +166,8 @@ export function VeillePage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const [filter, setFilter] = useState<FilterState>(EMPTY_FILTER);
+  const [filter, setFilter] = useState<FilterState>(() => loadStoredFilter() ?? EMPTY_FILTER);
+  const [savedViews, setSavedViews] = useState<SavedView[]>(() => loadSavedViews());
   const [pushed, setPushed] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
   const [flash, setFlash] = useState<{ variant: "success" | "error"; message: string } | null>(
@@ -92,6 +189,45 @@ export function VeillePage() {
       });
     return () => controller.abort();
   }, [reloadKey]);
+
+  // Persiste le filtre courant à chaque changement (rehydraté au mount via useState).
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        FILTER_STORAGE_KEY,
+        JSON.stringify(serializeFilter(filter)),
+      );
+    } catch {
+      // localStorage indisponible (mode privé / quota) : on dégrade silencieusement.
+    }
+  }, [filter]);
+
+  // Persiste la liste des vues nommées à chaque mutation.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SAVED_VIEWS_STORAGE_KEY, JSON.stringify(savedViews));
+    } catch {
+      // idem : pas de blocage si le stockage n'est pas accessible.
+    }
+  }, [savedViews]);
+
+  const saveCurrentView = useCallback(() => {
+    const name = window.prompt("Nom de la vue à enregistrer ?")?.trim();
+    if (!name) return;
+    const stored = serializeFilter(filter);
+    setSavedViews((prev) => {
+      const without = prev.filter((v) => v.name !== name);
+      return [...without, { name, filter: stored }];
+    });
+  }, [filter]);
+
+  const applyView = useCallback((view: SavedView) => {
+    setFilter(deserializeFilter(view.filter));
+  }, []);
+
+  const deleteView = useCallback((name: string) => {
+    setSavedViews((prev) => prev.filter((v) => v.name !== name));
+  }, []);
 
   const handlePush = useCallback(async (recordId: string, pole: string) => {
     const key = `${recordId}:${pole}`;
@@ -189,6 +325,42 @@ export function VeillePage() {
 
       {feed && !loading && (
         <>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-disabled">
+              vues
+            </span>
+            {savedViews.length === 0 && (
+              <span className="font-mono text-[10px] text-argos-fg-disabled">
+                aucune vue enregistrée
+              </span>
+            )}
+            {savedViews.map((view) => (
+              <span
+                key={view.name}
+                className="inline-flex items-center gap-1 rounded-md border border-argos-border-subtle bg-argos-surface-2 pl-2 pr-1 py-1 font-mono text-[10px] text-argos-fg-tertiary"
+              >
+                <button
+                  type="button"
+                  onClick={() => applyView(view)}
+                  className="uppercase tracking-widest transition-colors hover:text-argos-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg"
+                >
+                  {view.name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteView(view.name)}
+                  aria-label={`Supprimer la vue ${view.name}`}
+                  className="rounded text-argos-fg-disabled transition-colors hover:text-argos-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg"
+                >
+                  <X className="h-3 w-3" aria-hidden />
+                </button>
+              </span>
+            ))}
+            <Button size="sm" variant="ghost" onClick={saveCurrentView}>
+              <Save className="mr-1 inline h-3 w-3" aria-hidden /> enregistrer la vue
+            </Button>
+          </div>
+
           <FilterBar
             availableThemes={feed.themes}
             state={filter}
