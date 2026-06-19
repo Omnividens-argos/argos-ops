@@ -884,6 +884,20 @@ export function financeDocPdfUrl(name: string): string {
   return `${FN}/docs/${encodeURIComponent(name)}/pdf`;
 }
 
+/** Upload binaire (multipart) d'un doc à remplir — versionné côté backend. */
+export async function uploadDocFile(
+  file: File,
+): Promise<{ name: string; kind: string; has_pdf: boolean }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${FN}/docs/upload/file`, { method: "POST", body: form });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`POST ${FN}/docs/upload/file -> HTTP ${res.status} ${detail.slice(0, 160)}`);
+  }
+  return (await res.json()) as { name: string; kind: string; has_pdf: boolean };
+}
+
 export function generateDoc(
   kind: string,
   dealId?: string,
@@ -1126,6 +1140,100 @@ export function fetchDirectionDoc(name: string): Promise<{ name: string; content
 /** URL de téléchargement du PDF du board pack (et autres docs direction). */
 export function directionDocPdfUrl(name: string): string {
   return `${D}/docs/${encodeURIComponent(name)}/pdf`;
+}
+
+// =============================================================================
+// Phase 4c — détail lead, brouillon inbox, fait mémoire, statut décisions
+// =============================================================================
+export interface BantBreakdown {
+  budget: number;
+  authority: number;
+  need: number;
+  timing: number;
+  total: number;
+}
+
+export interface EmailGuess {
+  email: string;
+  pattern: string;
+  confidence: number;
+}
+
+export interface LeadDetail {
+  slug: string;
+  full_name: string;
+  domain: string;
+  title_hint: string | null;
+  persona: string;
+  bant_total: number;
+  qualified: boolean;
+  best_email: string | null;
+  eligible: boolean;
+  eligibility_reason: string;
+  persona_score: number;
+  persona_signals: string[];
+  bant: BantBreakdown;
+  email_guesses: EmailGuess[];
+  markdown_body: string;
+}
+
+export function fetchLeadDetail(slug: string, signal?: AbortSignal): Promise<LeadDetail> {
+  return getJSON<LeadDetail>(`${VT}/leads/${encodeURIComponent(slug)}`, signal);
+}
+
+export interface DraftBody {
+  id: string;
+  body: string;
+  exists: boolean;
+}
+
+export function fetchInboxDraft(id: string, signal?: AbortSignal): Promise<DraftBody> {
+  return getJSON<DraftBody>(`${VT}/inbox/${encodeURIComponent(id)}/draft`, signal);
+}
+
+export function saveInboxDraft(id: string, body: string): Promise<DraftBody> {
+  return putJSON<DraftBody>(`${VT}/inbox/${encodeURIComponent(id)}/draft`, { body });
+}
+
+export interface FactDetail {
+  id: string;
+  pole: string;
+  script: string;
+  kind: string;
+  important: boolean;
+  tags: string[];
+  body: string;
+  source: string | null;
+  created_at: string;
+}
+
+export function fetchMemoireFact(
+  pole: string,
+  script: string,
+  recordId: string,
+  signal?: AbortSignal,
+): Promise<FactDetail> {
+  const q = `?pole=${encodeURIComponent(pole)}&script=${encodeURIComponent(script)}&record_id=${encodeURIComponent(recordId)}`;
+  return getJSON<FactDetail>(`${MEM}/fact${q}`, signal);
+}
+
+export type DecisionStatus = "open" | "closed";
+
+export interface DecisionWithStatus {
+  decision_id: string;
+  title: string;
+  decision_date: string;
+  partie: string;
+  decision: string;
+  status: DecisionStatus;
+}
+
+export function fetchDecisions(signal?: AbortSignal): Promise<DecisionWithStatus[]> {
+  return getJSON<DecisionWithStatus[]>(`${D}/decisions`, signal);
+}
+
+export function setDecisionStatus(id: string, status: DecisionStatus): Promise<DecisionWithStatus> {
+  return patchJSON<DecisionWithStatus>(`${D}/decisions/${encodeURIComponent(id)}`, { status });
 }
 
 // =============================================================================

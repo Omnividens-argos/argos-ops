@@ -20,8 +20,10 @@ import {
   generateDoc,
   updateFlow,
   uploadDoc,
+  uploadDocFile,
 } from "../api.ts";
 import { Badge, Button, Flash } from "../../components/ui.tsx";
+import { FileUpload } from "../../components/FileUpload.tsx";
 import { BarChart, DivergingBars, Gauge } from "./charts.tsx";
 import {
   AI_ACT_TONE,
@@ -887,6 +889,15 @@ function DocumentsTab({
       )}
 
       <Section title="Uploader un document à remplir">
+        <FileUpload
+          label="Glisser un fichier (PDF, DOCX…) ou cliquer pour parcourir"
+          hint="Fichier binaire versionné automatiquement côté serveur (docs/uploads/)."
+          maxSizeMb={10}
+          onFile={(file) => {
+            void runMutation("__upfile__", () => uploadDocFile(file), `Fichier « ${file.name} » uploadé.`);
+          }}
+        />
+        <p className="mt-1 text-[11px] text-argos-fg-tertiary">Ou créer une note texte à remplir :</p>
         <div className="flex flex-col gap-2 rounded-md border border-argos-border-subtle bg-argos-surface px-3 py-2.5">
           <input
             value={upName}

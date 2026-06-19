@@ -6,15 +6,20 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import {
+  type DraftBody,
+  type LeadDetail,
   type MeetingIcs,
   type VenteDeal,
   type VenteOverview,
   bookMeeting,
   draftInboxReply,
   draftProposal,
+  fetchInboxDraft,
+  fetchLeadDetail,
   fetchMeetingIcs,
   fetchVenteOverview,
   moveDealStage,
+  saveInboxDraft,
   scaffoldSequence,
   uploadLeads,
 } from "../api.ts";
@@ -25,6 +30,9 @@ import {
   type KanbanColumn,
   type KanbanItem,
 } from "../../components/KanbanBoard.tsx";
+import { Drawer } from "../../components/Drawer.tsx";
+import { MarkdownEditor } from "../../components/MarkdownEditor.tsx";
+import { MarkdownPreview } from "../../components/MarkdownPreview.tsx";
 import { Modal } from "../../components/Modal.tsx";
 import {
   BAND_TONE,
@@ -374,6 +382,47 @@ function InboxTab({
   busy: string | null;
   runMutation: MutFn;
 }) {
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<DraftBody | null>(null);
+  const [body, setBody] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [drawerError, setDrawerError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const openDraft = useCallback((id: string) => {
+    setDraftId(id);
+    setDraft(null);
+    setBody("");
+    setDrawerError(null);
+    setLoading(true);
+    fetchInboxDraft(id)
+      .then((res) => {
+        setDraft(res);
+        setBody(res.body);
+      })
+      .catch((err: unknown) => {
+        setDrawerError(err instanceof Error ? err.message : "Échec du chargement du brouillon.");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const closeDraft = useCallback(() => setDraftId(null), []);
+
+  const saveDraft = useCallback(async () => {
+    if (draftId === null) return;
+    setSaving(true);
+    setDrawerError(null);
+    try {
+      const res = await saveInboxDraft(draftId, body);
+      setDraft(res);
+      setBody(res.body);
+    } catch (err: unknown) {
+      setDrawerError(err instanceof Error ? err.message : "Échec de l'enregistrement.");
+    } finally {
+      setSaving(false);
+    }
+  }, [draftId, body]);
+
   if (overview.inbox.length === 0) return <Empty>Inbox vide.</Empty>;
   return (
     <Section title={`Inbox triée (${overview.inbox.length})`}>
@@ -396,24 +445,79 @@ function InboxTab({
                 {m.from_name} &lt;{m.from_email}&gt;
               </span>
             </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={busy === m.id || m.human_requested || m.category === "spam"}
-              title={
-                m.human_requested
-                  ? "Réponse humaine exigée — drafting IA gelé (AI Act)"
-                  : m.category === "spam"
-                    ? "Spam — pas de réponse"
-                    : "Drafter une réponse"
-              }
-              onClick={() => runMutation(m.id, () => draftInboxReply(m.id), "Réponse draftée.")}
-            >
-              drafter
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              {m.status === "drafted" && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => openDraft(m.id)}
+                  title="Voir / éditer le brouillon"
+                >
+                  voir/éditer le brouillon
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy === m.id || m.human_requested || m.category === "spam"}
+                title={
+                  m.human_requested
+                    ? "Réponse humaine exigée — drafting IA gelé (AI Act)"
+                    : m.category === "spam"
+                      ? "Spam — pas de réponse"
+                      : "Drafter une réponse"
+                }
+                onClick={() => runMutation(m.id, () => draftInboxReply(m.id), "Réponse draftée.")}
+              >
+                drafter
+              </Button>
+            </div>
           </div>
         ))}
       </div>
+
+      <Drawer
+        open={draftId !== null}
+        onClose={closeDraft}
+        title="Brouillon de réponse"
+        width="lg"
+        footer={
+          <>
+            <Button size="sm" variant="ghost" onClick={closeDraft}>
+              fermer
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={loading || saving || draft === null}
+              onClick={saveDraft}
+            >
+              {saving ? "enregistrement…" : "enregistrer"}
+            </Button>
+          </>
+        }
+      >
+        {loading && (
+          <p className="font-mono text-[11px] text-argos-fg-tertiary">Chargement du brouillon…</p>
+        )}
+        {drawerError && (
+          <Flash variant="error" message={drawerError} onDismiss={() => setDrawerError(null)} />
+        )}
+        {!loading && draft !== null && (
+          <div className="flex flex-col gap-3">
+            {!draft.exists && (
+              <p className="font-mono text-[11px] text-argos-fg-tertiary">
+                Aucun brouillon existant — saisissez le corps de la réponse.
+              </p>
+            )}
+            <MarkdownEditor
+              value={body}
+              onChange={setBody}
+              ariaLabel="Brouillon de réponse inbox"
+            />
+          </div>
+        )}
+      </Drawer>
     </Section>
   );
 }
@@ -524,6 +628,24 @@ function OutboundTab({
   onCsvParsed: (rows: Record<string, string>[]) => void;
 }) {
   const frozen = overview.counts.outbound_frozen;
+  const [detailSlug, setDetailSlug] = useState<string | null>(null);
+  const [detail, setDetail] = useState<LeadDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+
+  const openLead = useCallback((slug: string) => {
+    setDetailSlug(slug);
+    setDetail(null);
+    setDetailError(null);
+    setDetailLoading(true);
+    fetchLeadDetail(slug)
+      .then((res) => setDetail(res))
+      .catch((err: unknown) => {
+        setDetailError(err instanceof Error ? err.message : "Échec du chargement de la fiche.");
+      })
+      .finally(() => setDetailLoading(false));
+  }, []);
+
   return (
     <div className="flex flex-col gap-6">
       <Section title="Importer des leads (CSV)">
@@ -548,7 +670,12 @@ function OutboundTab({
           <div className="flex flex-col gap-2">
             {overview.leads.map((l) => (
               <div key={l.slug} className="flex items-start justify-between gap-3 rounded-md border border-argos-border-subtle bg-argos-surface px-3 py-2.5">
-                <div className="flex min-w-0 flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => openLead(l.slug)}
+                  aria-label={`Ouvrir la fiche de ${l.full_name}`}
+                  className="flex min-w-0 flex-1 flex-col gap-1 rounded-md text-left transition-colors hover:bg-argos-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg"
+                >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs text-argos-fg">{l.full_name}</span>
                     <Badge tone="neutral">{l.persona}</Badge>
@@ -562,7 +689,7 @@ function OutboundTab({
                   <span className="truncate font-mono text-[10px] text-argos-fg-tertiary">
                     {l.best_email ?? l.domain} — {l.eligibility_reason}
                   </span>
-                </div>
+                </button>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -610,6 +737,157 @@ function OutboundTab({
           </div>
         )}
       </Section>
+
+      <Drawer
+        open={detailSlug !== null}
+        onClose={() => setDetailSlug(null)}
+        title={detail ? `Fiche — ${detail.full_name}` : "Fiche lead"}
+        width="lg"
+      >
+        {detailLoading && (
+          <p className="font-mono text-[11px] text-argos-fg-tertiary">Chargement de la fiche…</p>
+        )}
+        {detailError && (
+          <Flash variant="error" message={detailError} onDismiss={() => setDetailError(null)} />
+        )}
+        {!detailLoading && detail !== null && <LeadDetailFiche detail={detail} />}
+      </Drawer>
+    </div>
+  );
+}
+
+function FicheBlock({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-1.5">
+      <h3 className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+const BANT_ROWS: { key: "budget" | "authority" | "need" | "timing"; label: string }[] = [
+  { key: "budget", label: "Budget" },
+  { key: "authority", label: "Authority" },
+  { key: "need", label: "Need" },
+  { key: "timing", label: "Timing" },
+];
+
+function LeadDetailFiche({ detail }: { detail: LeadDetail }) {
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone="neutral">{detail.persona}</Badge>
+        <Badge tone="info">score {detail.persona_score}</Badge>
+        <Badge tone={detail.bant_total >= 40 ? "healthy" : "warning"}>BANT {detail.bant_total}</Badge>
+        {detail.qualified && <Badge tone="healthy">qualifié</Badge>}
+        {detail.eligible ? (
+          <Badge tone="healthy">éligible</Badge>
+        ) : (
+          <Badge tone="danger">inéligible</Badge>
+        )}
+      </div>
+
+      <FicheBlock title="Identité">
+        <div className="flex flex-col gap-0.5 font-mono text-[11px] text-argos-fg-secondary">
+          <span>
+            <span className="text-argos-fg-tertiary">domaine</span> · {detail.domain}
+          </span>
+          {detail.title_hint && (
+            <span>
+              <span className="text-argos-fg-tertiary">titre</span> · {detail.title_hint}
+            </span>
+          )}
+          <span>
+            <span className="text-argos-fg-tertiary">slug</span> · {detail.slug}
+          </span>
+        </div>
+      </FicheBlock>
+
+      {detail.persona_signals.length > 0 && (
+        <FicheBlock title="Signaux persona">
+          <div className="flex flex-wrap gap-1.5">
+            {detail.persona_signals.map((sig) => (
+              <span
+                key={sig}
+                className="rounded border border-argos-border-subtle bg-argos-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-argos-fg-secondary"
+              >
+                {sig}
+              </span>
+            ))}
+          </div>
+        </FicheBlock>
+      )}
+
+      <FicheBlock title="BANT">
+        <div className="flex flex-col gap-1.5">
+          {BANT_ROWS.map((row) => {
+            const score = detail.bant[row.key];
+            return (
+              <div key={row.key} className="flex items-center gap-2">
+                <span className="w-20 shrink-0 font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
+                  {row.label}
+                </span>
+                <div className="h-2 flex-1 overflow-hidden rounded bg-argos-surface-2">
+                  <div
+                    className="h-full rounded bg-argos-info/60"
+                    style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
+                  />
+                </div>
+                <span className="w-8 shrink-0 text-right font-mono text-[10px] tabular-nums text-argos-fg-secondary">
+                  {score}
+                </span>
+              </div>
+            );
+          })}
+          <div className="mt-1 flex items-center justify-between border-t border-argos-border-subtle pt-1.5">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
+              Total
+            </span>
+            <span className="font-mono text-[11px] tabular-nums text-argos-fg">
+              {detail.bant.total}
+            </span>
+          </div>
+        </div>
+      </FicheBlock>
+
+      <FicheBlock title="Email">
+        <div className="flex flex-col gap-1">
+          {detail.best_email && (
+            <span className="font-mono text-[11px] text-argos-fg">
+              <span className="text-argos-fg-tertiary">best</span> · {detail.best_email}
+            </span>
+          )}
+          {detail.email_guesses.length === 0 ? (
+            <span className="font-mono text-[10px] text-argos-fg-tertiary">Aucune hypothèse.</span>
+          ) : (
+            detail.email_guesses.map((g) => (
+              <div
+                key={g.email}
+                className="flex items-center justify-between gap-2 font-mono text-[10px] text-argos-fg-secondary"
+              >
+                <span className="truncate">{g.email}</span>
+                <span className="shrink-0 text-argos-fg-tertiary">
+                  {g.pattern} · {g.confidence}%
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </FicheBlock>
+
+      <FicheBlock title="Éligibilité">
+        <p className="font-mono text-[11px] text-argos-fg-secondary">{detail.eligibility_reason}</p>
+      </FicheBlock>
+
+      {detail.markdown_body.trim().length > 0 && (
+        <FicheBlock title="Fiche enrichie">
+          <div className="rounded-md border border-argos-border-subtle bg-argos-surface-2 px-3 py-2">
+            <MarkdownPreview content={detail.markdown_body} />
+          </div>
+        </FicheBlock>
+      )}
     </div>
   );
 }

@@ -170,6 +170,9 @@ export function VeillePage() {
   const [savedViews, setSavedViews] = useState<SavedView[]>(() => loadSavedViews());
   const [pushed, setPushed] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkTarget, setBulkTarget] = useState<string>("");
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [flash, setFlash] = useState<{ variant: "success" | "error"; message: string } | null>(
     null,
   );
@@ -247,6 +250,53 @@ export function VeillePage() {
     }
   }, []);
 
+  const toggleSelected = useCallback((recordId: string) => {
+    if (recordId === "") return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(recordId)) next.delete(recordId);
+      else next.add(recordId);
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelected(new Set());
+  }, []);
+
+  // Push groupé : pousse chaque record sélectionné vers le pôle aval choisi en une
+  // action, en réutilisant le même endpoint que le push unitaire (await all).
+  const handleBulkPush = useCallback(async () => {
+    if (bulkTarget === "" || selected.size === 0) return;
+    const ids = [...selected];
+    setBulkBusy(true);
+    setFlash(null);
+    try {
+      await Promise.all(
+        ids.map((recordId) =>
+          pushHandoff(POLE, { record_id: recordId, target_pole: bulkTarget }),
+        ),
+      );
+      setPushed((prev) => {
+        const next = new Set(prev);
+        for (const recordId of ids) next.add(`${recordId}:${bulkTarget}`);
+        return next;
+      });
+      setSelected(new Set());
+      setFlash({
+        variant: "success",
+        message: `${ids.length} élément(s) poussé(s) vers ${poleLabel(bulkTarget)}.`,
+      });
+    } catch (err: unknown) {
+      setFlash({
+        variant: "error",
+        message: err instanceof Error ? err.message : "Échec du push groupé.",
+      });
+    } finally {
+      setBulkBusy(false);
+    }
+  }, [bulkTarget, selected]);
+
   const filteredRecords = useMemo(() => {
     if (!feed) return [];
     return feed.records.filter(
@@ -266,6 +316,24 @@ export function VeillePage() {
         (filter.severity === "all" || i.severity === filter.severity),
     );
   }, [feed, filter]);
+
+  // Cibles possibles pour le push groupé : union des pôles aval suggérés par les
+  // insights affichés, avec un repli sur les 3 pôles de routage par défaut.
+  const bulkPoles = useMemo(() => {
+    const union = new Set<string>();
+    for (const insight of filteredInsights) {
+      for (const pole of insight.suggested_poles) union.add(pole);
+    }
+    return union.size > 0 ? [...union] : ["marketing", "pub", "vente"];
+  }, [filteredInsights]);
+
+  // Garde une cible valide : sélectionne la première dispo, ré-aligne si la cible
+  // courante n'est plus proposée (changement de filtre).
+  useEffect(() => {
+    setBulkTarget((current) =>
+      current !== "" && bulkPoles.includes(current) ? current : (bulkPoles[0] ?? ""),
+    );
+  }, [bulkPoles]);
 
   const threats = filteredRecords.filter((r) => THREAT_KINDS.has(r.kind));
   const competitors = filteredRecords.filter((r) => r.kind === "competitor");
@@ -371,11 +439,50 @@ export function VeillePage() {
             title="Flux d'insights"
             hint={`${filteredInsights.length} insight(s)`}
           >
+            {selected.size > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-md border border-argos-info/40 bg-argos-info/15 px-3 py-2">
+                <span className="font-mono text-[11px] text-argos-info">
+                  {selected.size} sélectionné(s)
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-disabled">
+                  pousser vers
+                </span>
+                <label className="sr-only" htmlFor="veille-bulk-target">
+                  Pôle aval cible du push groupé
+                </label>
+                <select
+                  id="veille-bulk-target"
+                  value={bulkTarget}
+                  onChange={(e) => setBulkTarget(e.target.value)}
+                  disabled={bulkBusy}
+                  className="rounded-md border border-argos-border-subtle bg-argos-bg px-2 py-1 font-mono text-[11px] text-argos-fg focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg disabled:opacity-40"
+                >
+                  {bulkPoles.map((p) => (
+                    <option key={p} value={p}>
+                      {poleLabel(p)}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={bulkBusy || bulkTarget === "" || selected.size === 0}
+                  onClick={handleBulkPush}
+                >
+                  {bulkBusy ? "…" : `pousser ${selected.size} élément(s)`}
+                </Button>
+                <Button size="sm" variant="ghost" disabled={bulkBusy} onClick={clearSelection}>
+                  effacer
+                </Button>
+              </div>
+            )}
             <InsightFeed
               insights={filteredInsights}
               pushed={pushed}
               busy={busy}
               onPush={handlePush}
+              selected={selected}
+              onToggleSelect={toggleSelected}
             />
           </Section>
 
