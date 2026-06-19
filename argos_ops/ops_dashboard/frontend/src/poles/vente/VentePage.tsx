@@ -6,16 +6,26 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import {
+  type MeetingIcs,
+  type VenteDeal,
   type VenteOverview,
   bookMeeting,
   draftInboxReply,
   draftProposal,
+  fetchMeetingIcs,
   fetchVenteOverview,
+  moveDealStage,
   scaffoldSequence,
   uploadLeads,
 } from "../api.ts";
 import { Badge, Button, Flash } from "../../components/ui.tsx";
 import { FileUpload } from "../../components/FileUpload.tsx";
+import {
+  KanbanBoard,
+  type KanbanColumn,
+  type KanbanItem,
+} from "../../components/KanbanBoard.tsx";
+import { Modal } from "../../components/Modal.tsx";
 import {
   BAND_TONE,
   CATEGORY_LABEL,
@@ -266,6 +276,8 @@ type MutFn = (key: string, fn: () => Promise<unknown>, okMsg: string) => Promise
 // =============================================================================
 // Pipeline (Kanban + devis/contrats)
 // =============================================================================
+type DealCard = VenteDeal & KanbanItem;
+
 function PipelineTab({
   overview,
   busy,
@@ -275,43 +287,40 @@ function PipelineTab({
   busy: string | null;
   runMutation: MutFn;
 }) {
-  const stages = overview.stage_order.filter((s) => s !== "lost");
+  const columns: KanbanColumn[] = overview.stage_order
+    .filter((s) => s !== "lost")
+    .map((stage) => ({ id: stage, title: stageLabel(stage), accent: "info" }));
+
+  const items: DealCard[] = overview.pipeline.map((d) => ({
+    ...d,
+    id: d.deal_id,
+    columnId: d.stage,
+  }));
+
   return (
     <div className="flex flex-col gap-6">
       <Section title="Pipeline (Kanban)">
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {stages.map((stage) => {
-            const deals = overview.pipeline.filter((d) => d.stage === stage);
-            return (
-              <div key={stage} className="flex w-56 shrink-0 flex-col gap-2">
-                <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
-                  <span>{stageLabel(stage)}</span>
-                  <span>{deals.length}</span>
-                </div>
-                {deals.length === 0 ? (
-                  <div className="rounded-md border border-dashed border-argos-border-subtle px-2 py-3 text-center font-mono text-[10px] text-argos-fg-disabled">
-                    —
-                  </div>
-                ) : (
-                  deals.map((d) => (
-                    <div key={d.deal_id} className={CARD}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate font-mono text-xs text-argos-fg">{d.company}</span>
-                        <Badge tone={riskTone(d.risk_score)}>{d.risk_score}</Badge>
-                      </div>
-                      <span className="font-mono text-[11px] text-argos-fg-secondary">
-                        {eur(d.amount_eur)}/an · {d.days_since_activity}j
-                      </span>
-                      {d.is_stalled && (
-                        <span className="font-mono text-[10px] text-argos-warning">⚠ stalled</span>
-                      )}
-                    </div>
-                  ))
-                )}
+        <KanbanBoard<DealCard>
+          columns={columns}
+          items={items}
+          onMove={(dealId, toStage) =>
+            runMutation(dealId, () => moveDealStage(dealId, toStage), "Deal déplacé.")
+          }
+          renderCard={(d) => (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate font-mono text-xs text-argos-fg">{d.company}</span>
+                <Badge tone={riskTone(d.risk_score)}>{d.risk_score}</Badge>
               </div>
-            );
-          })}
-        </div>
+              <span className="font-mono text-[11px] text-argos-fg-secondary">
+                {eur(d.amount_eur)}/an · {d.days_since_activity}j
+              </span>
+              {d.is_stalled && (
+                <span className="font-mono text-[10px] text-argos-warning">⚠ stalled</span>
+              )}
+            </div>
+          )}
+        />
       </Section>
 
       <Section title="Devis & contrats">
@@ -617,9 +626,42 @@ function RdvTab({
   busy: string | null;
   runMutation: MutFn;
 }) {
+  const [ics, setIcs] = useState<MeetingIcs | null>(null);
+  const [icsBusy, setIcsBusy] = useState<string | null>(null);
+  const [icsError, setIcsError] = useState<string | null>(null);
+
+  const showIcs = useCallback(async (requestId: string) => {
+    setIcsBusy(requestId);
+    setIcsError(null);
+    try {
+      const res = await fetchMeetingIcs(requestId);
+      setIcs(res);
+    } catch (err: unknown) {
+      setIcsError(err instanceof Error ? err.message : "Échec du chargement du .ics.");
+    } finally {
+      setIcsBusy(null);
+    }
+  }, []);
+
+  const downloadIcs = useCallback(() => {
+    if (!ics) return;
+    const blob = new Blob([ics.ics], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = ics.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, [ics]);
+
   if (overview.meetings.length === 0) return <Empty>Aucune demande de RDV.</Empty>;
   return (
     <Section title={`Calendrier RDV (${overview.meetings.length})`}>
+      {icsError && (
+        <Flash variant="error" message={icsError} onDismiss={() => setIcsError(null)} />
+      )}
       <div className="flex flex-col gap-2">
         {overview.meetings.map((m) => (
           <div key={m.request_id} className="flex items-center justify-between gap-3 rounded-md border border-argos-border-subtle bg-argos-surface px-3 py-2.5">
@@ -643,10 +685,35 @@ function RdvTab({
               >
                 drafter (iCal)
               </Button>
+              {m.status === "drafted" && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={icsBusy === m.request_id}
+                  onClick={() => showIcs(m.request_id)}
+                >
+                  {icsBusy === m.request_id ? "chargement…" : "voir .ics"}
+                </Button>
+              )}
             </div>
           </div>
         ))}
       </div>
+
+      <Modal
+        open={ics !== null}
+        onClose={() => setIcs(null)}
+        title="Invitation .ics"
+        footer={
+          <Button size="sm" variant="secondary" onClick={downloadIcs}>
+            télécharger {ics?.filename}
+          </Button>
+        }
+      >
+        <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap rounded-md border border-argos-border-subtle bg-argos-surface-2 px-3 py-2 font-mono text-[11px] text-argos-fg-secondary">
+          {ics?.ics}
+        </pre>
+      </Modal>
     </Section>
   );
 }

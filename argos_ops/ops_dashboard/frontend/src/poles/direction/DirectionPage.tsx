@@ -8,11 +8,12 @@
 // boutons de publication désactivés (« Python tranche »).
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import {
   type DirectionOverview,
   type KeyResultOut,
   addDecision,
+  directionDocPdfUrl,
   exportBoard,
   fetchDirectionDoc,
   fetchDirectionOverview,
@@ -645,9 +646,21 @@ function BoardTab({
                     <Badge tone="neutral">Markdown</Badge>
                   )}
                 </div>
-                <Button size="sm" variant="secondary" onClick={() => onPreview(d.name)}>
-                  preview
-                </Button>
+                <div className="flex items-center gap-2">
+                  {d.has_pdf && (
+                    <a
+                      href={directionDocPdfUrl(d.name)}
+                      download
+                      aria-label={`Télécharger le PDF de ${d.name}`}
+                      className="inline-flex items-center gap-1 rounded-md border border-argos-border bg-argos-surface-2 px-2.5 py-1 font-mono text-[11px] text-argos-fg-secondary transition-colors hover:bg-argos-surface hover:text-argos-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg"
+                    >
+                      <Download className="h-3 w-3" aria-hidden /> PDF
+                    </a>
+                  )}
+                  <Button size="sm" variant="secondary" onClick={() => onPreview(d.name)}>
+                    preview
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

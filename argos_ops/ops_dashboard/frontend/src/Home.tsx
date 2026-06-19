@@ -4,9 +4,10 @@
 // Enrichi en Phase 3 (signaux handoffs entrants, santé par pôle, file inbox).
 
 import { useQuery } from "@tanstack/react-query";
-import { Activity, AlertTriangle, ArrowRight, Banknote, Ticket, Users } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, Banknote, Inbox as InboxIcon, Share2, Ticket, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { fetchBreakers, fetchHealthSnapshot, fetchKPIs } from "./api";
+import { fetchBreakers, fetchHealthSnapshot, fetchInboxDrafts, fetchKPIs } from "./api";
+import { fetchIncomingHandoffs } from "./poles/api.ts";
 import { Badge } from "./components/ui.tsx";
 import { EmptyState } from "./components/EmptyState.tsx";
 import { SkeletonGrid } from "./components/Skeleton.tsx";
@@ -42,6 +43,8 @@ export function Home({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const kpis = useQuery({ queryKey: [...qk.home, "kpis"], queryFn: ({ signal }) => fetchKPIs(signal) });
   const health = useQuery({ queryKey: [...qk.home, "health"], queryFn: ({ signal }) => fetchHealthSnapshot(signal) });
   const breakers = useQuery({ queryKey: [...qk.home, "breakers"], queryFn: ({ signal }) => fetchBreakers(signal) });
+  const handoffs = useQuery({ queryKey: qk.handoffsIncoming, queryFn: ({ signal }) => fetchIncomingHandoffs(undefined, signal) });
+  const inbox = useQuery({ queryKey: [...qk.home, "inbox"], queryFn: ({ signal }) => fetchInboxDrafts(signal) });
 
   const tripped = (breakers.data ?? []).filter((b) => b.tripped);
   const k = kpis.data;
@@ -73,6 +76,21 @@ export function Home({ onNavigate }: { onNavigate: (route: Route) => void }) {
             tone={k.tripped_breakers > 0 ? "danger" : "healthy"}
           />
         </div>
+      ) : null}
+
+      {inbox.data && inbox.data.length > 0 ? (
+        <button
+          type="button"
+          onClick={() => onNavigate({ kind: "tool", id: "inbox" })}
+          className="flex items-center justify-between gap-3 rounded-md border border-argos-info/40 bg-argos-info/10 px-4 py-3 text-left transition-colors hover:bg-argos-info/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg"
+        >
+          <span className="flex items-center gap-2 text-sm text-argos-fg">
+            <InboxIcon size={15} className="text-argos-info" aria-hidden />
+            <span className="font-mono font-semibold tabular-nums">{inbox.data.length}</span>
+            draft(s) à valider dans l'Inbox
+          </span>
+          <ArrowRight size={15} className="text-argos-info" aria-hidden />
+        </button>
       ) : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -126,6 +144,37 @@ export function Home({ onNavigate }: { onNavigate: (route: Route) => void }) {
                     <Badge tone="danger">{b.severity}</Badge>
                   </div>
                   {b.reason ? <p className="mt-1 text-[11px] text-argos-fg-secondary">{b.reason}</p> : null}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <h2 className="mt-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-argos-fg-tertiary">
+            <Share2 size={12} aria-hidden /> Signaux reçus (handoffs)
+          </h2>
+          {(handoffs.data ?? []).length === 0 ? (
+            <div className="rounded-md border border-argos-border bg-argos-surface p-4 text-sm text-argos-fg-tertiary">
+              Aucun handoff entrant.
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {(handoffs.data ?? []).slice(0, 6).map((h) => (
+                <li key={h.id}>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate({ kind: "pole", id: h.target_pole })}
+                    className="flex w-full items-center justify-between gap-2 rounded-md border border-argos-border bg-argos-surface p-3 text-left transition-colors hover:border-argos-info/50 hover:bg-argos-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-mono text-[11px] text-argos-fg-tertiary">
+                        {h.source_pole} → {h.target_pole}
+                      </span>
+                      {h.note ? (
+                        <span className="block truncate text-[11px] text-argos-fg-secondary">{h.note}</span>
+                      ) : null}
+                    </span>
+                    <ArrowRight size={13} className="shrink-0 text-argos-fg-disabled" aria-hidden />
+                  </button>
                 </li>
               ))}
             </ul>

@@ -59,7 +59,7 @@ async function getJSON<T>(path: string, signal?: AbortSignal): Promise<T> {
   return (await res.json()) as T;
 }
 
-async function sendJSON<T>(method: "POST" | "PUT", path: string, body: unknown): Promise<T> {
+async function sendJSON<T>(method: "POST" | "PUT" | "PATCH", path: string, body: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
     headers: { Accept: "application/json", "Content-Type": "application/json" },
@@ -80,6 +80,10 @@ function putJSON<T>(path: string, body: unknown): Promise<T> {
   return sendJSON<T>("PUT", path, body);
 }
 
+function patchJSON<T>(path: string, body: unknown): Promise<T> {
+  return sendJSON<T>("PATCH", path, body);
+}
+
 async function deleteReq(path: string): Promise<void> {
   const res = await fetch(path, { method: "DELETE", headers: { Accept: "application/json" } });
   if (!res.ok && res.status !== 204) {
@@ -95,6 +99,26 @@ async function deleteJSON<T>(path: string): Promise<T> {
     throw new Error(`DELETE ${path} -> HTTP ${res.status} ${detail.slice(0, 160)}`);
   }
   return (await res.json()) as T;
+}
+
+// =============================================================================
+// Handoffs entrants (cross-pôle) — GET /api/poles/handoffs/incoming (Phase 6)
+// =============================================================================
+export interface IncomingHandoff {
+  id: string;
+  source_pole: string;
+  record_id: string;
+  target_pole: string;
+  note: string | null;
+  created_at: string;
+}
+
+export function fetchIncomingHandoffs(
+  pole?: string,
+  signal?: AbortSignal,
+): Promise<IncomingHandoff[]> {
+  const q = pole ? `?pole=${encodeURIComponent(pole)}` : "";
+  return getJSON<IncomingHandoff[]>(`/api/poles/handoffs/incoming${q}`, signal);
 }
 
 export function fetchPoleFeed(pole: string, signal?: AbortSignal): Promise<PoleFeed> {
@@ -621,6 +645,20 @@ export function draftProposal(dealId: string): Promise<VenteProposal> {
   return postJSON<VenteProposal>(`${VT}/proposals/${encodeURIComponent(dealId)}/draft`, {});
 }
 
+export function moveDealStage(dealId: string, stage: string): Promise<VenteDeal> {
+  return patchJSON<VenteDeal>(`${VT}/deals/${encodeURIComponent(dealId)}/stage`, { stage });
+}
+
+export interface MeetingIcs {
+  request_id: string;
+  filename: string;
+  ics: string;
+}
+
+export function fetchMeetingIcs(id: string, signal?: AbortSignal): Promise<MeetingIcs> {
+  return getJSON<MeetingIcs>(`${VT}/meetings/${encodeURIComponent(id)}/ics`, signal);
+}
+
 // =============================================================================
 // Pôle Finance & Conformité (S5) — miroir des schemas Pydantic de api/finance.py.
 // =============================================================================
@@ -832,6 +870,18 @@ export function addFlow(payload: {
 
 export function deleteFlow(flowId: string): Promise<{ deleted: boolean }> {
   return deleteJSON<{ deleted: boolean }>(`${FN}/ledger/flows/${encodeURIComponent(flowId)}`);
+}
+
+export function updateFlow(
+  flowId: string,
+  payload: { flow_date: string; label: string; category: string; direction: string; amount_eur: number },
+): Promise<FinanceFlow> {
+  return putJSON<FinanceFlow>(`${FN}/ledger/flows/${encodeURIComponent(flowId)}`, payload);
+}
+
+/** URL de téléchargement du PDF d'un doc finance (CA3/devis/contrat). */
+export function financeDocPdfUrl(name: string): string {
+  return `${FN}/docs/${encodeURIComponent(name)}/pdf`;
 }
 
 export function generateDoc(
@@ -1071,6 +1121,11 @@ export function updateOkr(
 
 export function fetchDirectionDoc(name: string): Promise<{ name: string; content: string }> {
   return getJSON<{ name: string; content: string }>(`${D}/docs/${encodeURIComponent(name)}`);
+}
+
+/** URL de téléchargement du PDF du board pack (et autres docs direction). */
+export function directionDocPdfUrl(name: string): string {
+  return `${D}/docs/${encodeURIComponent(name)}/pdf`;
 }
 
 // =============================================================================

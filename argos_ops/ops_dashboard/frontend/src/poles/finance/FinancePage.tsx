@@ -6,8 +6,9 @@
 // génération de devis/contrat gelée (« Python tranche »).
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import {
+  type FinanceFlow,
   type FinanceOverview,
   addFlow,
   deleteFlow,
@@ -15,7 +16,9 @@ import {
   exportAccounting,
   fetchDoc,
   fetchFinanceOverview,
+  financeDocPdfUrl,
   generateDoc,
+  updateFlow,
   uploadDoc,
 } from "../api.ts";
 import { Badge, Button, Flash } from "../../components/ui.tsx";
@@ -414,9 +417,48 @@ function FluxTab({
   const [category, setCategory] = useState("revenue");
   const [direction, setDirection] = useState("in");
   const [amount, setAmount] = useState("");
+  const [editId, setEditId] = useState<string | null>(null);
+  const [eDate, setEDate] = useState("");
+  const [eLabel, setELabel] = useState("");
+  const [eCategory, setECategory] = useState("");
+  const [eDirection, setEDirection] = useState("in");
+  const [eAmount, setEAmount] = useState("");
 
   const inputCls =
     "rounded-md border border-argos-border-subtle bg-argos-bg px-2 py-1 font-mono text-[11px] text-argos-fg placeholder:text-argos-fg-disabled focus:border-argos-info/60 focus:outline-none";
+
+  const startEdit = (f: FinanceFlow) => {
+    setEditId(f.id);
+    setEDate(f.flow_date.slice(0, 10));
+    setELabel(f.label);
+    setECategory(f.category);
+    setEDirection(f.direction === "out" ? "out" : "in");
+    setEAmount(String(f.amount_eur));
+  };
+
+  const cancelEdit = () => setEditId(null);
+
+  const onSave = (id: string) => {
+    const amt = Number(eAmount.replace(",", "."));
+    if (!eDate || !eLabel.trim() || !Number.isFinite(amt) || amt <= 0) {
+      runMutation(id, () => Promise.reject(new Error("Ligne incomplète (date, libellé, montant > 0).")), "");
+      return;
+    }
+    runMutation(
+      id,
+      () =>
+        updateFlow(id, {
+          flow_date: eDate,
+          label: eLabel.trim(),
+          category: eCategory.trim() || "autre",
+          direction: eDirection,
+          amount_eur: amt,
+        }),
+      "Ligne modifiée.",
+    ).then((ok) => {
+      if (ok) setEditId(null);
+    });
+  };
 
   const onAdd = () => {
     const amt = Number(amount.replace(",", "."));
@@ -494,32 +536,111 @@ function FluxTab({
                 </tr>
               </thead>
               <tbody>
-                {ledger.flows.map((f) => (
-                  <tr key={f.id} className="border-t border-argos-border-subtle">
-                    <td className="px-2 py-1.5 text-argos-fg-secondary">{shortDate(f.flow_date)}</td>
-                    <td className="px-2 py-1.5 text-argos-fg">{f.label}</td>
-                    <td className="px-2 py-1.5 text-argos-fg-tertiary">{f.category}</td>
-                    <td
-                      className={`px-2 py-1.5 text-right ${f.direction === "in" ? "text-argos-healthy" : "text-argos-fg-secondary"}`}
-                    >
-                      {f.direction === "in" ? "+" : "−"}
-                      {eur2(f.amount_eur)}
-                    </td>
-                    <td className="px-2 py-1.5 text-right text-argos-fg">{eur2(f.balance_eur)}</td>
-                    <td className="px-2 py-1.5 text-right">
-                      <button
-                        type="button"
-                        disabled={busy === f.id}
-                        onClick={() =>
-                          runMutation(f.id, () => deleteFlow(f.id), "Ligne supprimée.")
-                        }
-                        className="font-mono text-[10px] text-argos-danger/80 underline decoration-dotted underline-offset-2 hover:text-argos-danger disabled:opacity-40"
+                {ledger.flows.map((f) =>
+                  editId === f.id ? (
+                    <tr key={f.id} className="border-t border-argos-border-subtle bg-argos-info/5">
+                      <td className="px-2 py-1.5">
+                        <input
+                          type="date"
+                          value={eDate}
+                          onChange={(e) => setEDate(e.target.value)}
+                          className={inputCls}
+                        />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={eLabel}
+                          onChange={(e) => setELabel(e.target.value)}
+                          placeholder="libellé"
+                          className={`${inputCls} w-full`}
+                        />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={eCategory}
+                          onChange={(e) => setECategory(e.target.value)}
+                          placeholder="catégorie"
+                          className={`${inputCls} w-24`}
+                        />
+                      </td>
+                      <td className="px-2 py-1.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <select
+                            value={eDirection}
+                            onChange={(e) => setEDirection(e.target.value)}
+                            className={inputCls}
+                            aria-label="sens"
+                          >
+                            <option value="in">entrée</option>
+                            <option value="out">sortie</option>
+                          </select>
+                          <input
+                            value={eAmount}
+                            onChange={(e) => setEAmount(e.target.value)}
+                            placeholder="montant €"
+                            inputMode="decimal"
+                            className={`${inputCls} w-20`}
+                          />
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5 text-right text-argos-fg-tertiary">{eur2(f.balance_eur)}</td>
+                      <td className="px-2 py-1.5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            disabled={busy === f.id}
+                            onClick={() => onSave(f.id)}
+                            className="font-mono text-[10px] text-argos-healthy underline decoration-dotted underline-offset-2 hover:text-argos-healthy disabled:opacity-40"
+                          >
+                            enregistrer
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="font-mono text-[10px] text-argos-fg-tertiary underline decoration-dotted underline-offset-2 hover:text-argos-fg"
+                          >
+                            annuler
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={f.id} className="border-t border-argos-border-subtle">
+                      <td className="px-2 py-1.5 text-argos-fg-secondary">{shortDate(f.flow_date)}</td>
+                      <td className="px-2 py-1.5 text-argos-fg">{f.label}</td>
+                      <td className="px-2 py-1.5 text-argos-fg-tertiary">{f.category}</td>
+                      <td
+                        className={`px-2 py-1.5 text-right ${f.direction === "in" ? "text-argos-healthy" : "text-argos-fg-secondary"}`}
                       >
-                        suppr
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                        {f.direction === "in" ? "+" : "−"}
+                        {eur2(f.amount_eur)}
+                      </td>
+                      <td className="px-2 py-1.5 text-right text-argos-fg">{eur2(f.balance_eur)}</td>
+                      <td className="px-2 py-1.5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            disabled={busy === f.id || editId !== null}
+                            onClick={() => startEdit(f)}
+                            className="font-mono text-[10px] text-argos-info/80 underline decoration-dotted underline-offset-2 hover:text-argos-info disabled:opacity-40"
+                          >
+                            éditer
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy === f.id}
+                            onClick={() =>
+                              runMutation(f.id, () => deleteFlow(f.id), "Ligne supprimée.")
+                            }
+                            className="font-mono text-[10px] text-argos-danger/80 underline decoration-dotted underline-offset-2 hover:text-argos-danger disabled:opacity-40"
+                          >
+                            suppr
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ),
+                )}
               </tbody>
             </table>
           </div>
@@ -728,9 +849,20 @@ function DocumentsTab({
                     <Badge tone="neutral">Markdown</Badge>
                   )}
                 </div>
-                <Button size="sm" variant="secondary" onClick={() => onPreview(d.name)}>
-                  preview
-                </Button>
+                <div className="flex items-center gap-2">
+                  {d.has_pdf && (
+                    <a
+                      href={financeDocPdfUrl(d.name)}
+                      download
+                      className="inline-flex items-center gap-1 rounded-md border border-argos-border-subtle bg-argos-surface-2 px-2.5 py-1 font-mono text-[11px] text-argos-fg-secondary transition-colors hover:text-argos-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg"
+                    >
+                      <Download className="h-3 w-3" aria-hidden /> PDF
+                    </a>
+                  )}
+                  <Button size="sm" variant="secondary" onClick={() => onPreview(d.name)}>
+                    preview
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
