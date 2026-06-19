@@ -16,6 +16,8 @@ import { PolePage } from "./poles/PolePage.tsx";
 import { POLES } from "./poles/poles.ts";
 import { TOOLS } from "./routes.ts";
 import type { Route } from "./routes.ts";
+import { useChangeStream } from "./lib/useChangeStream.ts";
+import type { ChangeStreamStatus } from "./lib/useChangeStream.ts";
 
 // Code-split : les vues lourdes (Home/charts, Atelier WS, BotDetail, Inbox,
 // Outputs, Aide) ne sont tirées qu'à l'ouverture.
@@ -26,7 +28,18 @@ const Help = lazy(() => import("./views/Help").then((m) => ({ default: m.Help })
 const Inbox = lazy(() => import("./views/Inbox").then((m) => ({ default: m.Inbox })));
 const Outputs = lazy(() => import("./views/Outputs").then((m) => ({ default: m.Outputs })));
 
-function RailNav({ route, onNavigate }: { route: Route; onNavigate: (r: Route) => void }) {
+function RailNav({
+  route,
+  onNavigate,
+  live,
+}: {
+  route: Route;
+  onNavigate: (r: Route) => void;
+  live: ChangeStreamStatus;
+}) {
+  const liveDot =
+    live === "open" ? "bg-argos-healthy" : live === "connecting" ? "bg-argos-warning" : "bg-argos-fg-disabled";
+  const liveLabel = live === "open" ? "Temps réel" : live === "connecting" ? "Connexion…" : "Hors-ligne (polling)";
   const itemBase =
     "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-1 focus-visible:ring-offset-argos-surface";
   const active = "bg-argos-info/15 text-argos-info";
@@ -112,8 +125,12 @@ function RailNav({ route, onNavigate }: { route: Route; onNavigate: (r: Route) =
         </div>
       </div>
 
-      <div className="border-t border-argos-border-subtle px-4 py-3 font-mono text-[10px] text-argos-fg-disabled">
-        ⌘K · palette · ? raccourcis
+      <div className="flex items-center justify-between gap-2 border-t border-argos-border-subtle px-4 py-3 font-mono text-[10px] text-argos-fg-disabled">
+        <span>⌘K · ? raccourcis</span>
+        <span className="flex items-center gap-1.5" title={liveLabel}>
+          <span className={`size-1.5 rounded-full ${liveDot}`} aria-hidden />
+          <span className="sr-only">{liveLabel}</span>
+        </span>
       </div>
     </>
   );
@@ -126,6 +143,9 @@ export function AppShell() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [forceOnboarding, setForceOnboarding] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Canal temps réel : invalide React Query + redispatch DOM sur changement disque.
+  const live = useChangeStream();
 
   // Health + KPIs polling partagés (status DB topbar + breakers tripped).
   const health = usePolling(useCallback((s) => fetchHealth(s), []));
@@ -229,7 +249,7 @@ export function AppShell() {
         className="hidden w-60 shrink-0 flex-col border-r border-argos-border-subtle bg-argos-surface lg:flex"
         aria-label="Navigation principale"
       >
-        <RailNav route={route} onNavigate={navigate} />
+        <RailNav route={route} onNavigate={navigate} live={live} />
       </nav>
 
       {/* Drawer mobile */}
@@ -245,7 +265,7 @@ export function AppShell() {
             className="argos-fade-in relative flex w-64 flex-col border-r border-argos-border bg-argos-surface"
             aria-label="Navigation principale"
           >
-            <RailNav route={route} onNavigate={navigate} />
+            <RailNav route={route} onNavigate={navigate} live={live} />
           </nav>
         </div>
       ) : null}
