@@ -208,3 +208,68 @@ def test_draft_proposal(client: TestClient) -> None:
 def test_unknown_404(client: TestClient) -> None:
     assert client.post("/api/poles/vente/proposals/ghost/draft").status_code == 404
     assert client.post("/api/poles/vente/meetings/ghost/book").status_code == 404
+
+
+def test_lead_detail_known_slug(client: TestClient) -> None:
+    o = client.get("/api/poles/vente/overview").json()
+    # Marc Dupont (CISO, acme-securite.fr) — éligible, persona marc.
+    slug = next(lead["slug"] for lead in o["leads"] if lead["eligible"])
+    r = client.get(f"/api/poles/vente/leads/{slug}")
+    assert r.status_code == 200
+    d = r.json()
+    # Champs résumé (mêmes que LeadOut).
+    assert d["slug"] == slug
+    assert d["domain"] == "acme-securite.fr"
+    assert d["eligible"] is True
+    assert d["persona"] == "marc"
+    # Champs structurés.
+    assert d["persona_score"] > 0
+    assert "ciso" in d["persona_signals"]
+    assert d["bant"]["total"] == d["bant_total"]
+    assert all(k in d["bant"] for k in ("budget", "authority", "need", "timing", "total"))
+    # Guesses email triées par confidence décroissante, best_email = la 1re.
+    assert d["email_guesses"]
+    assert d["email_guesses"][0]["email"] == d["best_email"]
+    # Pas de fiche enriched/<slug>.md écrite → corps vide.
+    assert d["markdown_body"] == ""
+
+
+def test_lead_detail_unknown_404(client: TestClient) -> None:
+    assert client.get("/api/poles/vente/leads/ghost-slug-x").status_code == 404
+
+
+def test_draft_body_roundtrip(client: TestClient) -> None:
+    # Avant tout draft : exists=false, body vide.
+    r = client.get("/api/poles/vente/inbox/lead1/draft")
+    assert r.status_code == 200
+    assert r.json() == {"id": "lead1", "body": "", "exists": False}
+
+    # POST draft (squelette) puis GET → exists=true, body non vide.
+    assert client.post("/api/poles/vente/inbox/lead1/draft").status_code == 200
+    got = client.get("/api/poles/vente/inbox/lead1/draft").json()
+    assert got["exists"] is True
+    assert got["body"]
+
+    # PUT un corps édité → renvoyé tel quel + relu identique.
+    edited = "Bonjour Lead,\n\nVoici notre tarif Argos Pro.\n\nArgos — on scanne, vous corrigez.\n"
+    put = client.put("/api/poles/vente/inbox/lead1/draft", json={"body": edited})
+    assert put.status_code == 200
+    assert put.json()["exists"] is True
+    assert put.json()["body"] == edited.strip()
+    back = client.get("/api/poles/vente/inbox/lead1/draft").json()
+    assert back["body"] == edited.strip()
+
+
+def test_draft_body_put_creates_without_post(client: TestClient) -> None:
+    # PUT sans POST préalable doit créer le draft.
+    edited = "Réponse rédigée à la main."
+    put = client.put("/api/poles/vente/inbox/lead1/draft", json={"body": edited})
+    assert put.status_code == 200
+    assert put.json()["body"] == edited
+    assert client.get("/api/poles/vente/inbox/lead1/draft").json()["body"] == edited
+
+
+def test_draft_body_unknown_message_404(client: TestClient) -> None:
+    assert client.get("/api/poles/vente/inbox/ghost/draft").status_code == 404
+    r = client.put("/api/poles/vente/inbox/ghost/draft", json={"body": "x"})
+    assert r.status_code == 404

@@ -36,6 +36,7 @@ from argos_ops.poles.memory import (
     MemoryRecord,
     flag_important,
     read_pole_memory,
+    read_record,
 )
 
 router = APIRouter(prefix="/api/poles/memoire", tags=["poles", "memoire"])
@@ -45,6 +46,26 @@ router = APIRouter(prefix="/api/poles/memoire", tags=["poles", "memoire"])
 # Schemas — sortie
 # =============================================================================
 class MemoryFactOut(BaseModel):
+    id: str
+    pole: str
+    script: str
+    kind: str
+    important: bool
+    tags: list[str]
+    body: str
+    source: str | None
+    created_at: datetime
+
+
+class FactDetailOut(BaseModel):
+    """Détail **complet** d'un fait précis (corps INTÉGRAL, jamais tronqué).
+
+    Alimente la prévisualisation « contenu complet avant suppression » du
+    cockpit Mémoire : le navigateur (``/browse``) et le plan (``/plan``)
+    n'exposent qu'un ``body_preview`` ; cet endpoint relit le fait sur disque
+    et renvoie le corps entier.
+    """
+
     id: str
     pole: str
     script: str
@@ -230,6 +251,20 @@ class PolicyUpdatePayload(BaseModel):
 # =============================================================================
 def _fact_out(record: MemoryRecord) -> MemoryFactOut:
     return MemoryFactOut(
+        id=record.id,
+        pole=record.pole,
+        script=record.script,
+        kind=record.kind,
+        important=record.important,
+        tags=list(record.tags),
+        body=record.body,
+        source=record.source,
+        created_at=record.created_at,
+    )
+
+
+def _fact_detail_out(record: MemoryRecord) -> FactDetailOut:
+    return FactDetailOut(
         id=record.id,
         pole=record.pole,
         script=record.script,
@@ -443,6 +478,28 @@ async def browse(
         total=len(filtered),
         important=sum(1 for r in filtered if r.important),
     )
+
+
+@router.get("/fact", response_model=FactDetailOut)
+async def get_fact(
+    pole: str = Query(...),
+    script: str = Query(...),
+    record_id: str = Query(...),
+) -> FactDetailOut:
+    """Détail complet d'un fait (corps INTÉGRAL) — preview avant suppression.
+
+    Relit le fait sur disque par ``(pole, script, record_id)`` et renvoie le
+    corps entier (le navigateur/plan ne montrent qu'un aperçu tronqué). 404 si
+    le pôle est inconnu ou le fait introuvable / illisible.
+    """
+    _require_pole(pole)
+    record = await read_record(pole, script, record_id, poles_root=POLES_DIR)
+    if record is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Fait introuvable : {pole}/{script}/{record_id}",
+        )
+    return _fact_detail_out(record)
 
 
 @router.get("/plan", response_model=PlanOut)

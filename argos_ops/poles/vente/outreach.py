@@ -127,6 +127,44 @@ class EnrichedLead:
     eligibility_reason: str
 
 
+@dataclass(frozen=True)
+class BantBreakdown:
+    """Sous-scores BANT explicables (0-100 chacun, total borné à 100)."""
+
+    budget: int
+    authority: int
+    need: int
+    timing: int
+    total: int
+
+
+@dataclass(frozen=True)
+class EmailGuessView:
+    """Un candidat email pro deviné, avec son pattern et sa confidence."""
+
+    email: str
+    pattern: str
+    confidence: int
+
+
+@dataclass(frozen=True)
+class LeadDetail:
+    """Fiche enrichie complète d'un lead pour le panneau détail du cockpit.
+
+    Réunit la fiche :class:`EnrichedLead` (résumé) + les champs structurés
+    issus de l'enrichissement (breakdown BANT, signaux persona, guesses email)
+    + le corps markdown de ``enriched/<slug>.md`` s'il a été écrit (``""`` sinon —
+    la fiche reste calculable à chaud sans fichier).
+    """
+
+    lead: EnrichedLead
+    persona_score: int
+    persona_signals: tuple[str, ...]
+    bant: BantBreakdown
+    email_guesses: tuple[EmailGuessView, ...]
+    markdown_body: str
+
+
 # Domaine = au moins un point, TLD 2-63 chars (aligné sur outbound.sequence).
 _DOMAIN_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.[a-z]{2,63}$")
 _CSV_HEADER = ("full_name", "domain", "title_hint", "linkedin_url")
@@ -261,6 +299,69 @@ def _compute_enriched(lead: LeadInput) -> tuple[EnrichedLead, dict[str, object]]
 def enrich_view(lead: LeadInput) -> EnrichedLead:
     """Enrichit un lead **sans écrire** — vue cockpit live (offline, déterministe)."""
     return _compute_enriched(lead)[0]
+
+
+def _detail_from_data(
+    enriched: EnrichedLead, data: dict[str, object], *, markdown_body: str
+) -> LeadDetail:
+    """Assemble une :class:`LeadDetail` depuis la fiche + le dict brut d'enrichissement."""
+    bant = data["bant"]
+    assert isinstance(bant, dict)
+    persona = data["persona"]
+    assert isinstance(persona, dict)
+    guesses = data["email_guesses"]
+    assert isinstance(guesses, list)
+    keywords = persona.get("matched_keywords") or []
+    assert isinstance(keywords, list)
+    return LeadDetail(
+        lead=enriched,
+        persona_score=int(persona["score"]),
+        persona_signals=tuple(str(kw) for kw in keywords),
+        bant=BantBreakdown(
+            budget=int(bant["budget"]),
+            authority=int(bant["authority"]),
+            need=int(bant["need"]),
+            timing=int(bant["timing"]),
+            total=int(bant["total"]),
+        ),
+        email_guesses=tuple(
+            EmailGuessView(
+                email=str(g["email"]), pattern=str(g["pattern"]), confidence=int(g["confidence"])
+            )
+            for g in guesses
+        ),
+        markdown_body=markdown_body,
+    )
+
+
+def build_lead_detail(slug: str, *, poles_root: Path = POLES_DIR) -> LeadDetail | None:
+    """Vue détail complète d'un lead par ``slug`` — ``None`` si le slug est inconnu.
+
+    Recalcule l'enrichissement à chaud (offline, déterministe) pour exposer le
+    breakdown BANT, les signaux persona et les guesses email, puis joint le corps
+    markdown de ``enriched/<slug>.md`` s'il existe (``""`` sinon).
+    """
+    computed = next(
+        (
+            pair
+            for lead in load_leads(poles_root=poles_root)
+            if (pair := _compute_enriched(lead))[0].slug == slug
+        ),
+        None,
+    )
+    if computed is None:
+        return None
+    enriched, data = computed
+    enriched_md = enriched_dir(poles_root=poles_root) / f"{slug}.md"
+    markdown_body = ""
+    if enriched_md.exists():
+        try:
+            _, markdown_body = read_markdown(enriched_md)
+        except Exception as exc:  # best-effort — le détail reste calculable sans fichier
+            logger.warning(
+                f"outreach — enriched détail illisible {enriched_md} : {type(exc).__name__}: {exc}"
+            )
+    return _detail_from_data(enriched, data, markdown_body=markdown_body.strip())
 
 
 def enrich_and_write(lead: LeadInput, *, poles_root: Path = POLES_DIR) -> EnrichedLead:
@@ -517,12 +618,16 @@ __all__ = [
     "BANT_QUALIFIED_MIN",
     "BLOCTEL_STALE_DAYS",
     "PERSONAL_EMAIL_DOMAINS",
+    "BantBreakdown",
     "BloctelMatch",
     "BloctelReport",
+    "EmailGuessView",
     "EnrichedLead",
+    "LeadDetail",
     "append_leads",
     "bloctel_dir",
     "build_bloctel_report",
+    "build_lead_detail",
     "eligibility",
     "enrich_and_write",
     "enrich_view",

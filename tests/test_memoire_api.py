@@ -18,7 +18,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from argos_ops.ops_dashboard.api import memoire
-from argos_ops.poles.memory import write_memory
+from argos_ops.poles.memory import MemoryRecord, write_memory
 
 # Très loin dans le passé ⇒ toujours périmé (âge ≫ TTL 180 j), indépendant du jour.
 _OLD = datetime(2020, 1, 1, tzinfo=UTC)
@@ -143,6 +143,55 @@ def test_plan_inactive_pole(client: TestClient) -> None:
     plan = client.get("/api/poles/memoire/plan", params={"pole": "pub"}).json()
     assert plan["active"] is False
     assert plan["to_delete"] == []
+
+
+def test_fact_detail_returns_full_body(client: TestClient, tmp_path: Path) -> None:
+    """GET /fact renvoie le corps INTÉGRAL (jamais tronqué) d'un fait précis."""
+    # Corps long (> tout body_preview) pour prouver l'absence de troncature.
+    long_body = "Détail complet du fait. " + "Ligne réutilisable. " * 40
+    rec: MemoryRecord = asyncio.run(
+        write_memory(
+            "finance",
+            "mrr",
+            long_body,
+            kind="metric",
+            tags=("kpi", "mrr"),
+            source="stripe",
+            poles_root=tmp_path,
+        )
+    )
+    r = client.get(
+        "/api/poles/memoire/fact",
+        params={"pole": "finance", "script": "mrr", "record_id": rec.id},
+    )
+    assert r.status_code == 200
+    detail = r.json()
+    assert detail["id"] == rec.id
+    assert detail["pole"] == "finance"
+    assert detail["script"] == "mrr"
+    assert detail["kind"] == "metric"
+    assert detail["source"] == "stripe"
+    assert detail["tags"] == ["kpi", "mrr"]
+    assert detail["important"] is False
+    # Corps complet : exactement le body normalisé, pas une preview tronquée.
+    assert detail["body"] == long_body.strip()
+    assert len(detail["body"]) > 200
+
+
+def test_fact_detail_unknown_record_404(client: TestClient) -> None:
+    r = client.get(
+        "/api/poles/memoire/fact",
+        params={"pole": "veille", "script": "cve", "record_id": "deadbeef0000"},
+    )
+    assert r.status_code == 404
+
+
+def test_fact_detail_unknown_pole_404(client: TestClient) -> None:
+    r = client.get(
+        "/api/poles/memoire/fact",
+        params={"pole": "nope", "script": "cve", "record_id": "deadbeef0000"},
+    )
+    assert r.status_code == 404
 
 
 # =============================================================================

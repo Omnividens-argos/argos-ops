@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
@@ -133,6 +134,22 @@ class DecisionOut(BaseModel):
     decision: str
 
 
+class DecisionWithStatus(BaseModel):
+    """Décision du journal + statut de cycle de vie (sidecar additif).
+
+    Reprend tels quels les champs de :class:`DecisionOut` et ajoute ``status``
+    (``open`` par défaut, ``closed`` si la décision est marquée close dans le
+    sidecar ``decision_status.yaml``).
+    """
+
+    decision_id: str
+    title: str
+    decision_date: str
+    partie: str
+    decision: str
+    status: Literal["open", "closed"]
+
+
 class SectionCount(BaseModel):
     type: str
     count: int
@@ -239,6 +256,10 @@ class DecisionPayload(BaseModel):
     action_de_suivi: str | None = None
 
 
+class DecisionStatusPayload(BaseModel):
+    status: Literal["open", "closed"]
+
+
 class OkrUpdatePayload(BaseModel):
     objective: str
     name: str
@@ -282,6 +303,19 @@ def _okr_out(report: okr.OKRReport) -> OkrOut:
             )
             for k in report.key_results
         ],
+    )
+
+
+def _decision_with_status(entry: decisions.DecisionEntry, statuses: dict[str, str]) -> DecisionWithStatus:
+    raw = statuses.get(entry.decision_id, decisions.DEFAULT_DECISION_STATUS)
+    out_status: Literal["open", "closed"] = "closed" if raw == "closed" else "open"
+    return DecisionWithStatus(
+        decision_id=entry.decision_id,
+        title=entry.title,
+        decision_date=entry.decision_date,
+        partie=entry.partie,
+        decision=entry.decision,
+        status=out_status,
     )
 
 
@@ -462,6 +496,18 @@ async def get_doc_pdf(name: str) -> FileResponse:
     return FileResponse(path, media_type="application/pdf", filename=path.name)
 
 
+@router.get("/decisions", response_model=list[DecisionWithStatus])
+async def list_decisions() -> list[DecisionWithStatus]:
+    """Journal des décisions enrichi du statut de cycle de vie (sidecar additif).
+
+    ``status`` vaut ``open`` par défaut (aucune entrée sidecar) ou ``closed`` si
+    la décision a été marquée close via le PATCH.
+    """
+    entries = decisions.load_decisions(poles_root=POLES_DIR)
+    statuses = decisions.load_statuses(poles_root=POLES_DIR)
+    return [_decision_with_status(e, statuses) for e in entries]
+
+
 # =============================================================================
 # Routes — mutations
 # =============================================================================
@@ -542,6 +588,23 @@ async def add_decision(payload: DecisionPayload) -> DecisionOut:
         partie=entry.partie,
         decision=entry.decision,
     )
+
+
+@router.patch("/decisions/{decision_id}", response_model=DecisionWithStatus)
+async def set_decision_status(
+    decision_id: str, payload: DecisionStatusPayload
+) -> DecisionWithStatus:
+    """Marque une décision ``open`` / ``closed`` dans le sidecar additif.
+
+    404 si l'``decision_id`` est inconnu du journal (il doit exister dans
+    ``load_decisions``). Le statut invalide est rejeté en 422 par Pydantic.
+    """
+    entries = decisions.load_decisions(poles_root=POLES_DIR)
+    entry = next((e for e in entries if e.decision_id == decision_id), None)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Décision introuvable : {decision_id}")
+    statuses = decisions.set_status(decision_id, payload.status, poles_root=POLES_DIR)
+    return _decision_with_status(entry, statuses)
 
 
 @router.put("/okr", response_model=OkrOut)

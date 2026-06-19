@@ -107,6 +107,47 @@ class LeadOut(BaseModel):
     eligibility_reason: str
 
 
+class BantBreakdownOut(BaseModel):
+    budget: int
+    authority: int
+    need: int
+    timing: int
+    total: int
+
+
+class EmailGuessOut(BaseModel):
+    email: str
+    pattern: str
+    confidence: int
+
+
+class LeadDetailOut(BaseModel):
+    # Tous les champs de ``LeadOut`` (résumé) …
+    slug: str
+    full_name: str
+    domain: str
+    title_hint: str | None
+    persona: str
+    bant_total: int
+    qualified: bool
+    best_email: str | None
+    eligible: bool
+    eligibility_reason: str
+    # … + les champs structurés de l'enrichissement …
+    persona_score: int
+    persona_signals: list[str]
+    bant: BantBreakdownOut
+    email_guesses: list[EmailGuessOut]
+    # … + le corps markdown de enriched/<slug>.md ("" si pas encore écrit).
+    markdown_body: str
+
+
+class DraftBodyOut(BaseModel):
+    id: str
+    body: str
+    exists: bool
+
+
 class TouchOut(BaseModel):
     step: int
     scheduled_date: date
@@ -214,6 +255,10 @@ class StagePayload(BaseModel):
     stage: str
 
 
+class DraftBodyPayload(BaseModel):
+    body: str
+
+
 class UploadResult(BaseModel):
     added: int
     skipped: int
@@ -277,6 +322,36 @@ def _lead_out(e: outreach_mod.EnrichedLead) -> LeadOut:
         best_email=e.best_email,
         eligible=e.eligible,
         eligibility_reason=e.eligibility_reason,
+    )
+
+
+def _lead_detail_out(d: outreach_mod.LeadDetail) -> LeadDetailOut:
+    e = d.lead
+    return LeadDetailOut(
+        slug=e.slug,
+        full_name=e.full_name,
+        domain=e.domain,
+        title_hint=e.title_hint,
+        persona=e.persona,
+        bant_total=e.bant_total,
+        qualified=e.qualified,
+        best_email=e.best_email,
+        eligible=e.eligible,
+        eligibility_reason=e.eligibility_reason,
+        persona_score=d.persona_score,
+        persona_signals=list(d.persona_signals),
+        bant=BantBreakdownOut(
+            budget=d.bant.budget,
+            authority=d.bant.authority,
+            need=d.bant.need,
+            timing=d.bant.timing,
+            total=d.bant.total,
+        ),
+        email_guesses=[
+            EmailGuessOut(email=g.email, pattern=g.pattern, confidence=g.confidence)
+            for g in d.email_guesses
+        ],
+        markdown_body=d.markdown_body,
     )
 
 
@@ -420,9 +495,39 @@ async def get_overview() -> VenteOverview:
     )
 
 
+@router.get("/leads/{slug}", response_model=LeadDetailOut)
+async def get_lead_detail(slug: str) -> LeadDetailOut:
+    """Fiche enrichie complète d'un lead (résumé + breakdown BANT + signaux +
+    guesses email + corps markdown si ``enriched/<slug>.md`` existe).
+
+    404 si le slug est inconnu.
+    """
+    detail = outreach_mod.build_lead_detail(slug, poles_root=POLES_DIR)
+    if detail is None:
+        raise HTTPException(status_code=404, detail=f"Lead introuvable : {slug}")
+    return _lead_detail_out(detail)
+
+
+@router.get("/inbox/{message_id}/draft", response_model=DraftBodyOut)
+async def get_inbox_draft(message_id: str) -> DraftBodyOut:
+    """Renvoie le corps du draft de réponse (celui écrit par le POST draft).
+
+    ``exists=false`` + ``body=""`` si aucun draft n'a encore été écrit. 404 si le
+    message lui-même est inconnu.
+    """
+    if not _message_exists(message_id):
+        raise HTTPException(status_code=404, detail=f"Message introuvable : {message_id}")
+    body = inbox_mod.read_draft(message_id, poles_root=POLES_DIR)
+    return DraftBodyOut(id=message_id, body=body or "", exists=body is not None)
+
+
 # =============================================================================
 # Routes — mutations
 # =============================================================================
+def _message_exists(message_id: str) -> bool:
+    return any(m.id == message_id for m in inbox_mod.load_messages(poles_root=POLES_DIR))
+
+
 @router.post("/leads/upload", response_model=UploadResult, status_code=status.HTTP_201_CREATED)
 async def upload_leads(payload: LeadUploadPayload) -> UploadResult:
     """Ajoute des leads au CSV inbox (dédup + validation domaine)."""
@@ -449,6 +554,19 @@ async def draft_inbox_reply(message_id: str) -> DraftResult:
     if path is None:
         raise HTTPException(status_code=404, detail=f"Message introuvable : {message_id}")
     return DraftResult(id=message_id, status="drafted", draft_path=str(path.name))
+
+
+@router.put("/inbox/{message_id}/draft", response_model=DraftBodyOut)
+async def save_inbox_draft(message_id: str, payload: DraftBodyPayload) -> DraftBodyOut:
+    """Sauvegarde le corps édité du draft de réponse. 404 si le message est inconnu.
+
+    Renvoie le draft relu (``exists=true``).
+    """
+    if not _message_exists(message_id):
+        raise HTTPException(status_code=404, detail=f"Message introuvable : {message_id}")
+    inbox_mod.save_draft(message_id, payload.body, poles_root=POLES_DIR)
+    body = inbox_mod.read_draft(message_id, poles_root=POLES_DIR)
+    return DraftBodyOut(id=message_id, body=body or "", exists=True)
 
 
 @router.patch("/deals/{deal_id}/stage", response_model=DealOut)
