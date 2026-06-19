@@ -244,6 +244,12 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen bg-argos-bg text-argos-fg">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[60] focus:rounded-md focus:border focus:border-argos-info focus:bg-argos-surface focus:px-3 focus:py-2 focus:text-sm focus:text-argos-fg"
+      >
+        Aller au contenu
+      </a>
       {/* Rail desktop */}
       <nav
         className="hidden w-60 shrink-0 flex-col border-r border-argos-border-subtle bg-argos-surface lg:flex"
@@ -291,7 +297,7 @@ export function AppShell() {
           onOpenPalette={() => setPaletteOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto">
+        <main id="main" tabIndex={-1} className="flex-1 overflow-y-auto focus-visible:outline-none">
           <Suspense
             fallback={
               <div className="flex items-center justify-center py-20 text-argos-fg-tertiary" role="status" aria-live="polite">
