@@ -3,8 +3,8 @@
 // Atelier, Aide) + overlay BotDetail (surface de contrôle agent, via ⌘K).
 // Routing par état (pas de react-router). Remplace App.tsx + PolesShell.
 
-import { useCallback, useEffect, useState } from "react";
-import { Home as HomeIcon, Menu } from "lucide-react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { Home as HomeIcon, Loader2, Menu } from "lucide-react";
 import { fetchHealth, fetchKPIs, runAgentNow } from "./api";
 import { CommandPalette } from "./components/CommandPalette";
 import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
@@ -12,16 +12,19 @@ import { OnboardingTour } from "./components/OnboardingTour";
 import { Topbar } from "./components/Topbar";
 import { usePolling } from "./hooks/usePolling";
 import { RUNNABLE_AGENTS } from "./lib/runnableAgents";
-import { Atelier } from "./views/Atelier";
-import { BotDetail } from "./views/BotDetail";
-import { Help } from "./views/Help";
-import { Inbox } from "./views/Inbox";
-import { Outputs } from "./views/Outputs";
-import { Home } from "./Home";
 import { PolePage } from "./poles/PolePage.tsx";
 import { POLES } from "./poles/poles.ts";
 import { TOOLS } from "./routes.ts";
 import type { Route } from "./routes.ts";
+
+// Code-split : les vues lourdes (Home/charts, Atelier WS, BotDetail, Inbox,
+// Outputs, Aide) ne sont tirées qu'à l'ouverture.
+const Home = lazy(() => import("./Home").then((m) => ({ default: m.Home })));
+const Atelier = lazy(() => import("./views/Atelier").then((m) => ({ default: m.Atelier })));
+const BotDetail = lazy(() => import("./views/BotDetail").then((m) => ({ default: m.BotDetail })));
+const Help = lazy(() => import("./views/Help").then((m) => ({ default: m.Help })));
+const Inbox = lazy(() => import("./views/Inbox").then((m) => ({ default: m.Inbox })));
+const Outputs = lazy(() => import("./views/Outputs").then((m) => ({ default: m.Outputs })));
 
 function RailNav({ route, onNavigate }: { route: Route; onNavigate: (r: Route) => void }) {
   const itemBase =
@@ -268,7 +271,18 @@ export function AppShell() {
           onOpenPalette={() => setPaletteOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto">{renderContent()}</main>
+        <main className="flex-1 overflow-y-auto">
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-20 text-argos-fg-tertiary" role="status" aria-live="polite">
+                <Loader2 size={18} className="animate-spin motion-reduce:animate-none" aria-hidden />
+                <span className="ml-2 text-sm">Chargement…</span>
+              </div>
+            }
+          >
+            {renderContent()}
+          </Suspense>
+        </main>
       </div>
 
       <CommandPalette

@@ -1,20 +1,33 @@
-// Page générique d'un pôle (archi v2). En S0 : page VIDE — elle compose les
-// composants partagés déclarés dans `front_tools` (pole.yaml), tous en état
-// vide. Chaque session pôle (S1-S8) remplacera le contenu par les vraies
-// données de SON pôle, en réutilisant ces mêmes composants partagés.
+// Page générique d'un pôle (archi v2). Chaque pôle a sa page dédiée branchée
+// sur le backend, chargée en lazy (code-split par pôle — recharts/dnd-kit ne
+// sont tirés que pour le pôle ouvert). Fallback générique conservé par sûreté.
 
-import type { ReactNode } from "react";
+import { lazy, Suspense } from "react";
+import type { ComponentType, LazyExoticComponent, ReactNode } from "react";
+import { Loader2 } from "lucide-react";
 import { Badge } from "../components/ui.tsx";
 import { AlertCardEmpty, MemoryTable, ValidationQueue } from "./components/index.ts";
 import type { FrontTool, PoleDef } from "./poles.ts";
-import { DirectionPage } from "./direction/DirectionPage.tsx";
-import { FinancePage } from "./finance/FinancePage.tsx";
-import { MarketingPage } from "./marketing/MarketingPage.tsx";
-import { MemoirePage } from "./memoire/MemoirePage.tsx";
-import { PubPage } from "./pub/PubPage.tsx";
-import { SrePage } from "./sre/SrePage.tsx";
-import { VeillePage } from "./veille/VeillePage.tsx";
-import { VentePage } from "./vente/VentePage.tsx";
+
+const PAGES: Record<string, LazyExoticComponent<ComponentType>> = {
+  veille: lazy(() => import("./veille/VeillePage.tsx").then((m) => ({ default: m.VeillePage }))),
+  marketing: lazy(() => import("./marketing/MarketingPage.tsx").then((m) => ({ default: m.MarketingPage }))),
+  pub: lazy(() => import("./pub/PubPage.tsx").then((m) => ({ default: m.PubPage }))),
+  vente: lazy(() => import("./vente/VentePage.tsx").then((m) => ({ default: m.VentePage }))),
+  finance: lazy(() => import("./finance/FinancePage.tsx").then((m) => ({ default: m.FinancePage }))),
+  direction: lazy(() => import("./direction/DirectionPage.tsx").then((m) => ({ default: m.DirectionPage }))),
+  memoire: lazy(() => import("./memoire/MemoirePage.tsx").then((m) => ({ default: m.MemoirePage }))),
+  sre: lazy(() => import("./sre/SrePage.tsx").then((m) => ({ default: m.SrePage }))),
+};
+
+function PoleLoading() {
+  return (
+    <div className="flex items-center justify-center py-20 text-argos-fg-tertiary" role="status" aria-live="polite">
+      <Loader2 size={18} className="animate-spin motion-reduce:animate-none" aria-hidden />
+      <span className="ml-2 text-sm">Chargement du pôle…</span>
+    </div>
+  );
+}
 
 const TOOL_LABEL: Record<FrontTool, string> = {
   memory_table: "Mémoire du pôle",
@@ -25,9 +38,7 @@ const TOOL_LABEL: Record<FrontTool, string> = {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
-        {title}
-      </h2>
+      <h2 className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">{title}</h2>
       {children}
     </section>
   );
@@ -47,39 +58,19 @@ function renderTool(tool: FrontTool): ReactNode {
 }
 
 export function PolePage({ pole }: { pole: PoleDef }) {
-  // Pôles livrés (archi v2) : page dédiée branchée sur le backend. Les pôles
-  // pas encore traités retombent sur la page générique (composants en état vide).
-  if (pole.id === "veille") {
-    return <VeillePage />;
-  }
-  if (pole.id === "marketing") {
-    return <MarketingPage />;
-  }
-  if (pole.id === "pub") {
-    return <PubPage />;
-  }
-  if (pole.id === "vente") {
-    return <VentePage />;
-  }
-  if (pole.id === "finance") {
-    return <FinancePage />;
-  }
-  if (pole.id === "direction") {
-    return <DirectionPage />;
-  }
-  if (pole.id === "memoire") {
-    return <MemoirePage />;
-  }
-  if (pole.id === "sre") {
-    return <SrePage />;
+  const Page = PAGES[pole.id];
+  if (Page) {
+    return (
+      <Suspense fallback={<PoleLoading />}>
+        <Page />
+      </Suspense>
+    );
   }
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2 border-b border-argos-border-subtle pb-4">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] text-argos-fg-tertiary">
-            Pôle {pole.num}/8
-          </span>
+          <span className="font-mono text-[11px] text-argos-fg-tertiary">Pôle {pole.num}/8</span>
           {pole.agent ? (
             <Badge tone="info">{pole.agent}</Badge>
           ) : (
@@ -87,14 +78,8 @@ export function PolePage({ pole }: { pole: PoleDef }) {
           )}
         </div>
         <h1 className="font-mono text-lg font-medium text-argos-fg">{pole.name}</h1>
-        <p className="max-w-2xl font-mono text-[11px] leading-snug text-argos-fg-secondary">
-          {pole.description}
-        </p>
-        <p className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-disabled">
-          page vide — socle S0, contenu à brancher dans la session de ce pôle
-        </p>
+        <p className="max-w-2xl font-mono text-[11px] leading-snug text-argos-fg-secondary">{pole.description}</p>
       </header>
-
       {pole.frontTools.map((tool) => (
         <Section key={tool} title={TOOL_LABEL[tool]}>
           {renderTool(tool)}
