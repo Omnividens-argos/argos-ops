@@ -18,7 +18,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from argos_ops.ops_dashboard.api import memoire
-from argos_ops.poles.memory import write_memory
+from argos_ops.poles.memory import MemoryRecord, write_memory
 
 # Très loin dans le passé ⇒ toujours périmé (âge ≫ TTL 180 j), indépendant du jour.
 _OLD = datetime(2020, 1, 1, tzinfo=UTC)
@@ -145,6 +145,55 @@ def test_plan_inactive_pole(client: TestClient) -> None:
     assert plan["to_delete"] == []
 
 
+def test_fact_detail_returns_full_body(client: TestClient, tmp_path: Path) -> None:
+    """GET /fact renvoie le corps INTÉGRAL (jamais tronqué) d'un fait précis."""
+    # Corps long (> tout body_preview) pour prouver l'absence de troncature.
+    long_body = "Détail complet du fait. " + "Ligne réutilisable. " * 40
+    rec: MemoryRecord = asyncio.run(
+        write_memory(
+            "finance",
+            "mrr",
+            long_body,
+            kind="metric",
+            tags=("kpi", "mrr"),
+            source="stripe",
+            poles_root=tmp_path,
+        )
+    )
+    r = client.get(
+        "/api/poles/memoire/fact",
+        params={"pole": "finance", "script": "mrr", "record_id": rec.id},
+    )
+    assert r.status_code == 200
+    detail = r.json()
+    assert detail["id"] == rec.id
+    assert detail["pole"] == "finance"
+    assert detail["script"] == "mrr"
+    assert detail["kind"] == "metric"
+    assert detail["source"] == "stripe"
+    assert detail["tags"] == ["kpi", "mrr"]
+    assert detail["important"] is False
+    # Corps complet : exactement le body normalisé, pas une preview tronquée.
+    assert detail["body"] == long_body.strip()
+    assert len(detail["body"]) > 200
+
+
+def test_fact_detail_unknown_record_404(client: TestClient) -> None:
+    r = client.get(
+        "/api/poles/memoire/fact",
+        params={"pole": "veille", "script": "cve", "record_id": "deadbeef0000"},
+    )
+    assert r.status_code == 404
+
+
+def test_fact_detail_unknown_pole_404(client: TestClient) -> None:
+    r = client.get(
+        "/api/poles/memoire/fact",
+        params={"pole": "nope", "script": "cve", "record_id": "deadbeef0000"},
+    )
+    assert r.status_code == 404
+
+
 # =============================================================================
 # Mutations
 # =============================================================================
@@ -224,6 +273,95 @@ def test_policy_update_activation(client: TestClient) -> None:
     o = client.get("/api/poles/memoire/overview").json()
     pub = next(p for p in o["poles"] if p["pole"] == "pub")
     assert pub["active"] is True
+
+
+def test_policy_update_retention_fields_persist(client: TestClient) -> None:
+    """PUT policy avec champs de rétention ⇒ persistés + reflétés dans la réponse."""
+    r = client.put(
+        "/api/poles/memoire/policy",
+        json={
+            "pole": "pub",
+            "active": True,
+            "protect_important": False,
+            "default_ttl_days": 90,
+            "keep_recent_per_kind": 3,
+            "min_stale_days": 7,
+        },
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert "pub" in body["active_for"]
+    assert body["protect_important"] is False
+    assert body["default_ttl_days"] == 90
+    assert body["keep_recent_per_kind"] == 3
+    assert body["min_stale_days"] == 7
+    # Persisté : un GET frais relit les mêmes bornes depuis policy.yaml.
+    again = client.get("/api/poles/memoire/policy").json()
+    assert again["default_ttl_days"] == 90
+    assert again["keep_recent_per_kind"] == 3
+    assert again["min_stale_days"] == 7
+    assert again["protect_important"] is False
+
+
+def test_policy_update_activation_only_unchanged(client: TestClient) -> None:
+    """PUT {pole, active} seul ⇒ toggle activation, rétention inchangée (historique)."""
+    before = client.get("/api/poles/memoire/policy").json()
+    r = client.put("/api/poles/memoire/policy", json={"pole": "pub", "active": True})
+    assert r.status_code == 200
+    after = r.json()
+    assert "pub" in after["active_for"]
+    # Bornes de rétention intactes.
+    assert after["default_ttl_days"] == before["default_ttl_days"]
+    assert after["keep_recent_per_kind"] == before["keep_recent_per_kind"]
+    assert after["min_stale_days"] == before["min_stale_days"]
+    assert after["protect_important"] == before["protect_important"]
+
+
+def test_approve_then_pending_returns_list(client: TestClient) -> None:
+    exp = _expired_id(client)
+    a = client.post(
+        "/api/poles/memoire/plan/approve",
+        json={"pole": "veille", "targets": [{"script": "cve", "record_id": exp}]},
+    )
+    assert a.status_code == 200
+    assert a.json() == {"pole": "veille", "pending": 1}
+    # GET filtré par pôle.
+    p = client.get("/api/poles/memoire/plan/pending", params={"pole": "veille"})
+    assert p.status_code == 200
+    rows = p.json()
+    assert rows == [{"pole": "veille", "script": "cve", "record_id": exp}]
+    # GET sans filtre renvoie aussi la cible (toutes pôles confondus).
+    all_rows = client.get("/api/poles/memoire/plan/pending").json()
+    assert {"pole": "veille", "script": "cve", "record_id": exp} in all_rows
+
+
+def test_approve_replaces_pole_list(client: TestClient) -> None:
+    """Re-approuver un pôle REMPLACE sa liste (pas d'accumulation)."""
+    exp = _expired_id(client)
+    client.post(
+        "/api/poles/memoire/plan/approve",
+        json={"pole": "veille", "targets": [{"script": "cve", "record_id": exp}]},
+    )
+    r = client.post(
+        "/api/poles/memoire/plan/approve",
+        json={"pole": "veille", "targets": [{"script": "trend", "record_id": "abc123"}]},
+    )
+    assert r.json()["pending"] == 1
+    rows = client.get("/api/poles/memoire/plan/pending", params={"pole": "veille"}).json()
+    assert rows == [{"pole": "veille", "script": "trend", "record_id": "abc123"}]
+
+
+def test_approve_unknown_pole_404(client: TestClient) -> None:
+    r = client.post(
+        "/api/poles/memoire/plan/approve",
+        json={"pole": "nope", "targets": [{"script": "cve", "record_id": "x"}]},
+    )
+    assert r.status_code == 404
+
+
+def test_pending_unknown_pole_404(client: TestClient) -> None:
+    r = client.get("/api/poles/memoire/plan/pending", params={"pole": "nope"})
+    assert r.status_code == 404
 
 
 def test_history_after_clean(client: TestClient) -> None:

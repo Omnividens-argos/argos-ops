@@ -24,7 +24,7 @@ import yaml
 
 from argos_ops.compliance import is_human_response_requested
 from argos_ops.poles.config import POLES_DIR
-from argos_ops.poles.vente.store import parse_date, write_markdown
+from argos_ops.poles.vente.store import parse_date, read_markdown, write_markdown
 
 VENTE_POLE = "vente"
 
@@ -269,6 +269,42 @@ def draft_reply(message_id: str, *, poles_root: Path = POLES_DIR) -> Path | None
     return draft_path
 
 
+def draft_path_for(message_id: str, *, poles_root: Path = POLES_DIR) -> Path:
+    """Chemin du draft de réponse d'un message (``drafts/<id>.md``)."""
+    return drafts_dir(poles_root=poles_root) / f"{message_id}.md"
+
+
+def read_draft(message_id: str, *, poles_root: Path = POLES_DIR) -> str | None:
+    """Lit le corps markdown du draft de réponse écrit par :func:`draft_reply`.
+
+    Renvoie ``None`` si aucun draft n'a encore été écrit pour ce message. Ne lit
+    que le **corps** (le frontmatter YAML reste interne au stockage).
+    """
+    path = draft_path_for(message_id, poles_root=poles_root)
+    if not path.exists():
+        return None
+    _, body = read_markdown(path)
+    return body.strip()
+
+
+def save_draft(message_id: str, body: str, *, poles_root: Path = POLES_DIR) -> Path:
+    """Sauvegarde le corps édité du draft de réponse d'un message.
+
+    Préserve le frontmatter existant (``to`` / ``category`` / ``subject`` / …) si
+    le draft a déjà été initialisé par :func:`draft_reply`, sinon écrit un
+    frontmatter minimal. Idempotent au sens fichier. **Ne vérifie pas** que le
+    message existe — l'appelant (router) tranche le 404 en amont.
+    """
+    path = draft_path_for(message_id, poles_root=poles_root)
+    if path.exists():
+        fm, _ = read_markdown(path)
+    else:
+        fm = {"message_id": message_id, "status": "draft"}
+    fm["edited_at"] = datetime.now(UTC).isoformat()
+    write_markdown(path, fm, body=body)
+    return path
+
+
 __all__ = [
     "CATEGORIES",
     "HOT_CATEGORIES",
@@ -276,8 +312,11 @@ __all__ = [
     "HumanResponseRequiredError",
     "InboundMessage",
     "classify",
+    "draft_path_for",
     "draft_reply",
     "drafts_dir",
     "load_messages",
     "messages_path",
+    "read_draft",
+    "save_draft",
 ]

@@ -8,7 +8,9 @@ Sert au shell ``poles.html`` tout l'onglet Finance, 100 % fichiers / local-first
   rapprochement, contrats (fournisseurs/clients), échéancier fiscal, registres
   RGPD + AI Act, incidents, docs générés, compteurs.
 - ``GET  /api/poles/finance/docs/{name}``        — contenu markdown d'un doc (preview).
+- ``GET  /api/poles/finance/docs/{name}/pdf``     — binaire PDF d'un doc (404 si non rendu).
 - ``POST /api/poles/finance/ledger/flows``       — ajoute une ligne au tableur.
+- ``PUT  /api/poles/finance/ledger/flows/{id}``   — édite une ligne du tableur en place.
 - ``DELETE /api/poles/finance/ledger/flows/{id}``— supprime une ligne du tableur.
 - ``POST /api/poles/finance/docs/generate``      — génère CA3 / devis / contrat
   (409 si la conformité gèle l'onboarding — « Python tranche »).
@@ -26,7 +28,8 @@ from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from argos_ops.poles.config import POLES_DIR
@@ -297,6 +300,46 @@ class DocContent(BaseModel):
     content: str
 
 
+class TreatmentPayload(BaseModel):
+    """Champs éditables d'une fiche de traitement RGPD."""
+
+    nom: str
+    base_legale: str = ""
+    finalite: str = ""
+    donnees: list[str] = []
+    duree_conservation: str = ""
+    review_date: date | None = None
+
+
+class TreatmentSaved(BaseModel):
+    """Fiche RGPD persistée + son statut de conformité recalculé."""
+
+    nom: str
+    base_legale: str
+    finalite: str
+    donnees: list[str]
+    duree_conservation: str
+    review_date: date | None
+    conforme: bool
+    issues: list[str]
+
+
+class AiActSystemPayload(BaseModel):
+    """Champs éditables d'un système du registre AI Act."""
+
+    nom: str
+    role: str = ""
+    risk_class: str = ""
+
+
+class AiActSystemSaved(BaseModel):
+    """Système AI Act persisté + sa classe de risque normalisée."""
+
+    nom: str
+    role: str
+    risk: str
+
+
 # =============================================================================
 # Route — lecture
 # =============================================================================
@@ -505,23 +548,54 @@ async def get_doc(name: str) -> DocContent:
     return DocContent(name=name, content=content)
 
 
+@router.get("/docs/{name}/pdf")
+async def get_doc_pdf(name: str) -> FileResponse:
+    """Sert le binaire PDF d'un document généré (téléchargement / preview cockpit).
+
+    Anti-traversal (mêmes garde-fous que ``read_doc`` : enfants directs de
+    ``docs/`` uniquement). 404 si le PDF n'a pas été rendu (pandoc absent, D-009).
+    """
+    path = docs.pdf_path(name, poles_root=POLES_DIR)
+    if path is None:
+        raise HTTPException(status_code=404, detail=f"PDF introuvable : {name}")
+    return FileResponse(path, media_type="application/pdf", filename=path.name)
+
+
 # =============================================================================
 # Routes — mutations
 # =============================================================================
-@router.post("/ledger/flows", response_model=FlowOut, status_code=status.HTTP_201_CREATED)
-async def add_flow(payload: FlowPayload) -> FlowOut:
-    """Ajoute une ligne au tableur des flux (idempotent par contenu)."""
-    # Garde déterministe : inf/NaN passent la validation float (json accepte ces
-    # tokens), donc on les rejette ici en 422 avec un détail string — sinon la
-    # valeur non-finie remonterait en 500 (quantize / comparaison / sérialisation).
-    if not math.isfinite(payload.amount_eur):
+def _validate_amount(value: float) -> Decimal:
+    """Valide le montant d'un flux (positif, fini). Lève 422 sinon.
+
+    Garde déterministe : inf/NaN passent la validation float (json accepte ces
+    tokens), donc on les rejette ici en 422 avec un détail string — sinon la
+    valeur non-finie remonterait en 500 (quantize / comparaison / sérialisation).
+    """
+    if not math.isfinite(value):
         raise HTTPException(status_code=422, detail="Montant invalide (inf/NaN).")
     try:
-        amount = Decimal(str(payload.amount_eur))
+        amount = Decimal(str(value))
     except (InvalidOperation, ValueError) as exc:
         raise HTTPException(status_code=422, detail="Montant invalide") from exc
     if amount <= 0:
         raise HTTPException(status_code=422, detail="Le montant doit être positif (> 0).")
+    return amount
+
+
+def _balance_at(flow_id: str, *, poles_root: Path) -> Decimal:
+    """Solde cumulé jusqu'à (et incluant) la ligne ``flow_id``, en contexte complet."""
+    balance = Decimal("0.00")
+    for fl in ledger.load_flows(poles_root=poles_root):
+        balance += fl.signed_eur
+        if fl.id == flow_id:
+            break
+    return balance
+
+
+@router.post("/ledger/flows", response_model=FlowOut, status_code=status.HTTP_201_CREATED)
+async def add_flow(payload: FlowPayload) -> FlowOut:
+    """Ajoute une ligne au tableur des flux (idempotent par contenu)."""
+    amount = _validate_amount(payload.amount_eur)
     direction: ledger.FlowDirection = "out" if payload.direction == "out" else "in"
     flow = ledger.add_flow(
         flow_date=payload.flow_date,
@@ -532,12 +606,35 @@ async def add_flow(payload: FlowPayload) -> FlowOut:
         poles_root=POLES_DIR,
     )
     # Solde recalculé en contexte complet (la ligne n'est pas forcément la dernière).
-    flows = ledger.load_flows(poles_root=POLES_DIR)
-    balance = Decimal("0.00")
-    for fl in flows:
-        balance += fl.signed_eur
-        if fl.id == flow.id:
-            break
+    balance = _balance_at(flow.id, poles_root=POLES_DIR)
+    return FlowOut(
+        id=flow.id,
+        flow_date=flow.flow_date,
+        label=flow.label,
+        category=flow.category,
+        direction=flow.direction,
+        amount_eur=float(flow.amount_eur),
+        balance_eur=float(balance),
+    )
+
+
+@router.put("/ledger/flows/{flow_id}", response_model=FlowOut)
+async def edit_flow(flow_id: str, payload: FlowPayload) -> FlowOut:
+    """Édite une ligne existante du tableur en place (tableur éditable). 404 si absente."""
+    amount = _validate_amount(payload.amount_eur)
+    direction: ledger.FlowDirection = "out" if payload.direction == "out" else "in"
+    flow = ledger.update_flow(
+        flow_id,
+        flow_date=payload.flow_date,
+        label=payload.label.strip() or "(sans libellé)",
+        category=payload.category.strip() or "autre",
+        direction=direction,
+        amount_eur=amount,
+        poles_root=POLES_DIR,
+    )
+    if flow is None:
+        raise HTTPException(status_code=404, detail=f"Ligne introuvable : {flow_id}")
+    balance = _balance_at(flow.id, poles_root=POLES_DIR)
     return FlowOut(
         id=flow.id,
         flow_date=flow.flow_date,
@@ -600,6 +697,21 @@ async def upload_doc(payload: UploadPayload) -> DocGenResult:
     return DocGenResult(name=path.name, kind="upload", has_pdf=False)
 
 
+@router.post("/docs/upload/file", response_model=DocGenResult, status_code=status.HTTP_201_CREATED)
+async def upload_doc_file(file: UploadFile) -> DocGenResult:
+    """Upload binaire (multipart) d'un doc à remplir — versionné dans ``docs/uploads/``.
+
+    Remplace le stub texte par un vrai upload de fichier (PDF/DOCX/…). Garde-fou
+    taille 10 Mo. ``has_pdf`` vrai si l'extension est ``.pdf``.
+    """
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 10 Mo).")
+    name = file.filename or "document.bin"
+    path = docs.save_upload_bytes(name, content, poles_root=POLES_DIR)
+    return DocGenResult(name=path.name, kind="upload", has_pdf=path.suffix.lower() == ".pdf")
+
+
 @router.post("/invoices/{invoice_id}/dunning", response_model=DunningResult)
 async def draft_dunning(invoice_id: str) -> DunningResult:
     """Drafte la relance d'une facture impayée (mode shadow — aucun envoi)."""
@@ -619,6 +731,104 @@ async def export_accounting() -> ExportResult:
     """Produit l'export comptable CSV depuis le tableur des flux."""
     path = accounting.export_accounting(poles_root=POLES_DIR)
     return ExportResult(path=path.name, csv=path.read_text(encoding="utf-8"))
+
+
+# =============================================================================
+# Routes — registres conformité éditables (RGPD + AI Act)
+# =============================================================================
+def _treatment_saved(nom: str) -> TreatmentSaved:
+    """Relit le registre RGPD et projette la fiche ``nom`` (statut de conformité à jour)."""
+    rgpd = compliance.load_rgpd_registry(poles_root=POLES_DIR, today=date.today())
+    treatment = next((t for t in rgpd.treatments if t.nom == nom), None)
+    if treatment is None:  # pragma: no cover - écrit juste avant, devrait exister
+        raise HTTPException(status_code=404, detail=f"Traitement introuvable : {nom}")
+    return TreatmentSaved(
+        nom=treatment.nom,
+        base_legale=treatment.base_legale,
+        finalite=treatment.finalite,
+        donnees=list(treatment.donnees),
+        duree_conservation=treatment.duree_conservation,
+        review_date=treatment.review_date,
+        conforme=treatment.conforme,
+        issues=list(treatment.issues),
+    )
+
+
+def _ai_system_saved(nom: str) -> AiActSystemSaved:
+    """Relit le registre AI Act et projette le système ``nom`` (risque normalisé)."""
+    ai_act = compliance.load_ai_act_registry(poles_root=POLES_DIR)
+    system = next((s for s in ai_act.systems if s.nom == nom), None)
+    if system is None:  # pragma: no cover - écrit juste avant, devrait exister
+        raise HTTPException(status_code=404, detail=f"Système IA introuvable : {nom}")
+    return AiActSystemSaved(nom=system.nom, role=system.role, risk=system.risk)
+
+
+@router.post(
+    "/rgpd/treatments", response_model=TreatmentSaved, status_code=status.HTTP_201_CREATED
+)
+async def add_treatment(payload: TreatmentPayload) -> TreatmentSaved:
+    """Ajoute un traitement au registre RGPD (visible dans overview au prochain fetch)."""
+    nom = payload.nom.strip()
+    if not nom:
+        raise HTTPException(status_code=422, detail="Le nom du traitement est obligatoire.")
+    compliance.append_treatment(
+        nom=nom,
+        base_legale=payload.base_legale.strip(),
+        finalite=payload.finalite.strip(),
+        donnees=payload.donnees,
+        duree_conservation=payload.duree_conservation.strip(),
+        review_date=payload.review_date.isoformat() if payload.review_date else None,
+        poles_root=POLES_DIR,
+    )
+    return _treatment_saved(nom)
+
+
+@router.put("/rgpd/treatments/{nom}", response_model=TreatmentSaved)
+async def edit_treatment(nom: str, payload: TreatmentPayload) -> TreatmentSaved:
+    """Édite en place le traitement RGPD dont le ``nom`` correspond. 404 si absent."""
+    updated = compliance.update_treatment(
+        nom,
+        base_legale=payload.base_legale.strip(),
+        finalite=payload.finalite.strip(),
+        donnees=payload.donnees,
+        duree_conservation=payload.duree_conservation.strip(),
+        review_date=payload.review_date.isoformat() if payload.review_date else None,
+        poles_root=POLES_DIR,
+    )
+    if updated is None:
+        raise HTTPException(status_code=404, detail=f"Traitement introuvable : {nom}")
+    return _treatment_saved(nom)
+
+
+@router.post(
+    "/ai-act/systems", response_model=AiActSystemSaved, status_code=status.HTTP_201_CREATED
+)
+async def add_ai_system(payload: AiActSystemPayload) -> AiActSystemSaved:
+    """Ajoute un système au registre AI Act (visible dans overview au prochain fetch)."""
+    nom = payload.nom.strip()
+    if not nom:
+        raise HTTPException(status_code=422, detail="Le nom du système IA est obligatoire.")
+    compliance.append_ai_system(
+        nom=nom,
+        role=payload.role.strip(),
+        risk_class=payload.risk_class.strip(),
+        poles_root=POLES_DIR,
+    )
+    return _ai_system_saved(nom)
+
+
+@router.put("/ai-act/systems/{nom}", response_model=AiActSystemSaved)
+async def edit_ai_system(nom: str, payload: AiActSystemPayload) -> AiActSystemSaved:
+    """Édite en place le système AI Act dont le ``nom`` correspond. 404 si absent."""
+    updated = compliance.update_ai_system(
+        nom,
+        role=payload.role.strip(),
+        risk_class=payload.risk_class.strip(),
+        poles_root=POLES_DIR,
+    )
+    if updated is None:
+        raise HTTPException(status_code=404, detail=f"Système IA introuvable : {nom}")
+    return _ai_system_saved(nom)
 
 
 __all__ = ["router"]

@@ -59,7 +59,7 @@ async function getJSON<T>(path: string, signal?: AbortSignal): Promise<T> {
   return (await res.json()) as T;
 }
 
-async function sendJSON<T>(method: "POST" | "PUT", path: string, body: unknown): Promise<T> {
+async function sendJSON<T>(method: "POST" | "PUT" | "PATCH", path: string, body: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
     headers: { Accept: "application/json", "Content-Type": "application/json" },
@@ -80,6 +80,10 @@ function putJSON<T>(path: string, body: unknown): Promise<T> {
   return sendJSON<T>("PUT", path, body);
 }
 
+function patchJSON<T>(path: string, body: unknown): Promise<T> {
+  return sendJSON<T>("PATCH", path, body);
+}
+
 async function deleteReq(path: string): Promise<void> {
   const res = await fetch(path, { method: "DELETE", headers: { Accept: "application/json" } });
   if (!res.ok && res.status !== 204) {
@@ -95,6 +99,26 @@ async function deleteJSON<T>(path: string): Promise<T> {
     throw new Error(`DELETE ${path} -> HTTP ${res.status} ${detail.slice(0, 160)}`);
   }
   return (await res.json()) as T;
+}
+
+// =============================================================================
+// Handoffs entrants (cross-pôle) — GET /api/poles/handoffs/incoming (Phase 6)
+// =============================================================================
+export interface IncomingHandoff {
+  id: string;
+  source_pole: string;
+  record_id: string;
+  target_pole: string;
+  note: string | null;
+  created_at: string;
+}
+
+export function fetchIncomingHandoffs(
+  pole?: string,
+  signal?: AbortSignal,
+): Promise<IncomingHandoff[]> {
+  const q = pole ? `?pole=${encodeURIComponent(pole)}` : "";
+  return getJSON<IncomingHandoff[]>(`/api/poles/handoffs/incoming${q}`, signal);
 }
 
 export function fetchPoleFeed(pole: string, signal?: AbortSignal): Promise<PoleFeed> {
@@ -621,6 +645,20 @@ export function draftProposal(dealId: string): Promise<VenteProposal> {
   return postJSON<VenteProposal>(`${VT}/proposals/${encodeURIComponent(dealId)}/draft`, {});
 }
 
+export function moveDealStage(dealId: string, stage: string): Promise<VenteDeal> {
+  return patchJSON<VenteDeal>(`${VT}/deals/${encodeURIComponent(dealId)}/stage`, { stage });
+}
+
+export interface MeetingIcs {
+  request_id: string;
+  filename: string;
+  ics: string;
+}
+
+export function fetchMeetingIcs(id: string, signal?: AbortSignal): Promise<MeetingIcs> {
+  return getJSON<MeetingIcs>(`${VT}/meetings/${encodeURIComponent(id)}/ics`, signal);
+}
+
 // =============================================================================
 // Pôle Finance & Conformité (S5) — miroir des schemas Pydantic de api/finance.py.
 // =============================================================================
@@ -832,6 +870,32 @@ export function addFlow(payload: {
 
 export function deleteFlow(flowId: string): Promise<{ deleted: boolean }> {
   return deleteJSON<{ deleted: boolean }>(`${FN}/ledger/flows/${encodeURIComponent(flowId)}`);
+}
+
+export function updateFlow(
+  flowId: string,
+  payload: { flow_date: string; label: string; category: string; direction: string; amount_eur: number },
+): Promise<FinanceFlow> {
+  return putJSON<FinanceFlow>(`${FN}/ledger/flows/${encodeURIComponent(flowId)}`, payload);
+}
+
+/** URL de téléchargement du PDF d'un doc finance (CA3/devis/contrat). */
+export function financeDocPdfUrl(name: string): string {
+  return `${FN}/docs/${encodeURIComponent(name)}/pdf`;
+}
+
+/** Upload binaire (multipart) d'un doc à remplir — versionné côté backend. */
+export async function uploadDocFile(
+  file: File,
+): Promise<{ name: string; kind: string; has_pdf: boolean }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${FN}/docs/upload/file`, { method: "POST", body: form });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`POST ${FN}/docs/upload/file -> HTTP ${res.status} ${detail.slice(0, 160)}`);
+  }
+  return (await res.json()) as { name: string; kind: string; has_pdf: boolean };
 }
 
 export function generateDoc(
@@ -1073,6 +1137,105 @@ export function fetchDirectionDoc(name: string): Promise<{ name: string; content
   return getJSON<{ name: string; content: string }>(`${D}/docs/${encodeURIComponent(name)}`);
 }
 
+/** URL de téléchargement du PDF du board pack (et autres docs direction). */
+export function directionDocPdfUrl(name: string): string {
+  return `${D}/docs/${encodeURIComponent(name)}/pdf`;
+}
+
+// =============================================================================
+// Phase 4c — détail lead, brouillon inbox, fait mémoire, statut décisions
+// =============================================================================
+export interface BantBreakdown {
+  budget: number;
+  authority: number;
+  need: number;
+  timing: number;
+  total: number;
+}
+
+export interface EmailGuess {
+  email: string;
+  pattern: string;
+  confidence: number;
+}
+
+export interface LeadDetail {
+  slug: string;
+  full_name: string;
+  domain: string;
+  title_hint: string | null;
+  persona: string;
+  bant_total: number;
+  qualified: boolean;
+  best_email: string | null;
+  eligible: boolean;
+  eligibility_reason: string;
+  persona_score: number;
+  persona_signals: string[];
+  bant: BantBreakdown;
+  email_guesses: EmailGuess[];
+  markdown_body: string;
+}
+
+export function fetchLeadDetail(slug: string, signal?: AbortSignal): Promise<LeadDetail> {
+  return getJSON<LeadDetail>(`${VT}/leads/${encodeURIComponent(slug)}`, signal);
+}
+
+export interface DraftBody {
+  id: string;
+  body: string;
+  exists: boolean;
+}
+
+export function fetchInboxDraft(id: string, signal?: AbortSignal): Promise<DraftBody> {
+  return getJSON<DraftBody>(`${VT}/inbox/${encodeURIComponent(id)}/draft`, signal);
+}
+
+export function saveInboxDraft(id: string, body: string): Promise<DraftBody> {
+  return putJSON<DraftBody>(`${VT}/inbox/${encodeURIComponent(id)}/draft`, { body });
+}
+
+export interface FactDetail {
+  id: string;
+  pole: string;
+  script: string;
+  kind: string;
+  important: boolean;
+  tags: string[];
+  body: string;
+  source: string | null;
+  created_at: string;
+}
+
+export function fetchMemoireFact(
+  pole: string,
+  script: string,
+  recordId: string,
+  signal?: AbortSignal,
+): Promise<FactDetail> {
+  const q = `?pole=${encodeURIComponent(pole)}&script=${encodeURIComponent(script)}&record_id=${encodeURIComponent(recordId)}`;
+  return getJSON<FactDetail>(`${MEM}/fact${q}`, signal);
+}
+
+export type DecisionStatus = "open" | "closed";
+
+export interface DecisionWithStatus {
+  decision_id: string;
+  title: string;
+  decision_date: string;
+  partie: string;
+  decision: string;
+  status: DecisionStatus;
+}
+
+export function fetchDecisions(signal?: AbortSignal): Promise<DecisionWithStatus[]> {
+  return getJSON<DecisionWithStatus[]>(`${D}/decisions`, signal);
+}
+
+export function setDecisionStatus(id: string, status: DecisionStatus): Promise<DecisionWithStatus> {
+  return patchJSON<DecisionWithStatus>(`${D}/decisions/${encodeURIComponent(id)}`, { status });
+}
+
 // =============================================================================
 // Pôle Mémoire (S7) — miroir des schemas Pydantic de api/memoire.py.
 // =============================================================================
@@ -1261,6 +1424,93 @@ export function cleanMemoire(payload: {
 
 export function updateMemoirePolicy(pole: string, active: boolean): Promise<MemoirePolicy> {
   return putJSON<MemoirePolicy>(`${MEM}/policy`, { pole, active });
+}
+
+export function updatePolicyRetention(payload: {
+  pole: string;
+  active: boolean;
+  protect_important?: boolean;
+  default_ttl_days?: number;
+  keep_recent_per_kind?: number;
+  min_stale_days?: number;
+}): Promise<MemoirePolicy> {
+  return putJSON<MemoirePolicy>(`${MEM}/policy`, payload);
+}
+
+export interface PendingDeletion {
+  pole: string;
+  script: string;
+  record_id: string;
+}
+
+export function approveDeletions(
+  pole: string,
+  targets: { script: string; record_id: string }[],
+): Promise<{ pole: string; pending: number }> {
+  return postJSON<{ pole: string; pending: number }>(`${MEM}/plan/approve`, { pole, targets });
+}
+
+export function fetchPendingDeletions(pole?: string, signal?: AbortSignal): Promise<PendingDeletion[]> {
+  const q = pole ? `?pole=${encodeURIComponent(pole)}` : "";
+  return getJSON<PendingDeletion[]>(`${MEM}/plan/pending${q}`, signal);
+}
+
+// Finance — registres conformité éditables (Phase 6 batch 3)
+export interface RgpdTreatment {
+  nom: string;
+  base_legale: string;
+  finalite: string;
+  donnees: string[];
+  duree_conservation: string;
+  review_date: string | null;
+  conforme: boolean;
+  issues: string[];
+}
+
+export function addRgpdTreatment(payload: {
+  nom: string;
+  base_legale: string;
+  finalite: string;
+  donnees: string[];
+  duree_conservation: string;
+  review_date?: string | null;
+}): Promise<RgpdTreatment> {
+  return postJSON<RgpdTreatment>(`${FN}/rgpd/treatments`, payload);
+}
+
+export function updateRgpdTreatment(
+  nom: string,
+  payload: {
+    nom: string;
+    base_legale: string;
+    finalite: string;
+    donnees: string[];
+    duree_conservation: string;
+    review_date?: string | null;
+  },
+): Promise<RgpdTreatment> {
+  return putJSON<RgpdTreatment>(`${FN}/rgpd/treatments/${encodeURIComponent(nom)}`, payload);
+}
+
+export interface AiActSystem {
+  nom: string;
+  role: string;
+  risk: string;
+}
+
+export function addAiActSystem(payload: {
+  nom: string;
+  role: string;
+  risk_class: string;
+}): Promise<AiActSystem> {
+  return postJSON<AiActSystem>(`${FN}/ai-act/systems`, payload);
+}
+
+export function updateAiActSystem(
+  nom: string,
+  payload: { nom: string; role: string; risk_class: string },
+): Promise<AiActSystem> {
+  return putJSON<AiActSystem>(`${FN}/ai-act/systems/${encodeURIComponent(nom)}`, payload);
 }
 
 export function fetchMemoireWiring(signal?: AbortSignal): Promise<WiringAudit> {

@@ -1,250 +1,280 @@
-# Argos Ops — UI Decisions (P16 Admin Control Panel)
+# Argos Ops — UI Decisions (Cockpit archi v2)
 
-> Cadre des choix design pour le Admin Control Panel (P16). Les choix
-> structurants sont figés ici comme référence pour le code production
-> Sprint 1+. Le mockup standalone (`mockup/admin-dashboard.html`) sert
-> de **proof of concept visuel** — pas de prod.
+> **Source de vérité du design system** du cockpit Argos Ops (archi pôles v2,
+> une seule app unifiée). Tout choix structurant (palette, typo, densité,
+> z-index, états, composants, libs) est figé ici. Le code production des
+> écrans (`argos_ops/ops_dashboard/frontend/`) doit s'y conformer.
 >
-> **À mettre à jour** avant le démarrage de la phase 16.A vraie
-> (post-P7), avec une exploration `ui-ux-pro-max` complète comme
-> recommandé dans
-> [`ARGOS_OPS_PLAN.md` § 16.5](ARGOS_OPS_PLAN.md#165-design-philosophy).
+> Refonte verrouillée le **2026-06-19** (session SF). Remplace le cadrage
+> P16-mockup (2026-05-08) conservé en §11 Historique.
 >
-> Dernière mise à jour : **2026-05-08** (mockup initial post-P4).
+> Méthode : audit complet réel-vs-stub (Phase 0) + skill `ui-ux-pro-max`
+> (règles a11y / interaction / z-index / charts / forms) + skill
+> `frontend-design` (implémentation). Local-first **D-017** : toute lib est
+> open-source npm, aucun service tiers payant.
 
 ---
 
-## 1. Inspirations cibles
+## 0. Principe directeur
 
-| Source | Ce qu'on emprunte | Ce qu'on évite |
+**Cockpit opérateur, pas SaaS marketing.** Dense, dark-mode-first (dual-theme),
+chaque pixel porte de l'information utile. Inspirations conservées : **Linear**
+(vitesse, ⌘K, raccourcis, Inter), **Grafana** (densité, statuts colorés),
+**Wazuh** (sidebar fixe + status pills), **Vercel/Railway** (data + actions sur
+la même vue). Anti-patterns : pas de pastel Stripe/Notion, pas de white-space
+décoratif, pas d'animation gratuite, **pas de tout-mono** (cf. §3).
+
+**Une seule app, un seul shell** (cf. §9) : Home global + 8 pôles + outils
+globaux (Atelier, Console, Inbox, Outputs, Help, BotDetail). L'ancienne entrée
+legacy `index.html`/`App.tsx` est retirée une fois les outils utiles migrés.
+
+---
+
+## 1. Palette (conservée — tokens `argos-*` dual-theme)
+
+Tokens en CSS custom properties (`src/index.css`, triplets RGB) exposés par
+Tailwind (`argos-*`, `<alpha-value>`). `darkMode: "class"`. Light **et** dark
+passent WCAG AA 4.5:1. **Inchangé** — la base est saine.
+
+### 1.1 Surfaces & texte
+
+| Token | Dark | Light | Usage |
+|---|---|---|---|
+| `argos-bg` | `#09090b` | `#fafafa` | Fond app |
+| `argos-surface` | `#18181b` | `#ffffff` | Cards, sidebar, topbar, drawer, modal |
+| `argos-surface-2` | `#27272a` | `#f4f4f5` | Hover, header de table, zone enfoncée |
+| `argos-border` | `#3f3f46` | `#d4d4d8` | Bordures cards/contrôles |
+| `argos-border-subtle` | `#27272a` | `#e4e4e7` | Dividers de table |
+| `argos-fg` | `#f4f4f5` | `#18181b` | Titres, valeurs |
+| `argos-fg-secondary` | `#a1a1aa` | `#3f3f46` | Body |
+| `argos-fg-tertiary` | `#71717a` | `#71717a` | Captions, eyebrows, métadonnées |
+| `argos-fg-disabled` | `#52525b` | `#a1a1aa` | États désactivés |
+
+### 1.2 Accents sémantiques
+
+| Token | Dark | Light | Sens |
+|---|---|---|---|
+| `argos-healthy` | emerald-500 | emerald-600 | succès, vert KPI, breaker reset |
+| `argos-info` | sky-500 | sky-600 | liens, neutre actif, focus ring |
+| `argos-warning` | amber-500 | amber-600 | en attente, dégradé, dérive |
+| `argos-danger` | rose-500 | rose-600 | breaker armé, échec, chute MRR |
+
+**Règle figée : max 2 accents par vue.** Vue par défaut ≈ 95 % monochrome zinc ;
+l'accent attire l'œil sur ce qui demande attention. Couleur jamais seule porteuse
+de sens (toujours + icône/texte — `color-not-only`).
+
+---
+
+## 2. Échelle de couleur de données (charts)
+
+Palette catégorielle accessible (au-delà des 4 accents sémantiques), pour séries
+multiples — évite rouge/vert seuls (daltonisme). Ordre canonique :
+`info (sky)` → `violet-500` → `emerald` → `amber` → `fuchsia-500` → `cyan-500`.
+Gridlines `argos-border-subtle`. Contraste data ≥ 3:1, labels ≥ 4.5:1. Toujours
+légende + tooltip + empty-state + skeleton (cf. §6 Chart, règles `chart`).
+
+---
+
+## 3. Typographie (CORRIGÉE — mono réservée aux données)
+
+> **Décision clé de la refonte.** L'audit a montré que JetBrains Mono était la
+> police *dominante* (labels, valeurs, prose). On corrige : **Inter = texte
+> d'UI** (labels, body, titres, descriptions, boutons, nav), **JetBrains Mono =
+> données uniquement** (nombres, montants, IDs, timestamps, durées, hash, code,
+> `output_summary`, chemins). `number-tabular` : figures tabulaires mono sur les
+> colonnes de table/prix/timers pour éviter le layout shift.
+
+### 3.1 Familles
+
+- **Inter** (400/500/600/700) — UI. `font-sans`.
+- **JetBrains Mono** (400/500) — données/code. `font-mono`. `font-display: swap`.
+
+### 3.2 Échelle de type figée (fini les `text-[9px]…[11.5px]` arbitraires)
+
+| Token | px | Usage |
 |---|---|---|
-| **Linear** | Transitions ultra-rapides, raccourcis clavier (J/K nav, ⌘K palette), typographie Inter | Animations décoratives |
-| **Grafana** | Dark-mode-first, densité info, statuts colorés, cards graphiques | Layout horizontal trop chargé |
-| **Wazuh** | Sidebar fixe + status pills, modules en cards | Chrome lourd avec branding excessif |
-| **Railway / Vercel** | Bonne combinaison « data + actions » sur la même vue | Look « SaaS marketing » pastel |
+| `text-eyebrow` (=`text-[11px]`) | 11 | labels uppercase `tracking-wider` `argos-fg-tertiary` |
+| `text-xs` | 12 | métadonnées, badges, cellules denses |
+| `text-sm` | 14 | body principal, cellules de table, contrôles |
+| `text-base` | 16 | paragraphes, inputs (≥16px = anti-zoom iOS) |
+| `text-lg` | 18 | titres de section |
+| `text-2xl` | 24 | valeurs KPI |
+| `text-3xl` | 30 | KPI héro (Home) |
 
-**Anti-patterns figés (à ne jamais faire)** :
-
-- Pas de palette pastel Stripe / Notion (pas adapté à un cockpit opérateur)
-- Pas de white space excessif — chaque pixel doit porter de l'info utile
-- Pas d'animations décoratives — uniquement des transitions fonctionnelles
-- Pas de dark/light toggle au launch — dark only (cohérent avec Wazuh /
-  Grafana / Linear ; le panel ne sera ouvert qu'en début/fin de journée
-  par le fondateur)
+Poids : titres `font-semibold` (600), valeurs num `font-semibold`, labels `500`,
+body `400`. Line-height body 1.5. Mesure de ligne 60-75 car. desktop. Wrapping
+préféré à la troncature ; si troncature → ellipsis + tooltip.
 
 ---
 
-## 2. Palette canonique
+## 4. Densité, espacement, layout
 
-**Stratégie dual-theme (révision 2026-05-12)** : les tokens sont définis via
-CSS custom properties dans `src/index.css` (`:root` light + `:root.dark`
-dark), et Tailwind les expose via `--color-...` dans `tailwind.config.js`.
-Toggle théme depuis la Topbar (icône Sun/Moon, persisté `localStorage`,
-init synchrone anti-FOUC). Light **et** dark passent les contrôles
-contrast 4.5:1 WCAG AA.
+Rythme **4/8 px** strict (`spacing-scale`). Tiers verticaux : 8 / 12 / 16 / 24 / 32.
 
-### 2.1 Surfaces
+- Sidebar (rail) : `w-60` (240px) desktop ; **drawer overlay** < 1024px.
+- Topbar : `h-12` (48px).
+- Padding main : `p-6` (desktop), `p-4` (mobile).
+- Card : `p-4` (info), `p-5` (table). Gap cards : `gap-3`.
+- Radius : `rounded-md` (6px) contrôles/cards, `rounded-lg` modals/drawer,
+  `rounded-sm` cellules viz, `rounded-full` toggle/dots.
+- Container max desktop : `max-w-[1600px]` (cockpit large), grilles fluides.
+- Touch target ≥ 44px (mobile), gap ≥ 8px entre cibles.
 
-| Token | Dark hex | Light hex | Usage |
-|---|---|---|---|
-| `bg-base` | `#09090b` (zinc-950) | `#fafafa` (zinc-50) | Fond principal app |
-| `bg-surface` | `#18181b` (zinc-900) | `#ffffff` (white) | Cards, sidebar, topbar |
-| `bg-surface-2` | `#27272a` (zinc-800) | `#f4f4f5` (zinc-100) | Hover, table header |
-| `border` | `#3f3f46` (zinc-700) | `#d4d4d8` (zinc-300) | Bordures cards |
-| `border-subtle` | `#27272a` (zinc-800) | `#e4e4e7` (zinc-200) | Dividers tableaux |
+### 4.1 Layout shell
 
-### 2.2 Texte
-
-| Token | Dark hex | Light hex | Usage |
-|---|---|---|---|
-| `fg` | `#f4f4f5` (zinc-100) | `#18181b` (zinc-900) | Titres, labels principaux |
-| `fg-secondary` | `#a1a1aa` (zinc-400) | `#3f3f46` (zinc-700) | Body, contenu secondaire |
-| `fg-tertiary` | `#71717a` (zinc-500) | `#71717a` (zinc-500) | Captions, métadonnées |
-| `fg-disabled` | `#52525b` (zinc-600) | `#a1a1aa` (zinc-400) | Disabled states |
-
-### 2.3 Accents (status colors)
-
-Accents légèrement assombris en light pour respecter le ratio 4.5:1 sur
-fond clair (les `-500` Tailwind sont trop pâles sur blanc).
-
-| Token | Dark hex (-500) | Light hex (-600) | Quand |
-|---|---|---|---|
-| `healthy` | `#10b981` (emerald-500) | `#059669` (emerald-600) | Agent success, KPI vert, breaker reset |
-| `info` | `#0ea5e9` (sky-500) | `#0284c7` (sky-600) | Liens, badge neutre, sparkline normale |
-| `warning` | `#f59e0b` (amber-500) | `#d97706` (amber-600) | Pause active, escalades en attente |
-| `danger` | `#f43f5e` (rose-500) | `#e11d48` (rose-600) | Breaker actif, agent failed, MRR chute |
-
-**Règle :** maximum 1-2 accents par vue à la fois. La vue par défaut
-doit être à 95 % monochrome zinc, l'accent attire l'œil sur ce qui
-demande attention.
+```
+┌──────────┬─────────────────────────────────────────────────┐
+│ RAIL     │  TOPBAR h-12 (breadcrumb · ⌘K · thème · santé)   │
+│ w-60     ├─────────────────────────────────────────────────┤
+│ Home     │  MAIN (overflow-y-auto, p-6)                     │
+│ ─ Pôles  │   Tabs du pôle ───────────────────────           │
+│ 8 items  │   ┌ KPI ┐┌ KPI ┐┌ KPI ┐┌ KPI ┐                   │
+│ ─ Outils │   contenu onglet (table / kanban / charts…)      │
+│ globaux  │                                                  │
+│ Atelier… │   Drawer détail (slide depuis la droite) ▸       │
+└──────────┴─────────────────────────────────────────────────┘
+```
 
 ---
 
-## 3. Typographie
+## 5. Z-index, focus, états (figés)
 
-| Famille | Usage | Source |
+### 5.1 Échelle z-index (l'audit a trouvé z-40/z-50 mélangés → on fige)
+
+| Couche | z | Éléments |
 |---|---|---|
-| **Inter** (400, 500, 600, 700) | UI texte général | Google Fonts (CDN) |
-| **JetBrains Mono** (400, 500) | Données, code, mono (timestamps, IDs, durées, output_summary) | Google Fonts |
+| base | `z-0` | contenu |
+| sticky | `z-10` | headers de table sticky, topbar |
+| dropdown | `z-20` | menus, combobox, popovers |
+| drawer | `z-30` | drawer latéral + son scrim |
+| modal | `z-40` | modal + son scrim |
+| toast | `z-50` | toasts (n'attrape jamais le focus, `aria-live=polite`) |
+| tooltip | `z-60` | tooltip/help |
 
-**Tailles** (cohérence avec scale Tailwind par défaut) :
+Scrim modal/drawer : `bg-argos-bg/70 backdrop-blur-sm` (40-60 % d'isolation).
 
-- `text-xs` (12px) — métadonnées, badges, labels uppercase
-- `text-sm` (14px) — body principal, table cells
-- `text-base` (16px) — paragraphes longs (rare dans le panel)
-- `text-2xl` (24px) — KPIs principaux
-- Bold weight `font-semibold` (600) pour les valeurs numériques importantes
+### 5.2 Focus ring (visible, clavier-first)
 
-**Letter-spacing** : `tracking-wider` (+0.05em) sur les uppercase
-labels (`text-xs font-semibold uppercase tracking-wider text-zinc-500`)
-— pattern Linear-like.
+`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info
+focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg`. Jamais de
+suppression du focus. Tab-order = ordre visuel. Skip-link vers `#main`.
 
----
+### 5.3 États d'interaction (parité light/dark obligatoire)
 
-## 4. Densité et layout
-
-### 4.1 Layout global
-
-```
-┌──────────┬───────────────────────────────────────────────────────┐
-│ SIDEBAR  │  TOPBAR (h-12)                                        │
-│ (w-60)   ├───────────────────────────────────────────────────────┤
-│          │                                                       │
-│  Logo    │  MAIN (overflow-y-auto)                               │
-│  Nav     │                                                       │
-│  ...     │  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐                     │
-│          │  │ KPI │ │ KPI │ │ KPI │ │ KPI │                     │
-│  Status  │  └─────┘ └─────┘ └─────┘ └─────┘                     │
-│          │                                                       │
-│          │  ┌─────────────────────────────────┐ ┌──────────┐    │
-│          │  │ Agents grid 4 cards             │ │ Breakers │    │
-│          │  └─────────────────────────────────┘ │  + KPI   │    │
-│          │                                       │ secondaire│    │
-│          │  ┌─────────────────────────────────┐ │           │    │
-│          │  │ Latest runs table               │ │           │    │
-│          │  └─────────────────────────────────┘ └──────────┘    │
-└──────────┴───────────────────────────────────────────────────────┘
-```
-
-### 4.2 Spacings canoniques
-
-- Sidebar width : `w-60` (240px) — assez large pour labels Nav clairs
-- Topbar height : `h-12` (48px) — minimal mais lisible
-- Main padding : `p-6` (24px)
-- Card padding : `p-4` (16px) sur cards info, `p-5` (20px) si table
-- Gap entre cards : `gap-3` (12px) — densité Wazuh/Linear
-- Border radius : `rounded-md` (6px) — pas trop arrondi (esprit cockpit)
-
-### 4.3 Responsive
-
-- **Desktop > 1280px** : layout 4 colonnes pour KPIs et agents
-- **Desktop 1024-1280px** : layout 2 colonnes
-- **Tablette < 1024px** : sidebar collapsable
-- **Mobile < 768px** : sidebar en drawer overlay, **focus sur Overview
-  + Agents Control uniquement** (cf. `ARGOS_OPS_PLAN.md` § 16.5 — usage
-  mobile = pilotage rapide depuis le tel, pas KB editor)
-
----
-
-## 5. Composants canoniques
-
-### 5.1 Status pill
-
-Petit badge coloré qui indique le statut (success / failed / inactive /
-killed_by_breaker). Format :
-
-```html
-<span class="bg-healthy/15 text-healthy px-2 py-0.5 rounded text-[10px]
-             font-medium uppercase tracking-wide">
-  success
-</span>
-```
-
-Backgrounds en `/15` (15 % opacity) pour rester sobres ; texte en
-couleur pleine.
-
-### 5.2 KPI card
-
-Card pour les indicateurs Overview (MRR, Leads, etc.) :
-
-```html
-<div class="bg-zinc-900 border border-zinc-800 rounded-md p-4
-            hover:border-zinc-700 transition-colors">
-  <div class="text-[11px] text-zinc-500 uppercase tracking-wider">MRR</div>
-  <div class="mt-1 flex items-baseline gap-2">
-    <span class="text-2xl font-semibold mono">1 234 €</span>
-    <span class="text-xs text-healthy">+5.2% vs S-1</span>
-  </div>
-  <div class="mt-1 text-[11px] text-zinc-500">Stripe live</div>
-</div>
-```
-
-### 5.3 Agent card
-
-Card opérationnelle qui combine **info + actions inline** (toggle ON/OFF,
-Run now, Détails). Pattern Linear-like — toujours 1-2 actions
-disponibles directement sans navigation.
-
----
-
-## 6. Interactions & raccourcis clavier (Phase 16.B+)
-
-À implémenter en phase 16.B / 16.C, **inspiré Linear** :
-
-| Raccourci | Action |
+| État | Convention |
 |---|---|
-| `⌘K` (Ctrl+K) | Command palette (recherche + actions globales) |
-| `J` / `K` | Naviguer haut/bas dans une liste |
-| `Enter` | Ouvrir détails de l'item sélectionné |
-| `T` | Toggle ON/OFF de l'agent en focus |
-| `R` | Run now de l'agent en focus |
-| `Esc` | Fermer drawer / palette |
-| `?` | Aide raccourcis (toujours dispo) |
-
-Documentation à figer dans le panel sous le menu d'aide.
+| hover | `hover:bg-argos-surface-2` / `hover:border-argos-border` (transition 150ms) |
+| focus | ring §5.2 |
+| active/press | `active:scale-[0.98]` (`argos-press`, inhibé reduced-motion) |
+| selected | fond accent `/15` + bord accent + (icône/poids) |
+| disabled | `opacity-50 cursor-not-allowed` + `disabled`/`aria-disabled` |
+| loading | skeleton si > 300ms ; bouton async → spinner + `disabled` |
+| read-only | distinct du disabled (fond `surface-2`, pas d'interaction, lisible) |
 
 ---
 
-## 7. Stack technique (figée par § 16.3 du plan)
+## 6. Bibliothèque de composants (kit unifié unique)
 
-- **Backend** : FastAPI dans `argos_ops/ops_dashboard/app.py`
-- **Frontend** : React + Vite + Tailwind 4 — cohérent avec le frontend
-  SecHunter (réutiliser des composants si possible)
-- **Real-time** : SSE (Server-Sent Events) — plus simple que WebSocket,
-  suffit pour push état agents + breakers
-- **Charts** : `recharts` (léger) ou `apexcharts` selon les besoins —
-  à trancher en phase 16.A
-- **Code editor (KB)** : Monaco (VS Code engine) — phase 16.D pour
-  l'éditeur des fichiers KB
-- **Auth** : Basic Auth via Caddy + IP allowlist + JWT 8h + TOTP
-  optionnel (phase 16.D)
+Fusion des deux couches actuelles (`components/*` legacy + `poles/components/*`)
+en **un seul kit** `src/components/ui/`. Tones unifiés sur l'enum sémantique
+`neutral | healthy | info | warning | danger`. Conservés tels quels : Button,
+Badge, Toggle, Slider, TextInput, Flash, StatusPill, Skeleton*, EmptyState,
+MarkdownPreview, Tooltip, ThemeToggle.
+
+### À CONSTRUIRE (aujourd'hui hand-rollés/dupliqués)
+
+| Composant | Spec figée |
+|---|---|
+| **Tabs** | `role=tablist`, flèches ←/→, `aria-selected`, indicateur animé ; remplace les ~8 switch locaux. |
+| **Modal** | 1 shell unique (scrim §5.1, Esc, click-outside, focus-trap, `aria-modal`) ; remplace les 3 copies. Confirme avant fermeture si dirty. |
+| **Drawer** | panneau latéral droit (détail lead/fait/run/draft), slide-in depuis la source, scrim, Esc, focus-trap. |
+| **DataTable** | tri (`aria-sort`), filtre, pagination/virtualisation (`react-window` ≥ 50 lignes), empty-state, skeleton, header sticky, figures tabulaires. |
+| **FormField** | label visible + helper persistant + erreur sous le champ (`role=alert`), via **react-hook-form + zod** ; validation `onBlur` ; focus 1er champ invalide. |
+| **Chart** | wrapper **Recharts** (Line/Bar/Area/Gauge), légende, tooltip clavier, empty/loading/error, `prefers-reduced-motion`, couleurs §2. Remplace les SVG maison `finance/charts.tsx`. |
+| **KanbanBoard** | **dnd-kit** (accessible, alternative clavier au drag), colonnes = stades, drop → mutation, optimistic + rollback. |
+| **Calendar** | grille mois/semaine, drag d'items (dnd-kit), preview slot ; éditorial (marketing) + RDV (vente). |
+| **FileUpload** | `<input type=file>` + drag-drop + barre de progression + preview (CSV via **papaparse** avant POST ; docs Finance multipart). |
+| **MarkdownEditor** | split édition/preview (réutilise MarkdownPreview), barre d'actions ; KB marketing, publications direction. |
+| **SearchBox** | input debouncé + résultats ; full-text via **Fuse.js** (client) ou endpoint `/search` (serveur), recents/suggestions. |
 
 ---
 
-## 8. Phasage P16
+## 7. Stack & librairies (figées — toutes open-source, D-017)
 
-Cf. `ARGOS_OPS_PLAN.md` § 16.6 :
-
-| Phase | Sprint | Pages |
+| Besoin | Lib | Pourquoi |
 |---|---|---|
-| **16.A — MVP** | Sprint 1 (post P7) | Overview + Agents Control read-only + Logs |
-| **16.B — Control** | Sprint 2 (post P11) | + Toggle ON/OFF + Sliders + Run now + Breakers control |
-| **16.C — Escalations** | Sprint 3 (post P14) | + Escalations queue + Settings |
-| **16.D — Advanced** | Sprint 4 | + KB editor + KPIs avancés + 2FA TOTP |
+| Data-fetching | **@tanstack/react-query** | cache + stale-while-revalidate (fin du refetch au switch d'onglet), invalidation post-mutation, remplace `usePolling` artisanal |
+| Charts | **recharts** | une seule lib viz (MRR/burn/runway/forecast/OKR/perf/projection) |
+| Drag-drop | **@dnd-kit/core+sortable** | accessible (Kanban vente, calendrier, push veille) |
+| CSV parsing | **papaparse** | preview client avant upload (leads vente) |
+| Forms | **react-hook-form** + **zod** | validation alignée Pydantic |
+| Recherche | **fuse.js** | full-text client (Mémoire/global) |
+| Virtualisation | **react-window** | longues listes/tables (perf) |
 
-**Aujourd'hui** : mockup standalone HTML pour valider la direction
-visuelle. Le code production de 16.A démarre Sprint 1 post-P7.
+Real-time : **WebSocket** (cohérent avec l'atelier/console existants) — canal de
+changements `/api/ws/changes` (runs, inbox, breakers, handoffs, mémoire),
+**fallback polling React Query** si déconnecté. Pas de SSE (on ne mélange pas).
+
+Code-split par pôle (`React.lazy` + Suspense + skeleton). Bundle léger,
+lazy-load des pages lourdes.
 
 ---
 
-## 9. Notes de mise à jour
+## 8. Motion (conservée, sobre)
 
-### 2026-05-08 — mockup initial
+Micro-interactions 150-300ms, transitions ≤ 400ms, jamais > 500ms. Keyframes
+existantes : `argos-toast-enter`, `argos-fade-in`, `argos-skeleton`,
+`argos-press`, `.theme-transition`. Easing `cubic-bezier(0.2,0.8,0.3,1)`. Exit
+≈ 60-70 % de l'enter. **Tout inhibé sous `prefers-reduced-motion`.** Anime
+transform/opacity uniquement (jamais width/height/top/left).
 
-- Fichier : [`mockup/admin-dashboard.html`](../mockup/admin-dashboard.html)
-- Stack mockup : Tailwind CSS via CDN + Alpine.js + Inter/JetBrains Mono via Google Fonts. **Aucune dépendance npm**, ouvre directement dans un navigateur
-- Données : DigestBuilder run réel (id=2 success, 5.11 s) ; les autres agents (EmailBot, SupportBot, FinanceBot) en `inactive`. _(Le mockup initial 2026-05-08 listait un « ChatBot widget » placeholder — retiré par [D-019](DECISIONS.md#d-019--abandon-d%C3%A9finitif-du-chatbot-widget-site-p8-cancelled).)_
-- Validation visuelle direction : palette zinc + accent healthy/danger, layout sidebar+topbar+main, cards denses
-- **Action de suivi avant code prod 16.A** : invoquer `ui-ux-pro-max`
-  pour exploration plus large + valider les choix actuels (densité,
-  raccourcis, mobile)
+---
+
+## 9. Unification (décision de la refonte)
+
+- **Shell unique** = évolution de `PolesShell` (entrée `poles.html` conservée et
+  renommée racine ; `index.html`/`App.tsx` legacy retirés après migration).
+- **Navigation** = rail : **Home** (dashboard global) · séparateur · **8 pôles**
+  (Veille, Marketing, Pub, Vente & RC, Finance & Conformité, Direction, Mémoire,
+  SRE & Meta-Ops) · séparateur · **Outils globaux** (Atelier, Console, Inbox,
+  Outputs, Help). `nav-state-active` visible, placement constant, ≥ 1024px
+  sidebar / < 1024px drawer hamburger.
+- **Outils globaux migrés** (aucun pôle ne les couvre) : Atelier (WS, RCE
+  D-029/D-032 — verbatim), Console bot generate-then-act (WS LIVE/SHADOW),
+  Inbox cross-pôle, Outputs (archive), Today→Home, Help (glossaire), BotDetail
+  (seule surface de contrôle agent : run-now/toggle/pause/YAML).
+- **Vues legacy supprimées** (dupliquées par un pôle) : Pipeline→Vente,
+  CashCustomers→Finance/Vente, HealthCompliance→SRE/Finance, Runs→SRE,
+  ServiceDetail, Agents (grille), Memory.tsx→Mémoire, bot/{MemoryTab,
+  TravailTab,IODetailModal}. Endpoints backend uniques aux outils gardés
+  (`/api/atelier/*`, `/api/agents/{n}/console/*`, `/api/inbox/*`,
+  `/api/outputs/*`, `/api/agents/{n}/config|runs|perf`) **conservés**.
+
+---
+
+## 10. Accessibilité, responsive, perf (objectifs Phase 7)
+
+- **WCAG 2.1 AA** : contraste ≥ 4.5:1 (clair ET sombre), ARIA labels sur
+  inputs/boutons icône, focus ring §5.2, nav clavier complète, skip-link,
+  `aria-sort` tables, `role=alert`/`aria-live` erreurs+toasts, `aria-modal`.
+- **Responsive mobile-first** : rail→drawer, grilles 1/2/3 col, touch ≥ 44px,
+  zéro scroll horizontal. Breakpoints **375 / 768 / 1024 / 1280 / 1440**.
+- **Perf** : code-split par pôle, `react-window` (listes 50+), debounce
+  recherche/filtre, cache React Query, `prefers-reduced-motion`, CLS < 0.1
+  (réserver l'espace des charts/async).
+
+---
+
+## 11. Historique
+
+### 2026-06-19 — Refonte cockpit archi v2 (session SF)
+Ce document. Design system unifié, mono réservée aux données, kit composants +
+libs figés, plan d'unification des 2 apps. Source : audit Phase 0 + skills
+`ui-ux-pro-max` / `frontend-design`.
+
+### 2026-05-12 — Dual-theme
+Tokens `argos-*` light+dark via CSS vars, toggle Topbar, WCAG AA les deux.
+
+### 2026-05-08 — Mockup initial P16
+`mockup/admin-dashboard.html` (Tailwind CDN + Alpine), validation visuelle
+direction (zinc + accents, sidebar+topbar+main dense). Proof of concept, pas prod.

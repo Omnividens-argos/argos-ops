@@ -6,10 +6,9 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import type { MarketingKBEntry } from "../api.ts";
 import { Badge, Button, TextInput } from "../../components/ui.tsx";
+import { MarkdownEditor } from "../../components/MarkdownEditor.tsx";
+import { MarkdownPreview } from "../../components/MarkdownPreview.tsx";
 import { shortDate, slugify } from "./lib.ts";
-
-const TEXTAREA_CLS =
-  "w-full rounded-md border border-argos-border-subtle bg-argos-bg px-2.5 py-1.5 font-mono text-[11px] text-argos-fg placeholder:text-argos-fg-disabled focus:outline-none focus:border-argos-info/60";
 
 export interface KBEditorProps {
   entries: MarketingKBEntry[];
@@ -43,11 +42,12 @@ function EntryForm({
   return (
     <div className="flex flex-col gap-2">
       <TextInput placeholder="Titre de la fiche" value={title} onChange={(e) => setTitle(e.target.value)} />
-      <textarea
-        className={`${TEXTAREA_CLS} min-h-[90px] resize-y`}
-        placeholder="Contenu de la fiche"
+      <MarkdownEditor
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={setBody}
+        height={200}
+        placeholder="Contenu de la fiche (markdown)"
+        ariaLabel="Contenu de la fiche"
       />
       <TextInput
         placeholder="tags (séparés par des virgules)"
@@ -141,9 +141,9 @@ export function KBEditor({ entries, busySlug, onUpsert, onDelete }: KBEditorProp
                             </Badge>
                           ))}
                         </div>
-                        <p className="mt-1 line-clamp-3 whitespace-pre-wrap font-mono text-[11px] leading-snug text-argos-fg-secondary">
-                          {entry.body}
-                        </p>
+                        <div className="mt-1 max-h-28 overflow-hidden text-[12px] text-argos-fg-secondary">
+                          <MarkdownPreview content={entry.body} />
+                        </div>
                         <span className="font-mono text-[10px] text-argos-fg-disabled">
                           maj {shortDate(entry.updated_at)}
                         </span>

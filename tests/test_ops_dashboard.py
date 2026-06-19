@@ -33,6 +33,30 @@ def client() -> TestClient:
 
 
 # =============================================================================
+# /api/ws/changes — canal temps réel (refonte SF, Phase 5)
+# =============================================================================
+def test_pole_fingerprint_empty(tmp_path: Path) -> None:
+    pole = tmp_path / "veille"
+    pole.mkdir()
+    assert app_module._pole_fingerprint(pole) == 0.0
+
+
+def test_pole_fingerprint_tracks_latest_file(tmp_path: Path) -> None:
+    pole = tmp_path / "veille"
+    fact = pole / "scripts" / "trend_spotter" / "memory" / "a.md"
+    fact.parent.mkdir(parents=True)
+    fact.write_text("hello", encoding="utf-8")
+    assert app_module._pole_fingerprint(pole) == pytest.approx(fact.stat().st_mtime)
+
+
+def test_ws_changes_accepts_connection(client: TestClient) -> None:
+    # Le canal accepte la connexion (read-only) ; pas de message immédiat
+    # (baseline calculée d'abord, push uniquement sur changement).
+    with client.websocket_connect("/api/ws/changes") as ws:
+        ws.close()
+
+
+# =============================================================================
 # /api/health
 # =============================================================================
 def test_health_db_ok(client: TestClient) -> None:

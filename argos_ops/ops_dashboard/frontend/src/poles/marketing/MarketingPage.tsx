@@ -7,8 +7,10 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import {
+  type MarketingChannel,
   type MarketingCharter,
   type MarketingOverview,
+  createDraft,
   editDraft,
   deleteKB,
   fetchMarketingOverview,
@@ -26,6 +28,67 @@ import { EditorialCalendar } from "./EditorialCalendar.tsx";
 import { EngagementStats } from "./EngagementStats.tsx";
 import { KBEditor } from "./KBEditor.tsx";
 import { RecommendationFeed } from "./RecommendationFeed.tsx";
+
+const NEW_DRAFT_FIELD =
+  "rounded-md border border-argos-border-subtle bg-argos-bg px-2.5 py-1.5 text-sm text-argos-fg placeholder:text-argos-fg-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg";
+
+function NewDraftForm({
+  channels,
+  busy,
+  onCreate,
+}: {
+  channels: MarketingChannel[];
+  busy: boolean;
+  onCreate: (payload: { channel: string; title: string; body: string }) => Promise<void>;
+}) {
+  const [channel, setChannel] = useState(channels[0]?.id ?? "");
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const canSubmit = channel !== "" && title.trim().length > 0 && body.trim().length > 0;
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-argos-border-subtle bg-argos-surface px-3 py-2.5">
+      <div className="flex flex-wrap gap-2">
+        <select aria-label="Canal" value={channel} onChange={(e) => setChannel(e.target.value)} className={NEW_DRAFT_FIELD}>
+          {channels.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+        <input
+          aria-label="Titre du draft"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Titre"
+          className={`${NEW_DRAFT_FIELD} min-w-0 flex-1`}
+        />
+      </div>
+      <textarea
+        aria-label="Contenu du draft"
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={3}
+        placeholder="Contenu du draft (un writer skill peut ensuite l'enrichir)…"
+        className={NEW_DRAFT_FIELD}
+      />
+      <div>
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={busy || !canSubmit}
+          onClick={() => {
+            void onCreate({ channel, title: title.trim(), body }).then(() => {
+              setTitle("");
+              setBody("");
+            });
+          }}
+        >
+          créer le draft
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 type Tab = "editorial" | "calendar" | "kb" | "charter" | "stats";
 
@@ -112,6 +175,12 @@ export function MarketingPage() {
       }
     },
     [reload],
+  );
+
+  const onCreateDraft = useCallback(
+    (payload: { channel: string; title: string; body: string }) =>
+      runMutation("__newdraft__", () => createDraft(payload), "Draft créé."),
+    [runMutation],
   );
 
   const onValidate = useCallback(
@@ -231,6 +300,14 @@ export function MarketingPage() {
                 <RecommendationFeed
                   recommendations={overview.recommendations}
                   channels={overview.channels}
+                />
+              </Section>
+
+              <Section title="Nouveau draft" hint="créer un brouillon à valider">
+                <NewDraftForm
+                  channels={overview.channels}
+                  busy={busy === "__newdraft__"}
+                  onCreate={onCreateDraft}
                 />
               </Section>
 

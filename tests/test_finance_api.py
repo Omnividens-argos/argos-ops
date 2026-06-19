@@ -122,6 +122,102 @@ def test_add_and_delete_flow(client: TestClient) -> None:
     assert client.request("DELETE", "/api/poles/finance/ledger/flows/ghost").status_code == 404
 
 
+def test_edit_flow(client: TestClient) -> None:
+    # Ajoute une ligne puis l'édite en place (tableur éditable).
+    add = client.post(
+        "/api/poles/finance/ledger/flows",
+        json={
+            "flow_date": "2026-06-10",
+            "label": "Pub",
+            "category": "marketing",
+            "direction": "out",
+            "amount_eur": 200,
+        },
+    )
+    assert add.status_code == 201
+    fid = add.json()["id"]
+    edit = client.put(
+        f"/api/poles/finance/ledger/flows/{fid}",
+        json={
+            "flow_date": "2026-06-10",
+            "label": "Pub LinkedIn",
+            "category": "marketing",
+            "direction": "out",
+            "amount_eur": 250,
+        },
+    )
+    assert edit.status_code == 200
+    assert edit.json()["id"] == fid  # id stable après édition
+    assert edit.json()["label"] == "Pub LinkedIn"
+    assert edit.json()["amount_eur"] == 250.0
+    # La modif est visible dans overview (recalcul à chaud).
+    flows = client.get("/api/poles/finance/overview").json()["ledger"]["flows"]
+    edited = next(f for f in flows if f["id"] == fid)
+    assert edited["label"] == "Pub LinkedIn" and edited["amount_eur"] == 250.0
+
+
+def test_edit_flow_unknown_404(client: TestClient) -> None:
+    r = client.put(
+        "/api/poles/finance/ledger/flows/ghost",
+        json={
+            "flow_date": "2026-06-10",
+            "label": "x",
+            "direction": "in",
+            "amount_eur": 10,
+        },
+    )
+    assert r.status_code == 404
+
+
+def test_edit_flow_rejects_bad_amount(client: TestClient) -> None:
+    # Crée une ligne valide puis tente de l'éditer avec un montant non positif.
+    add = client.post(
+        "/api/poles/finance/ledger/flows",
+        json={"flow_date": "2026-06-10", "label": "Pub", "direction": "out", "amount_eur": 200},
+    )
+    fid = add.json()["id"]
+    r = client.put(
+        f"/api/poles/finance/ledger/flows/{fid}",
+        json={"flow_date": "2026-06-10", "label": "Pub", "direction": "out", "amount_eur": -5},
+    )
+    assert r.status_code == 422
+
+
+def test_doc_pdf_404_when_absent(client: TestClient) -> None:
+    # Génère une CA3 (markdown) ; sans pandoc le PDF n'existe pas → 404.
+    client.post("/api/poles/finance/docs/generate", json={"kind": "ca3"})
+    docs = client.get("/api/poles/finance/overview").json()["docs"]
+    name = next(d["name"] for d in docs if d["kind"] == "ca3")
+    if any(d["has_pdf"] for d in docs if d["name"] == name):
+        pytest.skip("pandoc présent : PDF rendu, le cas 404 ne s'applique pas")
+    r = client.get(f"/api/poles/finance/docs/{name.replace('.md', '.pdf')}")
+    assert r.status_code == 404
+    # Doc totalement inconnu → 404 aussi.
+    assert client.get("/api/poles/finance/docs/ghost.pdf").status_code == 404
+
+
+def test_upload_doc_file_multipart_and_versioning(client: TestClient) -> None:
+    pdf = b"%PDF-1.4 fake binary content"
+    r = client.post(
+        "/api/poles/finance/docs/upload/file",
+        files={"file": ("brief.pdf", pdf, "application/pdf")},
+    )
+    assert r.status_code == 201
+    body = r.json()
+    assert body["name"] == "brief.pdf"
+    assert body["kind"] == "upload"
+    assert body["has_pdf"] is True
+    uploads = client.get("/api/poles/finance/overview").json()["uploads"]
+    assert "brief.pdf" in uploads
+    # Re-upload du même nom → versionné -v2 (pas d'écrasement).
+    r2 = client.post(
+        "/api/poles/finance/docs/upload/file",
+        files={"file": ("brief.pdf", pdf, "application/pdf")},
+    )
+    assert r2.status_code == 201
+    assert r2.json()["name"] == "brief-v2.pdf"
+
+
 def test_add_flow_rejects_negative(client: TestClient) -> None:
     r = client.post(
         "/api/poles/finance/ledger/flows",
@@ -212,3 +308,131 @@ def test_doc_preview_top_level_only(client: TestClient) -> None:
     prev = client.get(f"/api/poles/finance/docs/{name}")
     assert prev.status_code == 200 and "CA3" in prev.json()["content"]
     assert client.get("/api/poles/finance/docs/ghost.md").status_code == 404
+
+
+# =============================================================================
+# Registres conformité éditables — RGPD
+# =============================================================================
+def test_add_rgpd_treatment_appears_in_overview(client: TestClient) -> None:
+    r = client.post(
+        "/api/poles/finance/rgpd/treatments",
+        json={
+            "nom": "Newsletter",
+            "base_legale": "consentement",
+            "finalite": "envoi de la newsletter",
+            "donnees": ["email", "prénom"],
+            "duree_conservation": "jusqu'au désabonnement",
+            "review_date": _TODAY,
+        },
+    )
+    assert r.status_code == 201
+    body = r.json()
+    assert body["nom"] == "Newsletter"
+    assert body["conforme"] is True and body["issues"] == []
+    # La fiche neuve est visible dans /overview (registre relu à chaud).
+    treatments = client.get("/api/poles/finance/overview").json()["rgpd"]["treatments"]
+    added = next(t for t in treatments if t["nom"] == "Newsletter")
+    assert added["base_legale"] == "consentement"
+    assert added["donnees"] == ["email", "prénom"]
+    # L'ancienne fiche seed est préservée (réécriture sans perte).
+    assert any(t["nom"] == "Facturation" for t in treatments)
+
+
+def test_edit_rgpd_treatment(client: TestClient) -> None:
+    add = client.post(
+        "/api/poles/finance/rgpd/treatments",
+        json={
+            "nom": "Support",
+            "base_legale": "contrat",
+            "finalite": "suivi",
+            "donnees": ["email"],
+            "duree_conservation": "2 ans",
+            "review_date": _TODAY,
+        },
+    )
+    assert add.status_code == 201
+    edit = client.put(
+        "/api/poles/finance/rgpd/treatments/Support",
+        json={
+            "nom": "Support",
+            "base_legale": "intérêt légitime",
+            "finalite": "support technique étendu",
+            "donnees": ["email", "logs"],
+            "duree_conservation": "3 ans",
+            "review_date": _TODAY,
+        },
+    )
+    assert edit.status_code == 200
+    assert edit.json()["base_legale"] == "intérêt légitime"
+    assert edit.json()["donnees"] == ["email", "logs"]
+    assert edit.json()["duree_conservation"] == "3 ans"  # exposé par TreatmentSaved
+    # La modif est visible dans overview (qui ne projette pas duree_conservation).
+    treatments = client.get("/api/poles/finance/overview").json()["rgpd"]["treatments"]
+    edited = next(t for t in treatments if t["nom"] == "Support")
+    assert edited["finalite"] == "support technique étendu"
+
+
+def test_edit_rgpd_treatment_unknown_404(client: TestClient) -> None:
+    r = client.put(
+        "/api/poles/finance/rgpd/treatments/Fantome",
+        json={"nom": "Fantome", "base_legale": "contrat", "donnees": []},
+    )
+    assert r.status_code == 404
+
+
+def test_add_rgpd_treatment_blank_nom_422(client: TestClient) -> None:
+    r = client.post(
+        "/api/poles/finance/rgpd/treatments",
+        json={"nom": "   ", "base_legale": "contrat", "donnees": []},
+    )
+    assert r.status_code == 422
+
+
+# =============================================================================
+# Registres conformité éditables — AI Act
+# =============================================================================
+def test_add_ai_system_appears_in_overview(client: TestClient) -> None:
+    r = client.post(
+        "/api/poles/finance/ai-act/systems",
+        json={"nom": "MemoireAgent", "role": "curation mémoire", "risk_class": "minimal"},
+    )
+    assert r.status_code == 201
+    assert r.json()["nom"] == "MemoireAgent" and r.json()["risk"] == "minimal"
+    systems = client.get("/api/poles/finance/overview").json()["ai_act"]["systems"]
+    added = next(s for s in systems if s["nom"] == "MemoireAgent")
+    assert added["role"] == "curation mémoire"
+    # Le système seed est préservé.
+    assert any(s["nom"] == "FinanceAgent" for s in systems)
+
+
+def test_edit_ai_system(client: TestClient) -> None:
+    add = client.post(
+        "/api/poles/finance/ai-act/systems",
+        json={"nom": "AdBot", "role": "drafting pub", "risk_class": "limited"},
+    )
+    assert add.status_code == 201
+    edit = client.put(
+        "/api/poles/finance/ai-act/systems/AdBot",
+        json={"nom": "AdBot", "role": "drafting + optimisation pub", "risk_class": "high"},
+    )
+    assert edit.status_code == 200
+    assert edit.json()["risk"] == "high"
+    systems = client.get("/api/poles/finance/overview").json()["ai_act"]["systems"]
+    edited = next(s for s in systems if s["nom"] == "AdBot")
+    assert edited["role"] == "drafting + optimisation pub" and edited["risk"] == "high"
+
+
+def test_edit_ai_system_unknown_404(client: TestClient) -> None:
+    r = client.put(
+        "/api/poles/finance/ai-act/systems/Fantome",
+        json={"nom": "Fantome", "role": "x", "risk_class": "minimal"},
+    )
+    assert r.status_code == 404
+
+
+def test_add_ai_system_blank_nom_422(client: TestClient) -> None:
+    r = client.post(
+        "/api/poles/finance/ai-act/systems",
+        json={"nom": "", "role": "x", "risk_class": "minimal"},
+    )
+    assert r.status_code == 422

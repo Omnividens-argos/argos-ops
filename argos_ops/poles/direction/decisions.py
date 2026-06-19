@@ -26,8 +26,14 @@ from argos_ops.agents.decision_logger import (
     render_decision,
 )
 from argos_ops.poles.config import POLES_DIR
+from argos_ops.poles.direction.store import dump_yaml_mapping, load_yaml_mapping
 
 DIRECTION_POLE = "direction"
+
+#: Statuts valides du cycle de vie d'une décision (sidecar additif).
+DECISION_STATUSES = ("open", "closed")
+#: Statut par défaut quand une décision n'a pas d'entrée dans le sidecar.
+DEFAULT_DECISION_STATUS = "open"
 
 _BLOCK_RE = re.compile(r"^##\s+(D-\d{3})\s+—\s+(.+?)\s*$", re.MULTILINE)
 _FIELD_RE = {
@@ -89,13 +95,53 @@ def log_decision(
     return append_decision(draft, output_path=journal_path(poles_root=poles_root), today=today)
 
 
+def status_path(*, poles_root: Path = POLES_DIR) -> Path:
+    """Chemin du sidecar additif des statuts (open/closed) par décision."""
+    return poles_root / DIRECTION_POLE / "decision_status.yaml"
+
+
+def load_statuses(*, poles_root: Path = POLES_DIR) -> dict[str, str]:
+    """Relit le sidecar des statuts en mapping ``{decision_id: status}``.
+
+    Best-effort : un fichier absent / illisible donne un mapping vide (toute
+    décision est alors « open » par défaut). Seules les valeurs valides
+    (:data:`DECISION_STATUSES`) sont conservées.
+    """
+    raw = load_yaml_mapping(status_path(poles_root=poles_root))
+    statuses: dict[str, str] = {}
+    for key, value in raw.items():
+        status = str(value)
+        if status in DECISION_STATUSES:
+            statuses[str(key)] = status
+    return statuses
+
+
+def set_status(decision_id: str, status: str, *, poles_root: Path = POLES_DIR) -> dict[str, str]:
+    """Persiste le statut d'une décision dans le sidecar (idempotent).
+
+    Réécrit l'intégralité du mapping (ordre des clés préservé) et renvoie le
+    mapping à jour. ``status`` doit appartenir à :data:`DECISION_STATUSES` —
+    la validation des entrées (id connu, statut valide) reste à la charge de
+    l'appelant (le routeur tranche les codes HTTP).
+    """
+    statuses = load_statuses(poles_root=poles_root)
+    statuses[decision_id] = status
+    dump_yaml_mapping(status_path(poles_root=poles_root), statuses)
+    return statuses
+
+
 __all__ = [
+    "DECISION_STATUSES",
+    "DEFAULT_DECISION_STATUS",
     "DecisionDraft",
     "DecisionEntry",
     "DecisionWriteResult",
     "find_next_decision_id",
     "journal_path",
     "load_decisions",
+    "load_statuses",
     "log_decision",
     "render_decision",
+    "set_status",
+    "status_path",
 ]

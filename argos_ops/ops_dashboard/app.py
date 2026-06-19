@@ -1216,6 +1216,51 @@ async def get_console_status(name: str) -> ConsoleStatusResponse:
     )
 
 
+def _pole_fingerprint(pole_dir: Path) -> float:
+    """Empreinte de fraîcheur d'un pôle : mtime max sous son arborescence.
+
+    Sert au canal temps réel ``/api/ws/changes`` : si l'empreinte change (un
+    script a écrit un fait, un handoff, un breaker…), on pousse un événement
+    ``changed`` au cockpit qui invalide ses caches React Query.
+    """
+    latest = 0.0
+    try:
+        for path in pole_dir.rglob("*"):
+            if path.is_file():
+                mtime = path.stat().st_mtime
+                if mtime > latest:
+                    latest = mtime
+    except OSError:  # pragma: no cover — pôle supprimé en cours de route
+        return latest
+    return latest
+
+
+@app.websocket("/api/ws/changes")
+async def ws_changes(websocket: WebSocket) -> None:
+    """Canal temps réel read-only : pousse ``{type:"changed", pole}`` quand la
+    mémoire fichier d'un pôle change (poll mtime serveur, local-first D-017). Le
+    cockpit invalide alors ses caches ; le polling React Query reste le fallback
+    si le WS tombe. N'expose AUCUNE donnée (juste l'id du pôle modifié)."""
+    from argos_ops.poles.config import POLES_DIR
+
+    await websocket.accept()
+    last: dict[str, float] = {}
+    try:
+        while True:
+            if POLES_DIR.is_dir():
+                for pole_dir in sorted(POLES_DIR.iterdir()):
+                    if not pole_dir.is_dir() or pole_dir.name.startswith("_"):
+                        continue
+                    fingerprint = _pole_fingerprint(pole_dir)
+                    previous = last.get(pole_dir.name)
+                    if previous is not None and fingerprint != previous:
+                        await websocket.send_json({"type": "changed", "pole": pole_dir.name})
+                    last[pole_dir.name] = fingerprint
+            await asyncio.sleep(2.0)
+    except WebSocketDisconnect:
+        return
+
+
 @app.websocket("/api/agents/{name}/console/generate")
 async def console_generate_ws(websocket: WebSocket, name: str) -> None:
     """GÉNÈRE (réversible) : compose le IN → moteur atelier headless → draft +

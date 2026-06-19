@@ -85,6 +85,19 @@ def read_doc(name: str, *, poles_root: Path = POLES_DIR) -> str | None:
     return path.read_text(encoding="utf-8")
 
 
+def resolve_pdf(name: str, *, poles_root: Path = POLES_DIR) -> Path | None:
+    """Chemin du PDF rendu d'un doc. ``None`` si absent / hors ``docs/``.
+
+    Miroir anti-traversal de :func:`read_doc` : seuls les enfants directs de
+    ``docs/`` avec suffixe ``.pdf`` sont servis.
+    """
+    base = docs_dir(poles_root=poles_root).resolve()
+    path = (base / name).resolve()
+    if path.parent != base or path.suffix != ".pdf" or not path.exists():
+        return None
+    return path
+
+
 def _write_with_pdf(name: str, markdown: str, *, poles_root: Path) -> Path:
     d = docs_dir(poles_root=poles_root)
     d.mkdir(parents=True, exist_ok=True)
@@ -159,4 +172,5 @@ __all__ = [
     "generate_roadmap",
     "list_docs",
     "read_doc",
+    "resolve_pdf",
 ]

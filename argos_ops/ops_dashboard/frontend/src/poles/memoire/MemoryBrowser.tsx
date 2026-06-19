@@ -2,7 +2,7 @@
 // filtre `important`, et toggle du flag `important` par fait (POST /flag).
 // C'est le seul endroit du cockpit où l'on (dé)protège un fait à la main.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw, Shield, ShieldOff } from "lucide-react";
 import {
   type MemoireBrowse,
@@ -66,6 +66,15 @@ export function MemoryBrowser({ poles }: { poles: string[] }) {
 
   const records = data?.records ?? [];
 
+  // Autocomplete : suggestions tirées des facettes déjà présentes dans la
+  // réponse browse (kinds + scripts + poles connus), dédupliquées et triées.
+  const suggestions = useMemo(() => {
+    if (!data) return [];
+    return Array.from(
+      new Set([...data.kinds, ...data.scripts, ...data.poles].filter(Boolean)),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [data]);
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-3">
@@ -109,10 +118,17 @@ export function MemoryBrowser({ poles }: { poles: string[] }) {
         <div className="min-w-[14rem] flex-1">
           <TextInput
             label="Recherche"
-            placeholder="texte ou kind…"
+            placeholder="texte, kind ou script…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            list="memory-search-suggestions"
+            autoComplete="off"
           />
+          <datalist id="memory-search-suggestions">
+            {suggestions.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
         </div>
         <Button
           variant={importantOnly ? "primary" : "secondary"}

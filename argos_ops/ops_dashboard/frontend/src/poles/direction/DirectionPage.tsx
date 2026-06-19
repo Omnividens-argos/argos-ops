@@ -8,15 +8,20 @@
 // boutons de publication désactivés (« Python tranche »).
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import {
+  type DecisionStatus,
+  type DecisionWithStatus,
   type DirectionOverview,
   type KeyResultOut,
   addDecision,
+  directionDocPdfUrl,
   exportBoard,
+  fetchDecisions,
   fetchDirectionDoc,
   fetchDirectionOverview,
   generateDirectionDoc,
+  setDecisionStatus,
   updateOkr,
 } from "../api.ts";
 import { Badge, Button, Flash } from "../../components/ui.tsx";
@@ -645,9 +650,21 @@ function BoardTab({
                     <Badge tone="neutral">Markdown</Badge>
                   )}
                 </div>
-                <Button size="sm" variant="secondary" onClick={() => onPreview(d.name)}>
-                  preview
-                </Button>
+                <div className="flex items-center gap-2">
+                  {d.has_pdf && (
+                    <a
+                      href={directionDocPdfUrl(d.name)}
+                      download
+                      aria-label={`Télécharger le PDF de ${d.name}`}
+                      className="inline-flex items-center gap-1 rounded-md border border-argos-border bg-argos-surface-2 px-2.5 py-1 font-mono text-[11px] text-argos-fg-secondary transition-colors hover:bg-argos-surface hover:text-argos-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg"
+                    >
+                      <Download className="h-3 w-3" aria-hidden /> PDF
+                    </a>
+                  )}
+                  <Button size="sm" variant="secondary" onClick={() => onPreview(d.name)}>
+                    preview
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -699,6 +716,40 @@ function PublicationsTab({
   const [decision, setDecision] = useState("");
   const [pourquoi, setPourquoi] = useState("");
 
+  // Cycle de vie open/closed des décisions (source : GET /decisions). On le
+  // garde dans un état local indexé par decision_id pour réconcilier avec les
+  // items d'overview.decisions (qui n'embarquent pas le statut).
+  const [statuses, setStatuses] = useState<Record<string, DecisionStatus>>({});
+
+  const loadStatuses = useCallback((signal?: AbortSignal) => {
+    fetchDecisions(signal)
+      .then((rows: DecisionWithStatus[]) => {
+        if (signal?.aborted) return;
+        setStatuses(
+          Object.fromEntries(rows.map((r) => [r.decision_id, r.status] as const)),
+        );
+      })
+      .catch(() => {
+        /* lifecycle indisponible — on retombe sur l'absence de badge de statut */
+      });
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadStatuses(controller.signal);
+    return () => controller.abort();
+  }, [loadStatuses]);
+
+  const onToggleStatus = (id: string, next: DecisionStatus) => {
+    runMutation(
+      `decision-status-${id}`,
+      () => setDecisionStatus(id, next),
+      next === "closed" ? "Décision clôturée." : "Décision rouverte.",
+    ).then((ok) => {
+      if (ok) loadStatuses();
+    });
+  };
+
   const inputCls =
     "rounded-md border border-argos-border-subtle bg-argos-bg px-2.5 py-1.5 font-mono text-[11px] text-argos-fg placeholder:text-argos-fg-disabled focus:border-argos-info/60 focus:outline-none";
 
@@ -737,26 +788,52 @@ function PublicationsTab({
           <Empty>Aucune décision enregistrée.</Empty>
         ) : (
           <ol className="flex flex-col gap-2">
-            {decisions.map((d) => (
-              <li key={d.decision_id} className="flex gap-3">
-                <div className="flex flex-col items-center pt-1">
-                  <span className="h-2 w-2 rounded-full bg-argos-info" aria-hidden />
-                  <span className="mt-0.5 w-px flex-1 bg-argos-border-subtle" aria-hidden />
-                </div>
-                <div className="flex flex-1 flex-col gap-1 rounded-md border border-argos-border-subtle bg-argos-surface px-3 py-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="neutral">{d.decision_id}</Badge>
-                    <span className="font-mono text-xs text-argos-fg">{d.title}</span>
+            {decisions.map((d) => {
+              const status = statuses[d.decision_id];
+              const closed = status === "closed";
+              const next: DecisionStatus = closed ? "open" : "closed";
+              const statusKey = `decision-status-${d.decision_id}`;
+              return (
+                <li key={d.decision_id} className="flex gap-3">
+                  <div className="flex flex-col items-center pt-1">
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        closed ? "bg-argos-healthy" : "bg-argos-info"
+                      }`}
+                      aria-hidden
+                    />
+                    <span className="mt-0.5 w-px flex-1 bg-argos-border-subtle" aria-hidden />
                   </div>
-                  <span className="font-mono text-[10px] text-argos-fg-tertiary">
-                    {shortDate(d.decision_date)} · {d.partie}
-                  </span>
-                  <span className="font-mono text-[11px] leading-snug text-argos-fg-secondary">
-                    {d.decision}
-                  </span>
-                </div>
-              </li>
-            ))}
+                  <div className="flex flex-1 flex-col gap-1 rounded-md border border-argos-border-subtle bg-argos-surface px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone="neutral">{d.decision_id}</Badge>
+                      <span className="font-mono text-xs text-argos-fg">{d.title}</span>
+                      {status && (
+                        <Badge tone={closed ? "healthy" : "info"}>
+                          {closed ? "clôturée" : "ouverte"}
+                        </Badge>
+                      )}
+                      {status && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={busy === statusKey}
+                          onClick={() => onToggleStatus(d.decision_id, next)}
+                        >
+                          {closed ? "rouvrir" : "clore"}
+                        </Button>
+                      )}
+                    </div>
+                    <span className="font-mono text-[10px] text-argos-fg-tertiary">
+                      {shortDate(d.decision_date)} · {d.partie}
+                    </span>
+                    <span className="font-mono text-[11px] leading-snug text-argos-fg-secondary">
+                      {d.decision}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         )}
       </Section>

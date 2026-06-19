@@ -101,6 +101,17 @@ class HandoffOut(BaseModel):
     created_at: datetime
 
 
+class IncomingHandoff(BaseModel):
+    """Un handoff vu **côté pôle cible** (``source_pole`` = qui a poussé)."""
+
+    id: str
+    source_pole: str
+    record_id: str
+    target_pole: str
+    note: str | None
+    created_at: datetime
+
+
 # =============================================================================
 # Helpers
 # =============================================================================
@@ -123,6 +134,44 @@ def _require_pole(pole: str) -> None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Pôle inconnu : {pole}")
 
 
+def _scan_incoming_handoffs(target: str | None) -> list[IncomingHandoff]:
+    """Scanne ``data/poles/<src>/handoffs/*.json`` sur **tous** les pôles.
+
+    Retourne les handoffs dont ``target_pole == target`` (newest first). Si
+    ``target`` est ``None``, retourne tous les handoffs de la flotte. Tolérant :
+    un fichier illisible / malformé est ignoré (jamais de 500).
+    """
+    out: list[IncomingHandoff] = []
+    for cfg in load_all_poles(poles_root=POLES_DIR):
+        handoff_dir: Path = POLES_DIR / cfg.id / HANDOFFS_DIRNAME
+        if not handoff_dir.is_dir():
+            continue
+        for path in sorted(handoff_dir.glob("*.json")):
+            try:
+                raw = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if not isinstance(raw, dict):
+                continue
+            if target is not None and raw.get("target_pole") != target:
+                continue
+            try:
+                created_at = datetime.fromisoformat(str(raw["created_at"]))
+                item = IncomingHandoff(
+                    id=str(raw["id"]),
+                    source_pole=str(raw["pole"]),
+                    record_id=str(raw["record_id"]),
+                    target_pole=str(raw["target_pole"]),
+                    note=raw.get("note"),
+                    created_at=created_at,
+                )
+            except (KeyError, ValueError):
+                continue
+            out.append(item)
+    out.sort(key=lambda h: h.created_at, reverse=True)
+    return out
+
+
 # =============================================================================
 # Routes
 # =============================================================================
@@ -140,6 +189,18 @@ async def get_poles() -> list[PoleSummary]:
         )
         for cfg in load_all_poles()
     ]
+
+
+@router.get("/handoffs/incoming", response_model=list[IncomingHandoff])
+async def get_incoming_handoffs(pole: str | None = None) -> list[IncomingHandoff]:
+    """Handoffs entrants vus côté pôle **cible** (newest first).
+
+    Scanne tous les pôles. ``?pole=<cible>`` filtre sur ``target_pole`` ; omis,
+    retourne toute la flotte (avec ``source_pole``). Route statique enregistrée
+    avant ``/{pole}/feed`` — le segment ``handoffs`` ne collisionne pas avec
+    ``{pole}`` (forme différente : ``incoming`` ≠ ``feed``).
+    """
+    return _scan_incoming_handoffs(pole)
 
 
 @router.get("/{pole}/feed", response_model=PoleFeed)

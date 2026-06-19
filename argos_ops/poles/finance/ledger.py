@@ -151,6 +151,42 @@ def add_flow(
     return flow
 
 
+def update_flow(
+    flow_id: str,
+    *,
+    flow_date: date,
+    label: str,
+    category: str,
+    direction: FlowDirection,
+    amount_eur: Decimal,
+    poles_root: Path = POLES_DIR,
+) -> Flow | None:
+    """Édite une ligne existante en place. ``None`` si ``flow_id`` inconnu.
+
+    Le tableur est réécrit ; l'``id`` de la ligne reste **stable** (on ne le
+    recalcule pas depuis le nouveau contenu) pour que la ligne éditée garde son
+    identité côté cockpit. Si la nouvelle valeur entre en collision avec une
+    autre ligne, l'autre n'est pas touchée (l'unicité par contenu n'est garantie
+    qu'à l'ajout). Renvoie la ligne mise à jour, ré-triée à sa place.
+    """
+    flows = load_flows(poles_root=poles_root)
+    if not any(f.id == flow_id for f in flows):
+        return None
+    amount = amount_eur.quantize(Decimal("0.01"))
+    updated = Flow(
+        id=flow_id,
+        flow_date=flow_date,
+        label=label,
+        category=category or "autre",
+        direction=direction,
+        amount_eur=amount,
+    )
+    flows = [updated if f.id == flow_id else f for f in flows]
+    flows.sort(key=lambda f: (f.flow_date, f.label))
+    _persist(flows, poles_root=poles_root)
+    return updated
+
+
 def delete_flow(flow_id: str, *, poles_root: Path = POLES_DIR) -> bool:
     """Supprime une ligne. ``True`` si elle existait."""
     flows = load_flows(poles_root=poles_root)
@@ -191,4 +227,5 @@ __all__ = [
     "ledger_path",
     "load_flows",
     "summarize",
+    "update_flow",
 ]

@@ -302,6 +302,24 @@ def test_doc_not_found(client: TestClient) -> None:
     assert client.get("/api/poles/direction/docs/nope.md").status_code == 404
 
 
+def test_doc_pdf_not_found(client: TestClient) -> None:
+    # Aucun PDF rendu (pandoc absent en CI) ⇒ 404.
+    assert client.get("/api/poles/direction/docs/board_2026-06.md/pdf").status_code == 404
+    assert client.get("/api/poles/direction/docs/nope.pdf/pdf").status_code == 404
+
+
+def test_doc_pdf_served(client: TestClient, tmp_path: Path) -> None:
+    # Dépose un PDF factice dans le dossier docs ⇒ 200 + content-type PDF.
+    docs_dir = tmp_path / "direction" / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    (docs_dir / "board_2026-06.pdf").write_bytes(b"%PDF-1.4 fake")
+
+    r = client.get("/api/poles/direction/docs/board_2026-06.pdf/pdf")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/pdf"
+    assert r.content == b"%PDF-1.4 fake"
+
+
 # =============================================================================
 # Génération de docs (garde-fou release)
 # =============================================================================
@@ -429,3 +447,48 @@ def test_update_okr(client: TestClient) -> None:
         json={"objective": _OBJECTIVE, "name": "Inexistant", "actual": 1},
     )
     assert bad.status_code == 404
+
+
+# =============================================================================
+# Cycle de vie des décisions (sidecar open/closed)
+# =============================================================================
+def test_list_decisions_default_open(client: TestClient) -> None:
+    r = client.get("/api/poles/direction/decisions")
+    assert r.status_code == 200
+    decs = r.json()
+    assert len(decs) >= 2  # D-001 + D-002 seedées
+    # Aucun sidecar ⇒ toutes les décisions sont « open » par défaut.
+    assert all(d["status"] == "open" for d in decs)
+    # Les champs de DecisionOut sont bien repris.
+    d001 = next((d for d in decs if d["decision_id"] == "D-001"), None)
+    assert d001 is not None
+    assert d001["title"] and d001["decision"] and d001["partie"]
+
+
+def test_patch_decision_to_closed_then_reflected(client: TestClient) -> None:
+    r = client.patch("/api/poles/direction/decisions/D-001", json={"status": "closed"})
+    assert r.status_code == 200
+    assert r.json()["decision_id"] == "D-001"
+    assert r.json()["status"] == "closed"
+
+    # GET reflète le statut persisté ; les autres décisions restent open.
+    decs = client.get("/api/poles/direction/decisions").json()
+    by_id = {d["decision_id"]: d for d in decs}
+    assert by_id["D-001"]["status"] == "closed"
+    assert by_id["D-002"]["status"] == "open"
+
+    # Idempotent + réouverture possible.
+    r2 = client.patch("/api/poles/direction/decisions/D-001", json={"status": "open"})
+    assert r2.status_code == 200 and r2.json()["status"] == "open"
+    decs2 = client.get("/api/poles/direction/decisions").json()
+    assert {d["decision_id"]: d for d in decs2}["D-001"]["status"] == "open"
+
+
+def test_patch_decision_unknown_id_404(client: TestClient) -> None:
+    r = client.patch("/api/poles/direction/decisions/D-999", json={"status": "closed"})
+    assert r.status_code == 404
+
+
+def test_patch_decision_bad_status_422(client: TestClient) -> None:
+    r = client.patch("/api/poles/direction/decisions/D-001", json={"status": "archived"})
+    assert r.status_code == 422

@@ -6,19 +6,30 @@
 // génération de devis/contrat gelée (« Python tranche »).
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import {
+  type FinanceAiActSystem,
+  type FinanceFlow,
   type FinanceOverview,
+  type FinanceTreatment,
+  addAiActSystem,
   addFlow,
+  addRgpdTreatment,
   deleteFlow,
   draftDunning,
   exportAccounting,
   fetchDoc,
   fetchFinanceOverview,
+  financeDocPdfUrl,
   generateDoc,
+  updateAiActSystem,
+  updateFlow,
+  updateRgpdTreatment,
   uploadDoc,
+  uploadDocFile,
 } from "../api.ts";
-import { Badge, Button, Flash } from "../../components/ui.tsx";
+import { Badge, Button, Flash, TextInput } from "../../components/ui.tsx";
+import { FileUpload } from "../../components/FileUpload.tsx";
 import { BarChart, DivergingBars, Gauge } from "./charts.tsx";
 import {
   AI_ACT_TONE,
@@ -242,7 +253,9 @@ export function FinancePage() {
           {tab === "documents" && (
             <DocumentsTab overview={overview} busy={busy} runMutation={runMutation} setFlash={setFlash} />
           )}
-          {tab === "conformite" && <ConformiteTab overview={overview} />}
+          {tab === "conformite" && (
+            <ConformiteTab overview={overview} busy={busy} runMutation={runMutation} />
+          )}
         </>
       )}
     </div>
@@ -414,9 +427,48 @@ function FluxTab({
   const [category, setCategory] = useState("revenue");
   const [direction, setDirection] = useState("in");
   const [amount, setAmount] = useState("");
+  const [editId, setEditId] = useState<string | null>(null);
+  const [eDate, setEDate] = useState("");
+  const [eLabel, setELabel] = useState("");
+  const [eCategory, setECategory] = useState("");
+  const [eDirection, setEDirection] = useState("in");
+  const [eAmount, setEAmount] = useState("");
 
   const inputCls =
     "rounded-md border border-argos-border-subtle bg-argos-bg px-2 py-1 font-mono text-[11px] text-argos-fg placeholder:text-argos-fg-disabled focus:border-argos-info/60 focus:outline-none";
+
+  const startEdit = (f: FinanceFlow) => {
+    setEditId(f.id);
+    setEDate(f.flow_date.slice(0, 10));
+    setELabel(f.label);
+    setECategory(f.category);
+    setEDirection(f.direction === "out" ? "out" : "in");
+    setEAmount(String(f.amount_eur));
+  };
+
+  const cancelEdit = () => setEditId(null);
+
+  const onSave = (id: string) => {
+    const amt = Number(eAmount.replace(",", "."));
+    if (!eDate || !eLabel.trim() || !Number.isFinite(amt) || amt <= 0) {
+      runMutation(id, () => Promise.reject(new Error("Ligne incomplète (date, libellé, montant > 0).")), "");
+      return;
+    }
+    runMutation(
+      id,
+      () =>
+        updateFlow(id, {
+          flow_date: eDate,
+          label: eLabel.trim(),
+          category: eCategory.trim() || "autre",
+          direction: eDirection,
+          amount_eur: amt,
+        }),
+      "Ligne modifiée.",
+    ).then((ok) => {
+      if (ok) setEditId(null);
+    });
+  };
 
   const onAdd = () => {
     const amt = Number(amount.replace(",", "."));
@@ -494,32 +546,111 @@ function FluxTab({
                 </tr>
               </thead>
               <tbody>
-                {ledger.flows.map((f) => (
-                  <tr key={f.id} className="border-t border-argos-border-subtle">
-                    <td className="px-2 py-1.5 text-argos-fg-secondary">{shortDate(f.flow_date)}</td>
-                    <td className="px-2 py-1.5 text-argos-fg">{f.label}</td>
-                    <td className="px-2 py-1.5 text-argos-fg-tertiary">{f.category}</td>
-                    <td
-                      className={`px-2 py-1.5 text-right ${f.direction === "in" ? "text-argos-healthy" : "text-argos-fg-secondary"}`}
-                    >
-                      {f.direction === "in" ? "+" : "−"}
-                      {eur2(f.amount_eur)}
-                    </td>
-                    <td className="px-2 py-1.5 text-right text-argos-fg">{eur2(f.balance_eur)}</td>
-                    <td className="px-2 py-1.5 text-right">
-                      <button
-                        type="button"
-                        disabled={busy === f.id}
-                        onClick={() =>
-                          runMutation(f.id, () => deleteFlow(f.id), "Ligne supprimée.")
-                        }
-                        className="font-mono text-[10px] text-argos-danger/80 underline decoration-dotted underline-offset-2 hover:text-argos-danger disabled:opacity-40"
+                {ledger.flows.map((f) =>
+                  editId === f.id ? (
+                    <tr key={f.id} className="border-t border-argos-border-subtle bg-argos-info/5">
+                      <td className="px-2 py-1.5">
+                        <input
+                          type="date"
+                          value={eDate}
+                          onChange={(e) => setEDate(e.target.value)}
+                          className={inputCls}
+                        />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={eLabel}
+                          onChange={(e) => setELabel(e.target.value)}
+                          placeholder="libellé"
+                          className={`${inputCls} w-full`}
+                        />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input
+                          value={eCategory}
+                          onChange={(e) => setECategory(e.target.value)}
+                          placeholder="catégorie"
+                          className={`${inputCls} w-24`}
+                        />
+                      </td>
+                      <td className="px-2 py-1.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <select
+                            value={eDirection}
+                            onChange={(e) => setEDirection(e.target.value)}
+                            className={inputCls}
+                            aria-label="sens"
+                          >
+                            <option value="in">entrée</option>
+                            <option value="out">sortie</option>
+                          </select>
+                          <input
+                            value={eAmount}
+                            onChange={(e) => setEAmount(e.target.value)}
+                            placeholder="montant €"
+                            inputMode="decimal"
+                            className={`${inputCls} w-20`}
+                          />
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5 text-right text-argos-fg-tertiary">{eur2(f.balance_eur)}</td>
+                      <td className="px-2 py-1.5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            disabled={busy === f.id}
+                            onClick={() => onSave(f.id)}
+                            className="font-mono text-[10px] text-argos-healthy underline decoration-dotted underline-offset-2 hover:text-argos-healthy disabled:opacity-40"
+                          >
+                            enregistrer
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="font-mono text-[10px] text-argos-fg-tertiary underline decoration-dotted underline-offset-2 hover:text-argos-fg"
+                          >
+                            annuler
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={f.id} className="border-t border-argos-border-subtle">
+                      <td className="px-2 py-1.5 text-argos-fg-secondary">{shortDate(f.flow_date)}</td>
+                      <td className="px-2 py-1.5 text-argos-fg">{f.label}</td>
+                      <td className="px-2 py-1.5 text-argos-fg-tertiary">{f.category}</td>
+                      <td
+                        className={`px-2 py-1.5 text-right ${f.direction === "in" ? "text-argos-healthy" : "text-argos-fg-secondary"}`}
                       >
-                        suppr
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                        {f.direction === "in" ? "+" : "−"}
+                        {eur2(f.amount_eur)}
+                      </td>
+                      <td className="px-2 py-1.5 text-right text-argos-fg">{eur2(f.balance_eur)}</td>
+                      <td className="px-2 py-1.5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            disabled={busy === f.id || editId !== null}
+                            onClick={() => startEdit(f)}
+                            className="font-mono text-[10px] text-argos-info/80 underline decoration-dotted underline-offset-2 hover:text-argos-info disabled:opacity-40"
+                          >
+                            éditer
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy === f.id}
+                            onClick={() =>
+                              runMutation(f.id, () => deleteFlow(f.id), "Ligne supprimée.")
+                            }
+                            className="font-mono text-[10px] text-argos-danger/80 underline decoration-dotted underline-offset-2 hover:text-argos-danger disabled:opacity-40"
+                          >
+                            suppr
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ),
+                )}
               </tbody>
             </table>
           </div>
@@ -728,9 +859,20 @@ function DocumentsTab({
                     <Badge tone="neutral">Markdown</Badge>
                   )}
                 </div>
-                <Button size="sm" variant="secondary" onClick={() => onPreview(d.name)}>
-                  preview
-                </Button>
+                <div className="flex items-center gap-2">
+                  {d.has_pdf && (
+                    <a
+                      href={financeDocPdfUrl(d.name)}
+                      download
+                      className="inline-flex items-center gap-1 rounded-md border border-argos-border-subtle bg-argos-surface-2 px-2.5 py-1 font-mono text-[11px] text-argos-fg-secondary transition-colors hover:text-argos-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-argos-info focus-visible:ring-offset-2 focus-visible:ring-offset-argos-bg"
+                    >
+                      <Download className="h-3 w-3" aria-hidden /> PDF
+                    </a>
+                  )}
+                  <Button size="sm" variant="secondary" onClick={() => onPreview(d.name)}>
+                    preview
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -755,6 +897,15 @@ function DocumentsTab({
       )}
 
       <Section title="Uploader un document à remplir">
+        <FileUpload
+          label="Glisser un fichier (PDF, DOCX…) ou cliquer pour parcourir"
+          hint="Fichier binaire versionné automatiquement côté serveur (docs/uploads/)."
+          maxSizeMb={10}
+          onFile={(file) => {
+            void runMutation("__upfile__", () => uploadDocFile(file), `Fichier « ${file.name} » uploadé.`);
+          }}
+        />
+        <p className="mt-1 text-[11px] text-argos-fg-tertiary">Ou créer une note texte à remplir :</p>
         <div className="flex flex-col gap-2 rounded-md border border-argos-border-subtle bg-argos-surface px-3 py-2.5">
           <input
             value={upName}
@@ -808,8 +959,23 @@ function DocumentsTab({
 // =============================================================================
 // Conformité (échéancier fiscal + registres RGPD/AI Act + contrats + incidents)
 // =============================================================================
-function ConformiteTab({ overview }: { overview: FinanceOverview }) {
+function ConformiteTab({
+  overview,
+  busy,
+  runMutation,
+}: {
+  overview: FinanceOverview;
+  busy: string | null;
+  runMutation: MutFn;
+}) {
   const { fiscal, rgpd, ai_act, contracts, incidents } = overview;
+  // Classes de risque AI Act : valeurs déjà présentes dans le registre + défauts.
+  const riskOptions = Array.from(
+    new Set<string>([
+      ...ai_act.systems.map((s) => s.risk).filter(Boolean),
+      ...AI_ACT_RISK_DEFAULTS,
+    ]),
+  );
   return (
     <div className="flex flex-col gap-6">
       <Section title={`Échéancier fiscal (${fiscal.length})`}>
@@ -837,28 +1003,21 @@ function ConformiteTab({ overview }: { overview: FinanceOverview }) {
         <Section title={`Registre RGPD (${rgpd.treatments.length})`}>
           {!rgpd.present ? (
             <Flash variant="error" message={rgpd.summary} />
-          ) : rgpd.treatments.length === 0 ? (
-            <Empty>Registre vide.</Empty>
           ) : (
             <div className="flex flex-col gap-2">
-              {rgpd.treatments.map((t) => (
-                <div key={t.nom} className={CARD}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate font-mono text-xs text-argos-fg">{t.nom}</span>
-                    <Badge tone={t.conforme ? "healthy" : "danger"}>
-                      {t.conforme ? "conforme" : "gap"}
-                    </Badge>
-                  </div>
-                  <span className="font-mono text-[10px] text-argos-fg-tertiary">
-                    {t.base_legale} · {t.donnees.join(", ")}
-                  </span>
-                  {t.issues.length > 0 && (
-                    <span className="font-mono text-[10px] text-argos-danger">
-                      {t.issues.join(" · ")}
-                    </span>
-                  )}
-                </div>
-              ))}
+              {rgpd.treatments.length === 0 ? (
+                <Empty>Registre vide.</Empty>
+              ) : (
+                rgpd.treatments.map((t) => (
+                  <RgpdTreatmentRow
+                    key={t.nom}
+                    treatment={t}
+                    busy={busy}
+                    runMutation={runMutation}
+                  />
+                ))
+              )}
+              <RgpdTreatmentForm busy={busy} runMutation={runMutation} />
             </div>
           )}
         </Section>
@@ -866,21 +1025,22 @@ function ConformiteTab({ overview }: { overview: FinanceOverview }) {
         <Section title={`Registre AI Act (${ai_act.systems.length})`}>
           {!ai_act.present ? (
             <Flash variant="error" message={ai_act.summary} />
-          ) : ai_act.systems.length === 0 ? (
-            <Empty>Registre vide.</Empty>
           ) : (
             <div className="flex flex-col gap-2">
-              {ai_act.systems.map((s) => (
-                <div key={s.nom} className={CARD}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate font-mono text-xs text-argos-fg">{s.nom}</span>
-                    <Badge tone={AI_ACT_TONE[s.risk] ?? "neutral"}>{s.risk}</Badge>
-                  </div>
-                  {s.role && (
-                    <span className="font-mono text-[10px] text-argos-fg-tertiary">{s.role}</span>
-                  )}
-                </div>
-              ))}
+              {ai_act.systems.length === 0 ? (
+                <Empty>Registre vide.</Empty>
+              ) : (
+                ai_act.systems.map((s) => (
+                  <AiActSystemRow
+                    key={s.nom}
+                    system={s}
+                    riskOptions={riskOptions}
+                    busy={busy}
+                    runMutation={runMutation}
+                  />
+                ))
+              )}
+              <AiActSystemForm riskOptions={riskOptions} busy={busy} runMutation={runMutation} />
             </div>
           )}
         </Section>
@@ -954,6 +1114,450 @@ function ConformiteTab({ overview }: { overview: FinanceOverview }) {
           </div>
         )}
       </Section>
+    </div>
+  );
+}
+
+// Classes de risque AI Act par défaut (l'AI Act distingue 4 niveaux). Complétées
+// à chaud par les valeurs déjà présentes dans le registre rendu (cf. ConformiteTab).
+const AI_ACT_RISK_DEFAULTS = ["minimal", "limited", "high", "unacceptable"] as const;
+
+const FIELD_CLS =
+  "rounded-md border border-argos-border-subtle bg-argos-bg px-2 py-1 font-mono text-[11px] text-argos-fg placeholder:text-argos-fg-disabled focus:border-argos-info/60 focus:outline-none";
+
+// Convertit une saisie « a, b , c » en string[] nettoyé (sans vides ni doublons).
+function parseCsv(raw: string): string[] {
+  return Array.from(
+    new Set(
+      raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+// --- RGPD : ligne (lecture + édition inline) -------------------------------
+function RgpdTreatmentRow({
+  treatment,
+  busy,
+  runMutation,
+}: {
+  treatment: FinanceTreatment;
+  busy: string | null;
+  runMutation: MutFn;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [baseLegale, setBaseLegale] = useState(treatment.base_legale);
+  const [finalite, setFinalite] = useState(treatment.finalite);
+  const [donnees, setDonnees] = useState(treatment.donnees.join(", "));
+  const [duree, setDuree] = useState("");
+  const [reviewDate, setReviewDate] = useState(treatment.review_date?.slice(0, 10) ?? "");
+  const key = `rgpd-edit-${treatment.nom}`;
+
+  const startEdit = () => {
+    setBaseLegale(treatment.base_legale);
+    setFinalite(treatment.finalite);
+    setDonnees(treatment.donnees.join(", "));
+    setDuree("");
+    setReviewDate(treatment.review_date?.slice(0, 10) ?? "");
+    setEditing(true);
+  };
+
+  const onSave = () => {
+    if (!baseLegale.trim() || !finalite.trim() || !duree.trim()) {
+      runMutation(
+        key,
+        () =>
+          Promise.reject(
+            new Error("Champs requis : base légale, finalité, durée de conservation."),
+          ),
+        "",
+      );
+      return;
+    }
+    runMutation(
+      key,
+      () =>
+        updateRgpdTreatment(treatment.nom, {
+          nom: treatment.nom,
+          base_legale: baseLegale.trim(),
+          finalite: finalite.trim(),
+          donnees: parseCsv(donnees),
+          duree_conservation: duree.trim(),
+          review_date: reviewDate || undefined,
+        }),
+      "Traitement modifié.",
+    ).then((ok) => {
+      if (ok) setEditing(false);
+    });
+  };
+
+  if (editing) {
+    return (
+      <div className={`${CARD} gap-2`}>
+        <span className="truncate font-mono text-xs text-argos-fg">{treatment.nom}</span>
+        <TextInput
+          label="Base légale"
+          value={baseLegale}
+          onChange={(e) => setBaseLegale(e.target.value)}
+          placeholder="consentement, contrat…"
+        />
+        <TextInput
+          label="Finalité"
+          value={finalite}
+          onChange={(e) => setFinalite(e.target.value)}
+          placeholder="finalité du traitement"
+        />
+        <TextInput
+          label="Données (séparées par des virgules)"
+          value={donnees}
+          onChange={(e) => setDonnees(e.target.value)}
+          placeholder="email, nom, IP"
+        />
+        <TextInput
+          label="Durée de conservation"
+          value={duree}
+          onChange={(e) => setDuree(e.target.value)}
+          placeholder="3 ans après dernier contact"
+        />
+        <label className="flex flex-col gap-1">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
+            Date de revue
+          </span>
+          <input
+            type="date"
+            value={reviewDate}
+            onChange={(e) => setReviewDate(e.target.value)}
+            className={FIELD_CLS}
+          />
+        </label>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="primary" disabled={busy === key} onClick={onSave}>
+            enregistrer
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+            annuler
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={CARD}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate font-mono text-xs text-argos-fg">{treatment.nom}</span>
+        <div className="flex items-center gap-2">
+          <Badge tone={treatment.conforme ? "healthy" : "danger"}>
+            {treatment.conforme ? "conforme" : "gap"}
+          </Badge>
+          <button
+            type="button"
+            disabled={busy === key}
+            onClick={startEdit}
+            className="font-mono text-[10px] text-argos-info/80 underline decoration-dotted underline-offset-2 hover:text-argos-info disabled:opacity-40"
+          >
+            éditer
+          </button>
+        </div>
+      </div>
+      <span className="font-mono text-[10px] text-argos-fg-tertiary">
+        {treatment.base_legale} · {treatment.donnees.join(", ")}
+      </span>
+      {treatment.issues.length > 0 && (
+        <span className="font-mono text-[10px] text-argos-danger">
+          {treatment.issues.join(" · ")}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// --- RGPD : formulaire d'ajout ---------------------------------------------
+function RgpdTreatmentForm({
+  busy,
+  runMutation,
+}: {
+  busy: string | null;
+  runMutation: MutFn;
+}) {
+  const [nom, setNom] = useState("");
+  const [baseLegale, setBaseLegale] = useState("");
+  const [finalite, setFinalite] = useState("");
+  const [donnees, setDonnees] = useState("");
+  const [duree, setDuree] = useState("");
+  const [reviewDate, setReviewDate] = useState("");
+  const key = "__add_rgpd__";
+
+  const onAdd = () => {
+    if (!nom.trim() || !baseLegale.trim() || !finalite.trim() || !duree.trim()) {
+      runMutation(
+        key,
+        () =>
+          Promise.reject(
+            new Error("Champs requis : nom, base légale, finalité, durée de conservation."),
+          ),
+        "",
+      );
+      return;
+    }
+    runMutation(
+      key,
+      () =>
+        addRgpdTreatment({
+          nom: nom.trim(),
+          base_legale: baseLegale.trim(),
+          finalite: finalite.trim(),
+          donnees: parseCsv(donnees),
+          duree_conservation: duree.trim(),
+          review_date: reviewDate || undefined,
+        }),
+      "Traitement ajouté.",
+    ).then((ok) => {
+      if (ok) {
+        setNom("");
+        setBaseLegale("");
+        setFinalite("");
+        setDonnees("");
+        setDuree("");
+        setReviewDate("");
+      }
+    });
+  };
+
+  return (
+    <div className={`${CARD} gap-2 border-dashed`}>
+      <span className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
+        Ajouter un traitement
+      </span>
+      <TextInput
+        label="Nom"
+        value={nom}
+        onChange={(e) => setNom(e.target.value)}
+        placeholder="ex. Newsletter prospects"
+      />
+      <TextInput
+        label="Base légale"
+        value={baseLegale}
+        onChange={(e) => setBaseLegale(e.target.value)}
+        placeholder="consentement, contrat…"
+      />
+      <TextInput
+        label="Finalité"
+        value={finalite}
+        onChange={(e) => setFinalite(e.target.value)}
+        placeholder="finalité du traitement"
+      />
+      <TextInput
+        label="Données (séparées par des virgules)"
+        value={donnees}
+        onChange={(e) => setDonnees(e.target.value)}
+        placeholder="email, nom, IP"
+      />
+      <TextInput
+        label="Durée de conservation"
+        value={duree}
+        onChange={(e) => setDuree(e.target.value)}
+        placeholder="3 ans après dernier contact"
+      />
+      <label className="flex flex-col gap-1">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
+          Date de revue
+        </span>
+        <input
+          type="date"
+          value={reviewDate}
+          onChange={(e) => setReviewDate(e.target.value)}
+          className={FIELD_CLS}
+        />
+      </label>
+      <div>
+        <Button size="sm" variant="primary" disabled={busy === key} onClick={onAdd}>
+          ajouter un traitement
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// --- AI Act : ligne (lecture + édition inline) -----------------------------
+function AiActSystemRow({
+  system,
+  riskOptions,
+  busy,
+  runMutation,
+}: {
+  system: FinanceAiActSystem;
+  riskOptions: string[];
+  busy: string | null;
+  runMutation: MutFn;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [role, setRole] = useState(system.role);
+  const [risk, setRisk] = useState(system.risk);
+  const key = `aiact-edit-${system.nom}`;
+  const options = riskOptions.includes(risk) ? riskOptions : [risk, ...riskOptions];
+
+  const startEdit = () => {
+    setRole(system.role);
+    setRisk(system.risk);
+    setEditing(true);
+  };
+
+  const onSave = () => {
+    runMutation(
+      key,
+      () =>
+        updateAiActSystem(system.nom, {
+          nom: system.nom,
+          role: role.trim(),
+          risk_class: risk,
+        }),
+      "Système modifié.",
+    ).then((ok) => {
+      if (ok) setEditing(false);
+    });
+  };
+
+  if (editing) {
+    return (
+      <div className={`${CARD} gap-2`}>
+        <span className="truncate font-mono text-xs text-argos-fg">{system.nom}</span>
+        <TextInput
+          label="Rôle"
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          placeholder="rôle du système IA"
+        />
+        <label className="flex flex-col gap-1">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
+            Classe de risque
+          </span>
+          <select
+            value={risk}
+            onChange={(e) => setRisk(e.target.value)}
+            className={FIELD_CLS}
+            aria-label="classe de risque"
+          >
+            {options.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="primary" disabled={busy === key} onClick={onSave}>
+            enregistrer
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+            annuler
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={CARD}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate font-mono text-xs text-argos-fg">{system.nom}</span>
+        <div className="flex items-center gap-2">
+          <Badge tone={AI_ACT_TONE[system.risk] ?? "neutral"}>{system.risk}</Badge>
+          <button
+            type="button"
+            disabled={busy === key}
+            onClick={startEdit}
+            className="font-mono text-[10px] text-argos-info/80 underline decoration-dotted underline-offset-2 hover:text-argos-info disabled:opacity-40"
+          >
+            éditer
+          </button>
+        </div>
+      </div>
+      {system.role && (
+        <span className="font-mono text-[10px] text-argos-fg-tertiary">{system.role}</span>
+      )}
+    </div>
+  );
+}
+
+// --- AI Act : formulaire d'ajout -------------------------------------------
+function AiActSystemForm({
+  riskOptions,
+  busy,
+  runMutation,
+}: {
+  riskOptions: string[];
+  busy: string | null;
+  runMutation: MutFn;
+}) {
+  const [nom, setNom] = useState("");
+  const [role, setRole] = useState("");
+  const [risk, setRisk] = useState(riskOptions[0] ?? AI_ACT_RISK_DEFAULTS[0]);
+  const key = "__add_aiact__";
+
+  const onAdd = () => {
+    if (!nom.trim() || !risk) {
+      runMutation(
+        key,
+        () => Promise.reject(new Error("Champs requis : nom, classe de risque.")),
+        "",
+      );
+      return;
+    }
+    runMutation(
+      key,
+      () => addAiActSystem({ nom: nom.trim(), role: role.trim(), risk_class: risk }),
+      "Système ajouté.",
+    ).then((ok) => {
+      if (ok) {
+        setNom("");
+        setRole("");
+        setRisk(riskOptions[0] ?? AI_ACT_RISK_DEFAULTS[0]);
+      }
+    });
+  };
+
+  return (
+    <div className={`${CARD} gap-2 border-dashed`}>
+      <span className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
+        Ajouter un système
+      </span>
+      <TextInput
+        label="Nom"
+        value={nom}
+        onChange={(e) => setNom(e.target.value)}
+        placeholder="ex. Classifieur emails"
+      />
+      <TextInput
+        label="Rôle"
+        value={role}
+        onChange={(e) => setRole(e.target.value)}
+        placeholder="rôle du système IA"
+      />
+      <label className="flex flex-col gap-1">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-argos-fg-tertiary">
+          Classe de risque
+        </span>
+        <select
+          value={risk}
+          onChange={(e) => setRisk(e.target.value)}
+          className={FIELD_CLS}
+          aria-label="classe de risque"
+        >
+          {riskOptions.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div>
+        <Button size="sm" variant="primary" disabled={busy === key} onClick={onAdd}>
+          ajouter un système
+        </Button>
+      </div>
     </div>
   );
 }

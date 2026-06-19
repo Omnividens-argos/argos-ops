@@ -31,7 +31,7 @@ from pathlib import Path
 
 from argos_ops.compliance import AIActRisk, classify_ai_act_risk
 from argos_ops.poles.config import POLES_DIR
-from argos_ops.poles.finance.store import load_yaml_mapping, parse_date
+from argos_ops.poles.finance.store import dump_yaml_mapping, load_yaml_mapping, parse_date
 
 FINANCE_POLE = "finance"
 
@@ -187,6 +187,116 @@ def load_rgpd_registry(
 
 
 # =============================================================================
+# RGPD — écriture (registre éditable, S5+)
+# =============================================================================
+def _normalize_donnees(donnees: list[str] | None) -> list[str]:
+    """Nettoie la liste de données (retire les entrées vides, strip)."""
+    if not donnees:
+        return []
+    return [d.strip() for d in donnees if d and d.strip()]
+
+
+def _treatment_row(
+    *,
+    nom: str,
+    base_legale: str,
+    finalite: str,
+    donnees: list[str],
+    duree_conservation: str,
+    review_date: str | None,
+) -> dict[str, object]:
+    """Construit une ligne YAML de traitement RGPD (ordre des clés stable)."""
+    row: dict[str, object] = {
+        "nom": nom,
+        "base_legale": base_legale,
+        "finalite": finalite,
+        "donnees": donnees,
+        "duree_conservation": duree_conservation,
+    }
+    if review_date is not None:
+        row["review_date"] = review_date
+    return row
+
+
+def append_treatment(
+    *,
+    nom: str,
+    base_legale: str,
+    finalite: str,
+    donnees: list[str],
+    duree_conservation: str,
+    review_date: str | None,
+    poles_root: Path = POLES_DIR,
+) -> dict[str, object]:
+    """Ajoute un traitement au registre RGPD (réécriture YAML, autres lignes préservées).
+
+    Idempotent par ``nom`` : si une fiche du même nom existe déjà, elle est
+    **remplacée** (pas de doublon). Renvoie la ligne persistée.
+    """
+    path = rgpd_registry_path(poles_root=poles_root)
+    raw = load_yaml_mapping(path)
+    rows = _dict_rows(raw, "traitements")
+    new_row = _treatment_row(
+        nom=nom,
+        base_legale=base_legale,
+        finalite=finalite,
+        donnees=_normalize_donnees(donnees),
+        duree_conservation=duree_conservation,
+        review_date=review_date,
+    )
+    kept = [r for r in rows if str(r.get("nom") or r.get("name") or "") != nom]
+    kept.append(new_row)
+    raw["traitements"] = kept
+    dump_yaml_mapping(path, raw)
+    return new_row
+
+
+def update_treatment(
+    nom: str,
+    *,
+    base_legale: str,
+    finalite: str,
+    donnees: list[str],
+    duree_conservation: str,
+    review_date: str | None,
+    poles_root: Path = POLES_DIR,
+) -> dict[str, object] | None:
+    """Édite la fiche RGPD dont le ``nom`` correspond (en place, clés inconnues préservées).
+
+    ``None`` si aucune fiche ne porte ce ``nom``. Le ``nom`` reste inchangé ; les
+    clés non gérées de la ligne (ex. ``sous_traitants``) sont conservées telles
+    quelles. Renvoie la ligne mise à jour.
+    """
+    path = rgpd_registry_path(poles_root=poles_root)
+    raw = load_yaml_mapping(path)
+    rows = _dict_rows(raw, "traitements")
+    target: dict[str, object] | None = None
+    out: list[dict[str, object]] = []
+    for r in rows:
+        if target is None and str(r.get("nom") or r.get("name") or "") == nom:
+            merged = dict(r)
+            merged.update(
+                _treatment_row(
+                    nom=nom,
+                    base_legale=base_legale,
+                    finalite=finalite,
+                    donnees=_normalize_donnees(donnees),
+                    duree_conservation=duree_conservation,
+                    review_date=review_date,
+                )
+            )
+            target = merged
+            out.append(merged)
+        else:
+            out.append(r)
+    if target is None:
+        return None
+    raw["traitements"] = out
+    dump_yaml_mapping(path, raw)
+    return target
+
+
+# =============================================================================
 # AI Act
 # =============================================================================
 @dataclass(frozen=True)
@@ -261,6 +371,70 @@ def load_ai_act_registry(*, poles_root: Path = POLES_DIR) -> AIActRegistryReport
 
 
 # =============================================================================
+# AI Act — écriture (registre éditable, S5+)
+# =============================================================================
+def _ai_system_row(*, nom: str, role: str, risk_class: str) -> dict[str, object]:
+    """Construit une ligne YAML de système IA (ordre des clés stable)."""
+    return {"nom": nom, "role": role, "risk_class": risk_class}
+
+
+def append_ai_system(
+    *,
+    nom: str,
+    role: str,
+    risk_class: str,
+    poles_root: Path = POLES_DIR,
+) -> dict[str, object]:
+    """Ajoute un système au registre AI Act (réécriture YAML, autres lignes préservées).
+
+    Idempotent par ``nom`` : un système du même nom est **remplacé** (pas de
+    doublon). La ``risk_class`` est persistée telle quelle ; sa validité est
+    re-normalisée à la lecture via :func:`classify_ai_act_risk`. Renvoie la ligne.
+    """
+    path = ai_act_registry_path(poles_root=poles_root)
+    raw = load_yaml_mapping(path)
+    rows = _dict_rows(raw, "systemes")
+    new_row = _ai_system_row(nom=nom, role=role, risk_class=risk_class)
+    kept = [r for r in rows if str(r.get("nom") or r.get("name") or "") != nom]
+    kept.append(new_row)
+    raw["systemes"] = kept
+    dump_yaml_mapping(path, raw)
+    return new_row
+
+
+def update_ai_system(
+    nom: str,
+    *,
+    role: str,
+    risk_class: str,
+    poles_root: Path = POLES_DIR,
+) -> dict[str, object] | None:
+    """Édite le système AI Act dont le ``nom`` correspond (en place, clés préservées).
+
+    ``None`` si aucun système ne porte ce ``nom``. Le ``nom`` reste inchangé ;
+    les clés non gérées de la ligne sont conservées. Renvoie la ligne mise à jour.
+    """
+    path = ai_act_registry_path(poles_root=poles_root)
+    raw = load_yaml_mapping(path)
+    rows = _dict_rows(raw, "systemes")
+    target: dict[str, object] | None = None
+    out: list[dict[str, object]] = []
+    for r in rows:
+        if target is None and str(r.get("nom") or r.get("name") or "") == nom:
+            merged = dict(r)
+            merged.update(_ai_system_row(nom=nom, role=role, risk_class=risk_class))
+            target = merged
+            out.append(merged)
+        else:
+            out.append(r)
+    if target is None:
+        return None
+    raw["systemes"] = out
+    dump_yaml_mapping(path, raw)
+    return target
+
+
+# =============================================================================
 # Garde-fou — « Python tranche »
 # =============================================================================
 def _ai_act_blocking(ai_act: AIActRegistryReport) -> bool:
@@ -306,10 +480,14 @@ __all__ = [
     "RGPDRegistryReport",
     "RGPDTreatment",
     "ai_act_registry_path",
+    "append_ai_system",
+    "append_treatment",
     "blocking_reason",
     "compliance_blocking",
     "compliance_dir",
     "load_ai_act_registry",
     "load_rgpd_registry",
     "rgpd_registry_path",
+    "update_ai_system",
+    "update_treatment",
 ]
